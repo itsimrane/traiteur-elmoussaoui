@@ -1,0 +1,82 @@
+/* ══════════════════════════════════════════
+   ADMIN EXTRA — Scrollbar + Admin icon + Lang
+══════════════════════════════════════════ */
+
+/* Scrollbar sidebar cachée */
+.sidebar { scrollbar-width:none!important; -ms-overflow-style:none!important; overflow-y:auto!important; overflow-x:hidden!important; }
+.sidebar::-webkit-scrollbar, .sidebar-nav::-webkit-scrollbar { display:none!important; }
+.sidebar-nav { scrollbar-width:none!important; }
+
+/* Icône admin navbar */
+.nav-admin-icon { width:36px;height:36px;border-radius:9px;display:flex;align-items:center;justify-content:center;font-size:.9rem;transition:var(--transition);text-decoration:none;flex-shrink:0; }
+.nav-admin-icon.connected { background:rgba(212,175,55,.15);border:1px solid rgba(212,175,55,.3);color:var(--gold); }
+.nav-admin-icon.connected:hover { background:rgba(212,175,55,.28); }
+.nav-admin-icon.disconnected { background:var(--dark-3);border:1px solid var(--border);color:var(--text-muted); }
+.nav-admin-icon.disconnected:hover { border-color:var(--gold);color:var(--gold); }
+
+/* Badge rouge sidebar */
+.sidebar-badge { background:#EF5350;color:#FFF;border-radius:10px;padding:1px 7px;font-size:.62rem;font-weight:700;margin-left:auto; }
+
+/* ── Bouton langue FR/AR dans la sidebar ── */
+.admin-lang-switch {
+  display: flex;
+  align-items: center;
+  background: var(--dark-3);
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  padding: 3px 4px;
+  gap: 2px;
+}
+.admin-lang-switch .lang-option {
+  padding: 4px 14px;
+  border-radius: 16px;
+  font-size: .72rem;
+  font-weight: 700;
+  letter-spacing: .5px;
+  cursor: pointer;
+  color: var(--text-muted);
+  transition: background .2s, color .2s;
+  user-select: none;
+}
+.admin-lang-switch .lang-option.active {
+  background: var(--gold);
+  color: #0D0D0D;
+}
+.admin-lang-switch .lang-option:hover:not(.active) {
+  color: var(--gold);
+}
+
+/* ── RTL admin ── */
+body.rtl-mode .admin-topbar { flex-direction: row-reverse; }
+body.rtl-mode .admin-topbar > div:first-child { flex-direction: row-reverse; }
+body.rtl-mode .topbar-title { text-align: right; }
+body.rtl-mode .topbar-title h2, body.rtl-mode .topbar-title p { text-align: right; }
+body.rtl-mode .sidebar-link { flex-direction: row-reverse; }
+body.rtl-mode .sidebar-link span { flex: 1; text-align: right; }
+body.rtl-mode .sidebar-link i { margin-left: 10px; margin-right: 0; }
+body.rtl-mode .sidebar-label { text-align: right; }
+body.rtl-mode .sidebar-badge { margin-left: 0; margin-right: auto; }
+body.rtl-mode .sidebar-footer > div { flex-direction: row-reverse; }
+body.rtl-mode .stat-card { text-align: right; }
+body.rtl-mode .stat-card-header { flex-direction: row-reverse; }
+body.rtl-mode .quick-btn { flex-direction: column; }
+body.rtl-mode .dash-card-header { flex-direction: row-reverse; }
+body.rtl-mode .dash-item { flex-direction: row-reverse; }
+body.rtl-mode .dash-item-left { text-align: right; }
+body.rtl-mode .admin-content { direction: rtl; }
+body.rtl-mode table { direction: rtl; }
+body.rtl-mode table th, body.rtl-mode table td { text-align: right; }
+body.rtl-mode .td-actions { flex-direction: row-reverse; }
+body.rtl-mode .table-topbar { flex-direction: row-reverse; }
+body.rtl-mode .form-group label { text-align: right; display: block; }
+body.rtl-mode .modal-header { flex-direction: row-reverse; }
+body.rtl-mode .modal-footer { flex-direction: row-reverse; }
+body.rtl-mode .save-row { flex-direction: row-reverse; }
+body.rtl-mode .section-hd { flex-direction: row-reverse; }
+body.rtl-mode .pkg-card-body { text-align: right; }
+body.rtl-mode .item-row { flex-direction: row-reverse; }
+body.rtl-mode .toggle-row { flex-direction: row-reverse; }
+/* Chiffres toujours LTR */
+body.rtl-mode .stat-card-value,
+body.rtl-mode .sidebar-badge,
+body.rtl-mode [dir="ltr"] { direction: ltr; unicode-bidi: isolate; }
