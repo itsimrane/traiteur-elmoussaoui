@@ -248,22 +248,20 @@ $typesEvenements = [
           ?>
           <div class="service-chk-card"
                data-id="<?= $s['id'] ?>"
-               data-nom="<?= htmlspecialchars($s['nom']) ?>" data-nom-ar="<?= htmlspecialchars($s['nom_ar'] ?? $s['nom']) ?>"
+               data-nom="<?= htmlspecialchars($s['nom']) ?>"
                data-prix="<?= $prix ?>"
                data-tier="<?= $s['categorie_tarif'] ?? 'bronze' ?>"
                data-types="<?= htmlspecialchars($typesStr) ?>"
                onclick="toggleService(this)">
             <input type="checkbox" name="services[]" value="<?= $s['id'] ?>">
             <div class="checkmark"><i class="fas fa-check" style="font-size:.65rem"></i></div>
-            <span class="svc-tier <?= $s['categorie_tarif'] ?? 'bronze' ?>"
-              data-fr="<?= ucfirst($s['categorie_tarif'] ?? 'bronze') ?>"
-              data-ar="<?= match($s['categorie_tarif'] ?? 'bronze') { 'bronze'=>'برونز','argent'=>'فضي','or'=>'ذهبي', default=>'برونز' } ?>"><?= ucfirst($s['categorie_tarif'] ?? 'bronze') ?></span>
+            <span class="svc-tier <?= $s['categorie_tarif'] ?? 'bronze' ?>"><?= ucfirst($s['categorie_tarif'] ?? 'bronze') ?></span>
             <div class="svc-header">
               <div class="svc-icon"><i class="fas <?= htmlspecialchars($s['icone'] ?? 'fa-star') ?>"></i></div>
-              <div class="svc-name" data-fr="<?= htmlspecialchars($s['nom']) ?>" data-ar="<?= htmlspecialchars($s['nom_ar'] ?? $s['nom']) ?>"><?= htmlspecialchars($s['nom']) ?></div>
+              <div class="svc-name"><?= htmlspecialchars($s['nom']) ?></div>
             </div>
             <?php if ($s['description']): ?>
-            <div class="svc-desc" data-fr="<?= htmlspecialchars($s['description'] ?? '') ?>" data-ar="<?= htmlspecialchars($s['description_ar'] ?? $s['description'] ?? '') ?>"><?= htmlspecialchars($s['description']) ?></div>
+            <div class="svc-desc"><?= htmlspecialchars($s['description']) ?></div>
             <?php endif; ?>
             <div class="svc-price" dir="ltr"><?= $prix > 0 ? number_format($prix,0,',',' ') . ' MAD' : 'Sur devis' ?></div>
           </div>
@@ -380,8 +378,41 @@ $typesEvenements = [
           </div>
         </div>
 
-        <!-- Actions -->
-        <div style="display:flex;gap:12px;justify-content:center;margin-top:24px;flex-wrap:wrap">
+        <!-- Bouton principal : Enregistrer la demande -->
+        <div id="sendDevisWrap" style="margin-top:28px;text-align:center">
+          <div style="background:rgba(37,211,102,.06);border:1px solid rgba(37,211,102,.2);border-radius:14px;padding:22px 28px">
+            <p style="color:var(--text-muted);font-size:.85rem;margin-bottom:16px"
+               data-fr="Cliquez sur le bouton ci-dessous pour envoyer définitivement votre demande à notre équipe."
+               data-ar="انقر على الزر أدناه لإرسال طلبك نهائياً إلى فريقنا.">
+              Cliquez sur le bouton ci-dessous pour envoyer définitivement votre demande à notre équipe.
+            </p>
+            <button onclick="envoyerDemande()" id="btnEnvoyer"
+                    style="background:linear-gradient(135deg,#25D366,#1da851);color:#fff;border:none;padding:15px 36px;border-radius:50px;font-size:1rem;font-weight:700;cursor:pointer;display:inline-flex;align-items:center;gap:10px;transition:all .3s;box-shadow:0 8px 24px rgba(37,211,102,.3)">
+              <i class="fas fa-paper-plane"></i>
+              <span data-fr="Enregistrer ma demande" data-ar="حفظ طلبي">Enregistrer ma demande</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Message confirmation après envoi -->
+        <div id="confirmationMsg" style="display:none;margin-top:20px;text-align:center;background:rgba(37,211,102,.08);border:1px solid rgba(37,211,102,.25);border-radius:14px;padding:28px">
+          <div style="width:64px;height:64px;border-radius:50%;background:rgba(37,211,102,.15);border:2px solid #25D366;display:flex;align-items:center;justify-content:center;margin:0 auto 16px;font-size:1.6rem;color:#25D366">
+            <i class="fas fa-check-double"></i>
+          </div>
+          <h3 style="color:#25D366;font-size:1.1rem;margin-bottom:8px"
+              data-fr="Demande envoyée avec succès !" data-ar="تم إرسال الطلب بنجاح!">
+            Demande envoyée avec succès !
+          </h3>
+          <p style="color:var(--text-muted);font-size:.88rem;line-height:1.7"
+             data-fr="Votre demande a bien été enregistrée. Notre équipe vous contactera prochainement au numéro indiqué."
+             data-ar="تم تسجيل طلبك بنجاح، وسيتواصل معك فريقنا قريبًا على الرقم المُدخل.">
+            Votre demande a bien été enregistrée. Notre équipe vous contactera prochainement au numéro indiqué.
+          </p>
+          <p id="confirmRef" style="color:var(--gold);font-size:.82rem;margin-top:10px;font-weight:600"></p>
+        </div>
+
+        <!-- Actions secondaires -->
+        <div style="display:flex;gap:12px;justify-content:center;margin-top:20px;flex-wrap:wrap">
           <button onclick="downloadPDF()" class="btn-primary" style="padding:13px 28px;font-size:.9rem">
             <i class="fas fa-download"></i>
             <span data-fr="Télécharger le devis PDF" data-ar="تحميل عرض الأسعار PDF">Télécharger le devis PDF</span>
@@ -469,14 +500,13 @@ function filterCat(cat, btn) {
 function toggleService(card) {
   card.classList.toggle('checked');
   const id   = parseInt(card.dataset.id);
-  const nom     = card.dataset.nom;
-  const nomAr   = card.dataset.nomAr || nom;
+  const nom  = card.dataset.nom;
   const prix = parseFloat(card.dataset.prix) || 0;
   const tier = card.dataset.tier;
 
   if (card.classList.contains('checked')) {
     if (!selectedServices.find(s => s.id === id))
-      selectedServices.push({id, nom, nomAr, prix, tier});
+      selectedServices.push({id, nom, prix, tier});
   } else {
     selectedServices = selectedServices.filter(s => s.id !== id);
   }
@@ -489,7 +519,6 @@ function updateTotal() {
   document.getElementById('totalAmount').textContent = total.toLocaleString('fr-FR') + ' MAD';
   document.getElementById('totalDetail').textContent = count + ' service' + (count > 1 ? 's' : '') + ' sélectionné' + (count > 1 ? 's' : '');
   const chips = document.getElementById('selectedChips');
-  const lang = localStorage.getItem('site_lang') || 'fr';
   chips.innerHTML = selectedServices.slice(0,5).map(s =>
     `<span class="svc-chip">${s.nom}</span>`
   ).join('') + (count > 5 ? `<span class="svc-chip">+${count-5}</span>` : '');
@@ -587,6 +616,62 @@ function buildRecap() {
   `).join('');
 
   document.getElementById('recapTotal').textContent = devisData.total.toLocaleString('fr-FR') + ' MAD';
+}
+
+// ── Enregistrer la demande ────────────────────────────────
+function envoyerDemande() {
+  const btn     = document.getElementById('btnEnvoyer');
+  const lang    = localStorage.getItem('site_lang') || 'fr';
+  const isAr    = lang === 'ar';
+
+  btn.disabled  = true;
+  btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> '
+    + (isAr ? 'جارٍ الإرسال...' : 'Envoi en cours...');
+
+  // Construire payload complet avec horodatage
+  const payload = {
+    ...devisData,
+    datetime_demande: new Date().toISOString(),
+    statut: 'en_attente',
+  };
+
+  fetch('<?= SITE_URL ?>/api/save_devis.php', {
+    method : 'POST',
+    headers: {'Content-Type':'application/json'},
+    body   : JSON.stringify(payload),
+  })
+  .then(r => r.json())
+  .then(res => {
+    if (res.success) {
+      // Masquer le bouton d'envoi
+      document.getElementById('sendDevisWrap').style.display = 'none';
+      // Afficher confirmation
+      const conf = document.getElementById('confirmationMsg');
+      conf.style.display = 'block';
+      // Afficher référence
+      const ref = res.numero || devisData.numero || '';
+      document.getElementById('confirmRef').textContent =
+        (isAr ? 'رقم المرجع : ' : 'Référence de votre demande : ') + ref;
+      // Re-appliquer traduction
+      if (window.applyLang) applyLang(lang);
+    } else {
+      btn.disabled = false;
+      btn.innerHTML = '<i class="fas fa-paper-plane"></i> '
+        + (isAr ? 'حفظ طلبي' : 'Enregistrer ma demande');
+      alert(isAr
+        ? 'حدث خطأ. يرجى المحاولة مجدداً أو التواصل عبر واتساب.'
+        : 'Erreur : ' + (res.message || 'Veuillez réessayer ou contacter via WhatsApp.'));
+    }
+  })
+  .catch(() => {
+    // Mode offline — message alternatif
+    btn.disabled = false;
+    btn.innerHTML = '<i class="fas fa-paper-plane"></i> '
+      + (isAr ? 'حفظ طلبي' : 'Enregistrer ma demande');
+    alert(isAr
+      ? 'لا يمكن الاتصال بالخادم. يرجى التواصل مباشرة عبر واتساب: 0626 986 533'
+      : 'Connexion impossible. Veuillez nous contacter directement via WhatsApp : 0626 986 533');
+  });
 }
 
 // ── Téléchargement PDF ────────────────────────────────────
