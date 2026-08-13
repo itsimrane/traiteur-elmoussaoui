@@ -5,14 +5,30 @@ requireAdmin();
 // Récupérer les clients avec leur nombre de réservations
 try {
     $clients = $pdo->query("
-        SELECT c.*,
-               COUNT(r.id) as nb_reservations,
-               MAX(r.date_evenement) as dernier_evenement
+        SELECT
+            c.id, c.prenom, c.nom, c.email, c.telephone, c.ville,
+            c.source, c.created_at,
+            COUNT(DISTINCT d.id) AS nb_reservations
         FROM clients c
-        LEFT JOIN reservations r ON r.email = c.email
+        LEFT JOIN devis_generes d ON d.telephone = c.telephone
         WHERE c.deleted_at IS NULL
         GROUP BY c.id
         ORDER BY c.created_at DESC
+    ")->fetchAll();
+
+    // Compléter avec les clients dans devis_generes non encore dans clients
+    $devis_clients = $pdo->query("
+        SELECT DISTINCT
+            0 as id,
+            SUBSTRING_INDEX(nom_client,' ',1) as prenom,
+            SUBSTRING_INDEX(nom_client,' ',-1) as nom,
+            email, telephone, ville,
+            'site_web' as source, created_at,
+            COUNT(*) as nb_reservations
+        FROM devis_generes
+        WHERE telephone NOT IN (SELECT telephone FROM clients WHERE telephone IS NOT NULL)
+        GROUP BY telephone
+        ORDER BY created_at DESC
     ")->fetchAll();
 } catch(Exception $e) {
     $clients = [];
@@ -159,21 +175,63 @@ if (isset($_GET['msg'])) {
 <div class="sidebar-overlay" id="sidebarOverlay"></div>
 <div class="admin-layout">
 
-  <?php $activePage = 'clients'; include_once __DIR__ . '/../includes/admin-sidebar.php'; ?>
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-header">
+      <div class="logo-text" style="display:flex;flex-direction:column;align-items:center">
+        <span class="logo-traiteur" style="font-size:.55rem;letter-spacing:4px;color:var(--text-muted)">TRAITEUR</span>
+        <span class="logo-name" style="font-size:1.1rem">EL MOUSSAOUI</span>
+        <span class="logo-sub" style="font-size:.65rem">Admin Panel v1.0</span>
+      </div>
+    </div>
+    <nav class="sidebar-nav">
+      <div class="sidebar-label">PRINCIPAL</div>
+      <a href="dashboard.php" class="sidebar-link"><i class="fas fa-tachometer-alt"></i> Tableau de bord</a>
+      <a href="reservations.php" class="sidebar-link"><i class="fas fa-calendar-check"></i> Réservations</a>
+      <a href="devis.php" class="sidebar-link"><i class="fas fa-file-invoice"></i> Devis</a>
+      <a href="clients.php" class="sidebar-link active"><i class="fas fa-users"></i> Clients</a>
+      <a href="factures.php" class="sidebar-link"><i class="fas fa-receipt"></i> Factures</a>
+      <a href="paiements.php" class="sidebar-link"><i class="fas fa-credit-card"></i> Paiements</a>
+      <div class="sidebar-label" style="margin-top:8px">CONTENU</div>
+      <a href="services-admin.php" class="sidebar-link"><i class="fas fa-concierge-bell"></i> Services</a>
+      <a href="packages-admin.php" class="sidebar-link"><i class="fas fa-box-open"></i> Packages</a>
+      <a href="../pages/galerie.php?edit=1" class="sidebar-link"><i class="fas fa-images"></i> Galerie</a>
+      <a href="blog-admin.php" class="sidebar-link"><i class="fas fa-pen-nib"></i> Blog</a>
+      <a href="temoignages-admin.php" class="sidebar-link"><i class="fas fa-star"></i> Témoignages</a>
+      <div class="sidebar-label" style="margin-top:8px">COMMUNICATION</div>
+      <a href="messages.php" class="sidebar-link"><i class="fas fa-envelope"></i> Messages</a>
+      <a href="notifications.php" class="sidebar-link"><i class="fas fa-bell"></i> Notifications</a>
+      <div class="sidebar-label" style="margin-top:8px">SYSTÈME</div>
+      <a href="utilisateurs.php" class="sidebar-link"><i class="fas fa-user-shield"></i> Utilisateurs</a>
+      <a href="parametres.php" class="sidebar-link"><i class="fas fa-cog"></i> Paramètres</a>
+      <a href="logs.php" class="sidebar-link"><i class="fas fa-history"></i> Journaux</a>
+    </nav>
+    <div class="sidebar-footer">
+      <div style="display:flex;align-items:center;gap:10px;padding:8px;border-radius:10px;background:var(--dark-3)">
+        <div class="admin-avatar" style="width:34px;height:34px;border-radius:8px">A</div>
+        <div style="flex:1;min-width:0">
+          <div style="font-size:.82rem;color:var(--white);font-weight:500">Admin ELM</div>
+          <div style="font-size:.7rem;color:var(--text-muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">admin@traiteur-elmoussaoui.ma</div>
+        </div>
+        <a href="logout.php" title="Déconnexion" style="color:var(--text-muted);font-size:.85rem" onmouseover="this.style.color='var(--gold)'" onmouseout="this.style.color='var(--text-muted)'">
+          <i class="fas fa-sign-out-alt"></i>
+        </a>
+      </div>
+    </div>
+  </aside>
 
   <main class="admin-main">
     <div class="admin-topbar">
       <div style="display:flex;align-items:center;gap:12px">
         <button id="sidebarToggle" class="topbar-btn"><i class="fas fa-bars"></i></button>
         <div class="topbar-title">
-          <h2 data-fr="Gestion Clients" data-ar="إدارة العملاء">Gestion Clients</h2>
-          <p data-fr="Fiches clients et historique des événements" data-ar="بطاقات العملاء وسجل المناسبات">Fiches clients et historique des événements</p>
+          <h2>Gestion Clients</h2>
+          <p>Fiches clients et historique des événements</p>
         </div>
       </div>
       <div class="topbar-actions">
         <button class="topbar-btn" onclick="location.reload()"><i class="fas fa-sync-alt"></i></button>
         <button class="btn-primary" style="padding:8px 18px;font-size:.82rem" onclick="openAddModal()">
-          <i class="fas fa-user-plus"></i> <span data-fr="Nouveau client" data-ar="عميل جديد">Nouveau client</span>
+          <i class="fas fa-user-plus"></i> Nouveau client
         </button>
         <div class="admin-avatar">A</div>
       </div>
@@ -192,33 +250,33 @@ if (isset($_GET['msg'])) {
         <div class="stat-card">
           <div class="stat-card-header"><div class="stat-card-icon gold"><i class="fas fa-users"></i></div></div>
           <div class="stat-card-value"><?= $total ?></div>
-          <div class="stat-card-label" data-fr="Total clients" data-ar="إجمالي العملاء">Total clients</div>
+          <div class="stat-card-label">Total clients</div>
         </div>
         <div class="stat-card">
           <div class="stat-card-header"><div class="stat-card-icon" style="background:rgba(37,211,102,.1);color:#25D366"><i class="fas fa-user-check"></i></div></div>
           <div class="stat-card-value"><?= $actifs ?></div>
-          <div class="stat-card-label" data-fr="Clients actifs" data-ar="عملاء نشطون">Clients actifs</div>
+          <div class="stat-card-label">Clients actifs</div>
         </div>
         <div class="stat-card">
           <div class="stat-card-header"><div class="stat-card-icon" style="background:rgba(59,130,246,.1);color:#60A5FA"><i class="fas fa-calendar-check"></i></div></div>
           <div class="stat-card-value"><?= $avec_resa ?></div>
-          <div class="stat-card-label" data-fr="Avec réservation" data-ar="لديهم حجز">Avec réservation</div>
+          <div class="stat-card-label">Avec réservation</div>
         </div>
         <div class="stat-card">
           <div class="stat-card-header"><div class="stat-card-icon" style="background:rgba(168,85,247,.1);color:#C084FC"><i class="fas fa-city"></i></div></div>
           <div class="stat-card-value"><?= count(array_unique(array_column($clients, 'ville'))) ?></div>
-          <div class="stat-card-label" data-fr="Villes différentes" data-ar="مدن مختلفة">Villes différentes</div>
+          <div class="stat-card-label">Villes différentes</div>
         </div>
       </div>
 
       <!-- Table clients -->
       <div class="clients-table-wrap">
         <div class="table-topbar">
-          <h3 style="color:var(--white);font-size:.9rem"><i class="fas fa-list" style="color:var(--gold);margin-right:8px"></i><span data-fr="Liste des clients" data-ar="قائمة العملاء">Liste des clients</span> (<?= $total ?>)</h3>
+          <h3 style="color:var(--white);font-size:.9rem"><i class="fas fa-list" style="color:var(--gold);margin-right:8px"></i>Liste des clients (<?= $total ?>)</h3>
           <div style="display:flex;gap:10px;align-items:center">
-            <input type="text" class="search-input" id="searchClient" placeholder="🔍 Nom, email, tél..." data-fr-placeholder="🔍 Nom, email, tél..." data-ar-placeholder="🔍 الاسم، البريد، الهاتف..." oninput="filterClients()">
+            <input type="text" class="search-input" id="searchClient" placeholder="\ud83d\udd0d Nom, email, tél..." oninput="filterClients()">
             <select id="filterSource" class="search-input" style="width:auto" onchange="filterClients()">
-              <option value="" data-fr="Toutes les sources" data-ar="كل المصادر">Toutes les sources</option>
+              <option value="">Toutes les sources</option>
               <?php foreach ($sourceLabels as $key => $src): ?>
               <option value="<?= $key ?>"><?= $src['label'] ?></option>
               <?php endforeach; ?>
@@ -229,9 +287,9 @@ if (isset($_GET['msg'])) {
         <?php if (empty($clients)): ?>
         <div class="empty-state">
           <i class="fas fa-users"></i>
-          <p data-fr="Aucun client pour l'instant." data-ar="لا يوجد عملاء حالياً.">Aucun client pour l'instant.</p>
+          <p>Aucun client pour l'instant.</p>
           <button class="btn-primary" style="margin-top:16px" onclick="openAddModal()">
-            <i class="fas fa-user-plus"></i> <span data-fr="Ajouter le premier client" data-ar="إضافة أول عميل">Ajouter le premier client</span>
+            <i class="fas fa-user-plus"></i> Ajouter le premier client
           </button>
         </div>
         <?php else: ?>
@@ -241,11 +299,11 @@ if (isset($_GET['msg'])) {
             <tr>
               <th>Client</th>
               <th>Contact</th>
-              <th data-fr="Ville" data-ar="المدينة">Ville</th>
+              <th>Ville</th>
               <th>Source</th>
               <th>Réservations</th>
               <th>Inscrit le</th>
-              <th data-fr="Actions" data-ar="الإجراءات">Actions</th>
+              <th>Actions</th>
             </tr>
           </thead>
           <tbody>
@@ -321,7 +379,7 @@ if (isset($_GET['msg'])) {
 <div class="modal-overlay" id="clientModal">
   <div class="modal-box">
     <div class="modal-header">
-      <h3 id="modalTitle"><i class="fas fa-user-plus" style="color:var(--gold);margin-right:8px"></i><span data-fr="Nouveau client" data-ar="عميل جديد">Nouveau client</span></h3>
+      <h3 id="modalTitle"><i class="fas fa-user-plus" style="color:var(--gold);margin-right:8px"></i>Nouveau client</h3>
       <button class="modal-close" onclick="closeModal()"><i class="fas fa-times"></i></button>
     </div>
     <form method="POST" action="clients.php">
@@ -339,11 +397,11 @@ if (isset($_GET['msg'])) {
             </select>
           </div>
           <div class="form-group">
-            <label class="form-label" data-fr="Prénom *" data-ar="الاسم الأول *">Prénom *</label>
+            <label class="form-label">Prénom *</label>
             <input type="text" name="prenom" id="f_prenom" class="form-control" required>
           </div>
           <div class="form-group form-full">
-            <label class="form-label" data-fr="Nom *" data-ar="الاسم العائلي *">Nom *</label>
+            <label class="form-label">Nom *</label>
             <input type="text" name="nom" id="f_nom" class="form-control" required>
           </div>
           <div class="form-group">
@@ -351,7 +409,7 @@ if (isset($_GET['msg'])) {
             <input type="email" name="email" id="f_email" class="form-control" required>
           </div>
           <div class="form-group">
-            <label class="form-label" data-fr="Téléphone *" data-ar="الهاتف *">Téléphone *</label>
+            <label class="form-label">Téléphone *</label>
             <input type="tel" name="telephone" id="f_telephone" class="form-control" required>
           </div>
           <div class="form-group">
@@ -359,15 +417,15 @@ if (isset($_GET['msg'])) {
             <input type="tel" name="telephone2" id="f_telephone2" class="form-control">
           </div>
           <div class="form-group">
-            <label class="form-label" data-fr="CIN" data-ar="رقم الهوية">CIN</label>
-            <input type="text" name="cin" id="f_cin" class="form-control" placeholder="AB123456" data-fr-placeholder="AB123456" data-ar-placeholder="AB123456">
+            <label class="form-label">CIN</label>
+            <input type="text" name="cin" id="f_cin" class="form-control" placeholder="AB123456">
           </div>
           <div class="form-group form-full">
             <label class="form-label">Adresse</label>
             <input type="text" name="adresse" id="f_adresse" class="form-control">
           </div>
           <div class="form-group">
-            <label class="form-label" data-fr="Ville" data-ar="المدينة" data-fr="Ville" data-ar="المدينة">Ville</label>
+            <label class="form-label">Ville</label>
             <input type="text" name="ville" id="f_ville" class="form-control" value="Errachidia">
           </div>
           <div class="form-group">
@@ -379,8 +437,8 @@ if (isset($_GET['msg'])) {
             </select>
           </div>
           <div class="form-group form-full">
-            <label class="form-label" data-fr="Notes internes" data-ar="ملاحظات داخلية">Notes internes</label>
-            <textarea name="notes_internes" id="f_notes" class="form-control" rows="3" placeholder="Remarques, préférences..." data-fr-placeholder="Remarques, préférences..." data-ar-placeholder="ملاحظات، تفضيلات..."></textarea>
+            <label class="form-label">Notes internes</label>
+            <textarea name="notes_internes" id="f_notes" class="form-control" rows="3" placeholder="Remarques, préférences..."></textarea>
           </div>
         </div>
       </div>
@@ -401,7 +459,7 @@ if (isset($_GET['msg'])) {
     </div>
     <div id="ficheContent"></div>
     <div class="modal-footer">
-      <button class="btn-secondary" onclick="closeFiche()" data-fr="Fermer" data-ar="إغلاق" data-fr="Fermer" data-ar="إغلاق">Fermer</button>
+      <button class="btn-secondary" onclick="closeFiche()">Fermer</button>
     </div>
   </div>
 </div>
@@ -429,7 +487,7 @@ function filterClients() {
 
 // Modal ajouter
 function openAddModal() {
-  document.getElementById('modalTitle').innerHTML = '<i class="fas fa-user-plus" style="color:var(--gold);margin-right:8px"></i><span data-fr="Nouveau client" data-ar="عميل جديد">Nouveau client</span>';
+  document.getElementById('modalTitle').innerHTML = '<i class="fas fa-user-plus" style="color:var(--gold);margin-right:8px"></i>Nouveau client';
   document.getElementById('formAction').value = 'add';
   document.getElementById('clientId').value   = '';
   document.getElementById('saveBtnText').textContent = 'Ajouter';
@@ -486,11 +544,11 @@ function openFiche(c) {
     <div class="modal-body">
       <div class="section-label">Coordonnées</div>
       <div class="detail-grid" style="margin-bottom:16px">
-        <div class="detail-field"><label data-fr="Téléphone" data-ar="الهاتف">Téléphone</label><span>${c.telephone||'—'}</span></div>
+        <div class="detail-field"><label>Téléphone</label><span>${c.telephone||'—'}</span></div>
         <div class="detail-field"><label>Téléphone 2</label><span>${c.telephone2||'—'}</span></div>
         <div class="detail-field"><label>Adresse</label><span>${c.adresse||'—'}</span></div>
-        <div class="detail-field"><label data-fr="Ville" data-ar="المدينة" data-fr="Ville" data-ar="المدينة">Ville</label><span>${c.ville||'Errachidia'}</span></div>
-        <div class="detail-field"><label data-fr="CIN" data-ar="رقم الهوية">CIN</label><span>${c.cin||'—'}</span></div>
+        <div class="detail-field"><label>Ville</label><span>${c.ville||'Errachidia'}</span></div>
+        <div class="detail-field"><label>CIN</label><span>${c.cin||'—'}</span></div>
         <div class="detail-field"><label>Client depuis</label><span>${date}</span></div>
       </div>
       <div class="section-label">Historique</div>
@@ -504,6 +562,5 @@ function openFiche(c) {
 }
 function closeFiche() { document.getElementById('ficheModal').classList.remove('show'); }
 </script>
-<script src="../js/admin-lang.js"></script>
 </body>
 </html>

@@ -1,7 +1,7 @@
 <?php
 /**
  * API : update_statut.php
- * Change le statut d'un devis ou réservation
+ * Change le statut d'un devis, réservation ou devis_generes
  */
 require_once __DIR__ . '/../includes/config.php';
 requireAdmin();
@@ -14,12 +14,12 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
 
 $id     = (int)($_POST['id'] ?? 0);
 $statut = sanitize($_POST['statut'] ?? '');
-$table  = sanitize($_POST['table'] ?? 'reservations');
+$table  = sanitize($_POST['table']  ?? 'devis_generes');
 
 if ($id <= 0) jsonResponse(['success' => false, 'message' => 'ID invalide']);
 
-$allowed_statuts = ['en_attente', 'confirme', 'refuse', 'en_cours', 'annule', 'termine'];
-$allowed_tables  = ['reservations', 'devis'];
+$allowed_statuts = ['en_attente', 'confirme', 'refuse', 'en_cours', 'annule', 'termine', 'confirmee', 'annulee', 'terminee'];
+$allowed_tables  = ['reservations', 'devis', 'devis_generes'];
 
 if (!in_array($statut, $allowed_statuts)) {
     jsonResponse(['success' => false, 'message' => 'Statut invalide']);
@@ -29,6 +29,7 @@ if (!in_array($table, $allowed_tables)) {
 }
 
 try {
+    // Si on change le statut d'un devis_generes, synchroniser aussi reservations
     $stmt = $pdo->prepare("UPDATE `$table` SET statut = ?, updated_at = NOW() WHERE id = ?");
     $stmt->execute([$statut, $id]);
 

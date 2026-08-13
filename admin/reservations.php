@@ -22,11 +22,29 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
 // Récupérer les réservations
 try {
+    // Lire depuis devis_generes (données réelles du formulaire client)
+    // + compléter avec reservations si elles existent
     $reservations = $pdo->query("
-        SELECT r.*, p.nom AS package_nom
-        FROM reservations r
-        LEFT JOIN packages p ON r.package_id = p.id
-        ORDER BY r.created_at DESC
+        SELECT
+            d.id,
+            d.numero AS reference,
+            d.nom_client,
+            SUBSTRING_INDEX(d.nom_client,' ',1)  AS prenom,
+            SUBSTRING_INDEX(d.nom_client,' ',-1) AS nom,
+            d.telephone,
+            d.email,
+            d.type_evenement,
+            d.date_evenement,
+            d.ville,
+            d.nb_personnes,
+            d.montant_total,
+            d.services_json,
+            d.notes    AS message,
+            d.statut,
+            d.created_at,
+            NULL       AS package_nom
+        FROM devis_generes d
+        ORDER BY d.created_at DESC
     ")->fetchAll();
 } catch(Exception $e) {
     $reservations = [];
@@ -38,12 +56,12 @@ $confirmes  = count(array_filter($reservations, fn($r) => ($r['statut'] ?? '') =
 $refuses    = count(array_filter($reservations, fn($r) => ($r['statut'] ?? '') === 'refuse'));
 
 $statutConfig = [
-    'en_attente' => ['label'=>'En attente','label_ar'=>'في الانتظار', 'color'=>'#FBB724','bg'=>'rgba(251,183,36,.15)'],
-    'confirme'   => ['label'=>'Confirmé','label_ar'=>'مؤكد',   'color'=>'#25D366','bg'=>'rgba(37,211,102,.15)'],
-    'refuse'     => ['label'=>'Refusé','label_ar'=>'مرفوض',     'color'=>'#EF5350','bg'=>'rgba(239,68,68,.15)'],
-    'en_cours'   => ['label'=>'En cours','label_ar'=>'جاري',   'color'=>'#60A5FA','bg'=>'rgba(59,130,246,.15)'],
-    'termine'    => ['label'=>'Terminé','label_ar'=>'منتهي',    'color'=>'#888',   'bg'=>'rgba(136,136,136,.1)'],
-    ''           => ['label'=>'Nouveau','label_ar'=>'جديد',    'color'=>'#FBB724','bg'=>'rgba(251,183,36,.15)'],
+    'en_attente' => ['label'=>'En attente', 'color'=>'#FBB724','bg'=>'rgba(251,183,36,.15)'],
+    'confirme'   => ['label'=>'Confirmé',   'color'=>'#25D366','bg'=>'rgba(37,211,102,.15)'],
+    'refuse'     => ['label'=>'Refusé',     'color'=>'#EF5350','bg'=>'rgba(239,68,68,.15)'],
+    'en_cours'   => ['label'=>'En cours',   'color'=>'#60A5FA','bg'=>'rgba(59,130,246,.15)'],
+    'termine'    => ['label'=>'Terminé',    'color'=>'#888',   'bg'=>'rgba(136,136,136,.1)'],
+    ''           => ['label'=>'Nouveau',    'color'=>'#FBB724','bg'=>'rgba(251,183,36,.15)'],
 ];
 
 $msg     = $_GET['msg']  ?? '';
@@ -106,13 +124,53 @@ $msgType = $_GET['type'] ?? 'success';
 <div class="sidebar-overlay" id="sidebarOverlay"></div>
 <div class="admin-layout">
 
-  <?php $activePage = 'reservations'; include_once __DIR__ . '/../includes/admin-sidebar.php'; ?>
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-header">
+      <div class="logo-text" style="display:flex;flex-direction:column;align-items:center">
+        <span class="logo-traiteur" style="font-size:.55rem;letter-spacing:4px;color:var(--text-muted)">TRAITEUR</span>
+        <span class="logo-name" style="font-size:1.1rem">EL MOUSSAOUI</span>
+        <span class="logo-sub" style="font-size:.65rem">Admin Panel v1.0</span>
+      </div>
+    </div>
+    <nav class="sidebar-nav">
+      <div class="sidebar-label">PRINCIPAL</div>
+      <a href="dashboard.php" class="sidebar-link"><i class="fas fa-tachometer-alt"></i> Tableau de bord</a>
+      <a href="reservations.php" class="sidebar-link active"><i class="fas fa-calendar-check"></i> Réservations</a>
+      <a href="devis.php" class="sidebar-link"><i class="fas fa-file-invoice"></i> Devis</a>
+      <a href="clients.php" class="sidebar-link"><i class="fas fa-users"></i> Clients</a>
+      <a href="factures.php" class="sidebar-link"><i class="fas fa-receipt"></i> Factures</a>
+      <a href="paiements.php" class="sidebar-link"><i class="fas fa-credit-card"></i> Paiements</a>
+      <div class="sidebar-label" style="margin-top:8px">CONTENU</div>
+      <a href="services-admin.php" class="sidebar-link"><i class="fas fa-concierge-bell"></i> Services</a>
+      <a href="packages-admin.php" class="sidebar-link"><i class="fas fa-box-open"></i> Packages</a>
+      <a href="../pages/galerie.php?edit=1" class="sidebar-link"><i class="fas fa-images"></i> Galerie</a>
+      <a href="blog-admin.php" class="sidebar-link"><i class="fas fa-pen-nib"></i> Blog</a>
+      <a href="temoignages-admin.php" class="sidebar-link"><i class="fas fa-star"></i> Témoignages</a>
+      <div class="sidebar-label" style="margin-top:8px">COMMUNICATION</div>
+      <a href="messages.php" class="sidebar-link"><i class="fas fa-envelope"></i> Messages</a>
+      <a href="notifications.php" class="sidebar-link"><i class="fas fa-bell"></i> Notifications</a>
+      <div class="sidebar-label" style="margin-top:8px">SYSTÈME</div>
+      <a href="utilisateurs.php" class="sidebar-link"><i class="fas fa-user-shield"></i> Utilisateurs</a>
+      <a href="parametres.php" class="sidebar-link"><i class="fas fa-cog"></i> Paramètres</a>
+      <a href="logs.php" class="sidebar-link"><i class="fas fa-history"></i> Journaux</a>
+    </nav>
+    <div class="sidebar-footer">
+      <div style="display:flex;align-items:center;gap:10px;padding:8px;border-radius:10px;background:var(--dark-3)">
+        <div class="admin-avatar" style="width:34px;height:34px;border-radius:8px">A</div>
+        <div style="flex:1;min-width:0">
+          <div style="font-size:.82rem;color:var(--white);font-weight:500">Admin ELM</div>
+          <div style="font-size:.7rem;color:var(--text-muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">admin@traiteur-elmoussaoui.ma</div>
+        </div>
+        <a href="logout.php" style="color:var(--text-muted);font-size:.85rem" onmouseover="this.style.color='var(--gold)'" onmouseout="this.style.color='var(--text-muted)'"><i class="fas fa-sign-out-alt"></i></a>
+      </div>
+    </div>
+  </aside>
 
   <main class="admin-main">
     <div class="admin-topbar">
       <div style="display:flex;align-items:center;gap:12px">
         <button id="sidebarToggle" class="topbar-btn"><i class="fas fa-bars"></i></button>
-        <div class="topbar-title"><h2 data-fr="Réservations" data-ar="الحجوزات">Réservations</h2><p data-fr="Demandes de réservations et événements" data-ar="طلبات الحجز والمناسبات">Demandes de réservations et événements</p></div>
+        <div class="topbar-title"><h2>Réservations</h2><p>Demandes de réservations et événements</p></div>
       </div>
       <div class="topbar-actions">
         <button class="topbar-btn" onclick="location.reload()"><i class="fas fa-sync-alt"></i></button>
@@ -134,36 +192,36 @@ $msgType = $_GET['type'] ?? 'success';
         <div class="stat-card">
           <div class="stat-card-header"><div class="stat-card-icon gold"><i class="fas fa-calendar-check"></i></div></div>
           <div class="stat-card-value"><?= $total ?></div>
-          <div class="stat-card-label" data-fr="Total réservations" data-ar="إجمالي الحجوزات">Total réservations</div>
+          <div class="stat-card-label">Total réservations</div>
         </div>
         <div class="stat-card">
           <div class="stat-card-header"><div class="stat-card-icon" style="background:rgba(251,183,36,.1);color:#FBB724"><i class="fas fa-clock"></i></div></div>
           <div class="stat-card-value"><?= $enAttente ?></div>
-          <div class="stat-card-label" data-fr="En attente" data-ar="في الانتظار" data-fr="En attente" data-ar="في الانتظار">En attente</div>
+          <div class="stat-card-label">En attente</div>
         </div>
         <div class="stat-card">
           <div class="stat-card-header"><div class="stat-card-icon" style="background:rgba(37,211,102,.1);color:#25D366"><i class="fas fa-check-circle"></i></div></div>
           <div class="stat-card-value"><?= $confirmes ?></div>
-          <div class="stat-card-label" data-fr="Confirmées" data-ar="مؤكدة" data-fr="Confirmées" data-ar="مؤكدة">Confirmées</div>
+          <div class="stat-card-label">Confirmées</div>
         </div>
         <div class="stat-card">
           <div class="stat-card-header"><div class="stat-card-icon" style="background:rgba(239,68,68,.1);color:#EF5350"><i class="fas fa-times-circle"></i></div></div>
           <div class="stat-card-value"><?= $refuses ?></div>
-          <div class="stat-card-label" data-fr="Refusées" data-ar="مرفوضة" data-fr="Refusées" data-ar="مرفوضة">Refusées</div>
+          <div class="stat-card-label">Refusées</div>
         </div>
       </div>
 
       <!-- Table -->
       <div class="table-wrap">
         <div class="table-topbar">
-          <h3 style="color:var(--white);font-size:.9rem"><i class="fas fa-list" style="color:var(--gold);margin-right:8px"></i><span data-fr="Liste des réservations" data-ar="قائمة الحجوزات">Liste des réservations</span> (<?= $total ?>)</h3>
+          <h3 style="color:var(--white);font-size:.9rem"><i class="fas fa-list" style="color:var(--gold);margin-right:8px"></i>Liste des réservations (<?= $total ?>)</h3>
           <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center">
-            <input type="text" class="search-input" id="searchResa" placeholder="🔍 Client, événement..." data-fr-placeholder="🔍 Client, événement..." data-ar-placeholder="🔍 العميل، المناسبة..." oninput="filterResa()">
+            <input type="text" class="search-input" id="searchResa" placeholder="🔍 Client, événement..." oninput="filterResa()">
             <div style="display:flex;gap:6px">
-              <button class="tfilter active" onclick="setFilter('all',this)" data-fr="Tous" data-ar="الكل">Tous</button>
-              <button class="tfilter" onclick="setFilter('en_attente',this)" data-fr="En attente" data-ar="في الانتظار">En attente</button>
-              <button class="tfilter" onclick="setFilter('confirme',this)" data-fr="Confirmées" data-ar="مؤكدة">Confirmées</button>
-              <button class="tfilter" onclick="setFilter('refuse',this)" data-fr="Refusées" data-ar="مرفوضة">Refusées</button>
+              <button class="tfilter active" onclick="setFilter('all',this)">Tous</button>
+              <button class="tfilter" onclick="setFilter('en_attente',this)">En attente</button>
+              <button class="tfilter" onclick="setFilter('confirme',this)">Confirmées</button>
+              <button class="tfilter" onclick="setFilter('refuse',this)">Refusées</button>
             </div>
           </div>
         </div>
@@ -171,8 +229,8 @@ $msgType = $_GET['type'] ?? 'success';
         <?php if (empty($reservations)): ?>
         <div class="empty-state">
           <i class="fas fa-calendar-check"></i>
-          <p data-fr="Aucune réservation pour l'instant." data-ar="لا توجد حجوزات حالياً.">Aucune réservation pour l'instant.</p>
-          <p style="font-size:.82rem;margin-top:8px" data-fr="Les réservations soumises via le formulaire public apparaîtront ici." data-ar="ستظهر الحجوزات المقدمة عبر النموذج العام هنا.">Les réservations soumises via le formulaire public apparaîtront ici.</p>
+          <p>Aucune réservation pour l'instant.</p>
+          <p style="font-size:.82rem;margin-top:8px">Les réservations soumises via le formulaire public apparaîtront ici.</p>
         </div>
         <?php else: ?>
         <div style="overflow-x:auto">
@@ -180,21 +238,21 @@ $msgType = $_GET['type'] ?? 'success';
           <thead>
             <tr>
               <th>#</th>
-              <th data-fr="Client" data-ar="العميل">Client</th>
-              <th data-fr="Événement" data-ar="المناسبة">Événement</th>
-              <th data-fr="Date" data-ar="التاريخ">Date</th>
-              <th data-fr="Invités" data-ar="الضيوف">Invités</th>
-              <th data-fr="Package" data-ar="الباقة">Package</th>
-              <th data-fr="Statut" data-ar="الحالة">Statut</th>
-              <th data-fr="Reçu le" data-ar="تاريخ الاستلام">Reçu le</th>
-              <th data-fr="Actions" data-ar="الإجراءات">Actions</th>
+              <th>Client</th>
+              <th>Événement</th>
+              <th>Date</th>
+              <th>Invités</th>
+              <th>Package</th>
+              <th>Statut</th>
+              <th>Reçu le</th>
+              <th>Actions</th>
             </tr>
           </thead>
           <tbody>
             <?php foreach ($reservations as $r):
               $statut = $r['statut'] ?? 'en_attente';
               $sc     = $statutConfig[$statut] ?? $statutConfig['en_attente'];
-              $nom    = htmlspecialchars(trim(($r['prenom'] ?? '') . ' ' . ($r['nom'] ?? ''))) ?: 'Client #' . $r['id'];
+              $nom    = htmlspecialchars($r['nom_client'] ?? trim(($r['prenom'] ?? '') . ' ' . ($r['nom'] ?? ''))) ?: 'Client #' . $r['id'];
               $date   = !empty($r['date_evenement']) ? date('d/m/Y', strtotime($r['date_evenement'])) : '—';
               $recu   = date('d/m/Y', strtotime($r['created_at']));
               $type   = ucfirst(str_replace('_', ' ', $r['type_evenement'] ?? '—'));
@@ -213,7 +271,7 @@ $msgType = $_GET['type'] ?? 'success';
               <td>
                 <span class="statut-badge" style="background:<?= $sc['bg'] ?>;color:<?= $sc['color'] ?>">
                   <span style="width:6px;height:6px;border-radius:50%;background:currentColor;display:inline-block"></span>
-                  <span data-fr="<?= $sc['label'] ?>" data-ar="<?= $sc['label_ar'] ?? $sc['label'] ?>"><?= $sc['label'] ?></span>
+                  <?= $sc['label'] ?>
                 </span>
               </td>
               <td style="font-size:.75rem;color:#555"><?= $recu ?></td>
@@ -224,6 +282,7 @@ $msgType = $_GET['type'] ?? 'success';
                   </button>
                   <form method="POST" style="display:inline">
                     <input type="hidden" name="action" value="update_statut">
+                    <input type="hidden" name="table" value="devis_generes">
                     <input type="hidden" name="id" value="<?= $r['id'] ?>">
                     <input type="hidden" name="statut" value="confirme">
                     <button type="submit" class="act-btn confirm" title="Confirmer">
@@ -232,6 +291,7 @@ $msgType = $_GET['type'] ?? 'success';
                   </form>
                   <form method="POST" style="display:inline">
                     <input type="hidden" name="action" value="update_statut">
+                    <input type="hidden" name="table" value="devis_generes">
                     <input type="hidden" name="id" value="<?= $r['id'] ?>">
                     <input type="hidden" name="statut" value="refuse">
                     <button type="submit" class="act-btn refuse" title="Refuser">
@@ -246,6 +306,7 @@ $msgType = $_GET['type'] ?? 'success';
                   <?php endif; ?>
                   <form method="POST" style="display:inline" onsubmit="return confirm('Supprimer cette réservation ?')">
                     <input type="hidden" name="action" value="delete">
+                    <input type="hidden" name="table" value="devis_generes">
                     <input type="hidden" name="id" value="<?= $r['id'] ?>">
                     <button type="submit" class="act-btn danger" title="Supprimer"><i class="fas fa-trash"></i></button>
                   </form>
@@ -267,12 +328,12 @@ $msgType = $_GET['type'] ?? 'success';
 <div class="modal-overlay" id="detailModal">
   <div class="modal-box">
     <div class="modal-header">
-      <h3><i class="fas fa-calendar-check" style="color:var(--gold);margin-right:8px"></i><span data-fr="Détail réservation" data-ar="تفاصيل الحجز">Détail réservation</span></h3>
+      <h3><i class="fas fa-calendar-check" style="color:var(--gold);margin-right:8px"></i>Détail réservation</h3>
       <button class="modal-close" onclick="closeDetail()"><i class="fas fa-times"></i></button>
     </div>
     <div class="modal-body" id="detailContent"></div>
     <div class="modal-footer">
-      <button class="btn-secondary" onclick="closeDetail()" data-fr="Fermer" data-ar="إغلاق">Fermer</button>
+      <button class="btn-secondary" onclick="closeDetail()">Fermer</button>
     </div>
   </div>
 </div>
@@ -338,6 +399,5 @@ function openDetail(r) {
 }
 function closeDetail() { document.getElementById('detailModal').classList.remove('show'); }
 </script>
-<script src="../js/admin-lang.js"></script>
 </body>
 </html>
