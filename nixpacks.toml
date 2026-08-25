@@ -11,5 +11,11 @@ nixPkgs = [
   "php82Extensions.curl"
 ]
 
+[phases.build]
+cmds = [
+  '> php.ini',
+  'for e in pdo_mysql mysqli mbstring gd openssl fileinfo curl; do p=$(find /nix/store -name "$e.so" 2>/dev/null | head -n1); if [ -n "$p" ]; then echo "extension=$p" >> php.ini; fi; done'
+]
+
 [start]
 cmd = "php -c php.ini -S 0.0.0.0:$PORT -t ."
