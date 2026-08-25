@@ -1,1613 +1,1354 @@
--- ============================================================
---  BASE DE DONNÉES : db_traiteur_elmoussaoui
---  Projet   : Traiteur EL MOUSSAOUI — أفراح المساوي
---  Ville    : Errachidia (الراشيدية), Maroc
---  Contact  : 0626 986 533
---  Version  : 1.0 — Juin 2025
---  Serveur  : XAMPP (MySQL 8.x / MariaDB)
---  Auteur   : Équipe Développement
--- ============================================================
--- UTILISATION :
---   1. Ouvrir phpMyAdmin (http://localhost/phpmyadmin)
---   2. Cliquer sur "Importer" > sélectionner ce fichier
---   3. Ou via terminal : mysql -u root -p < db_traiteur_elmoussaoui.sql
--- ============================================================
-SET
-  SQL_MODE = "NO_AUTO_VALUE_ON_ZERO";
+-- phpMyAdmin SQL Dump
+-- version 5.2.1
+-- https://www.phpmyadmin.net/
+--
+-- Hôte : 127.0.0.1
+-- Généré le : mar. 25 août 2026 à 19:08
+-- Version du serveur : 10.4.32-MariaDB
+-- Version de PHP : 8.2.12
 
-SET
-  time_zone = "+01:00";
+SET SQL_MODE = "NO_AUTO_VALUE_ON_ZERO";
+START TRANSACTION;
+SET time_zone = "+00:00";
 
--- GMT+1 Maroc
-SET
-  NAMES utf8mb4;
 
-SET
-  FOREIGN_KEY_CHECKS = 0;
+/*!40101 SET @OLD_CHARACTER_SET_CLIENT=@@CHARACTER_SET_CLIENT */;
+/*!40101 SET @OLD_CHARACTER_SET_RESULTS=@@CHARACTER_SET_RESULTS */;
+/*!40101 SET @OLD_COLLATION_CONNECTION=@@COLLATION_CONNECTION */;
+/*!40101 SET NAMES utf8mb4 */;
 
--- ─────────────────────────────────────────────────────────────
---  CRÉATION ET SÉLECTION DE LA BASE
--- ─────────────────────────────────────────────────────────────
-CREATE DATABASE IF NOT EXISTS `db_traiteur_elmoussaoui` CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+--
+-- Base de données : `db_traiteur_elmoussaoui`
+--
 
-USE `db_traiteur_elmoussaoui`;
+-- --------------------------------------------------------
 
--- ============================================================
---  TABLE : roles
---  Rôles des utilisateurs du système
--- ============================================================
-CREATE TABLE `roles` (
-  `id` INT UNSIGNED NOT NULL AUTO_INCREMENT,
-  `nom` VARCHAR(50) NOT NULL COMMENT 'Ex: super_admin, admin, gestionnaire, client',
-  `label` VARCHAR(100) NOT NULL COMMENT 'Libellé affiché',
-  `permissions` JSON NULL COMMENT 'Liste des permissions JSON',
-  `created_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  `updated_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-  PRIMARY KEY (`id`),
-  UNIQUE KEY `uq_roles_nom` (`nom`)
-) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_unicode_ci COMMENT = 'Rôles et permissions des utilisateurs';
+--
+-- Structure de la table `activity_logs`
+--
 
--- Données initiales
-INSERT INTO
-  `roles` (`nom`, `label`, `permissions`)
-VALUES
-  (
-    'super_admin',
-    'Super Administrateur',
-    '["all"]'
-  ),
-  (
-    'admin',
-    'Administrateur',
-    '["reservations","devis","clients","galerie","blog","parametres"]'
-  ),
-  (
-    'gestionnaire',
-    'Gestionnaire',
-    '["reservations","devis","clients"]'
-  ),
-  (
-    'client',
-    'Client',
-    '["profile","reservations_view","devis_view"]'
-  );
-
--- ============================================================
---  TABLE : users
---  Tous les utilisateurs (admins + clients avec compte)
--- ============================================================
-CREATE TABLE `users` (
-  `id` INT UNSIGNED NOT NULL AUTO_INCREMENT,
-  `role_id` INT UNSIGNED NOT NULL DEFAULT 4 COMMENT 'FK vers roles',
-  `nom` VARCHAR(100) NOT NULL,
-  `prenom` VARCHAR(100) NOT NULL,
-  `email` VARCHAR(191) NOT NULL,
-  `email_verifie_le` TIMESTAMP NULL,
-  `password` VARCHAR(255) NOT NULL COMMENT 'Hash bcrypt',
-  `telephone` VARCHAR(20) NULL,
-  `avatar` VARCHAR(255) NULL COMMENT 'Chemin image profil',
-  `langue` ENUM('fr', 'ar', 'en') NOT NULL DEFAULT 'fr',
-  `remember_token` VARCHAR(100) NULL,
-  `actif` TINYINT(1) NOT NULL DEFAULT 1,
-  `derniere_connexion` TIMESTAMP NULL,
-  `created_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  `updated_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-  `deleted_at` TIMESTAMP NULL COMMENT 'Soft delete',
-  PRIMARY KEY (`id`),
-  UNIQUE KEY `uq_users_email` (`email`),
-  KEY `idx_users_role` (`role_id`),
-  KEY `idx_users_actif` (`actif`),
-  CONSTRAINT `fk_users_role` FOREIGN KEY (`role_id`) REFERENCES `roles` (`id`) ON UPDATE CASCADE
-) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_unicode_ci COMMENT = 'Utilisateurs du système (admins et clients connectés)';
-
--- Compte super admin initial (mot de passe : Admin@2025! — À CHANGER EN PRODUCTION)
-INSERT INTO
-  `users` (
-    `role_id`,
-    `nom`,
-    `prenom`,
-    `email`,
-    `password`,
-    `telephone`,
-    `actif`
-  )
-VALUES
-  (
-    1,
-    'MOUSSAOUI',
-    'Admin',
-    'admin@traiteur-elmoussaoui.ma',
-    '$2y$12$eImiTXuWVxfM37uY4JANjQ==hashedpassword_change_this',
-    '0626986533',
-    1
-  );
-
--- ============================================================
---  TABLE : clients
---  Fiches clients détaillées (liées ou non à un compte user)
--- ============================================================
-CREATE TABLE `clients` (
-  `id` INT UNSIGNED NOT NULL AUTO_INCREMENT,
-  `user_id` INT UNSIGNED NULL COMMENT 'NULL si client sans compte',
-  `civilite` ENUM('M.', 'Mme', 'Dr', 'Prof') NOT NULL DEFAULT 'M.',
-  `nom` VARCHAR(100) NOT NULL,
-  `prenom` VARCHAR(100) NOT NULL,
-  `email` VARCHAR(191) NOT NULL,
-  `telephone` VARCHAR(20) NOT NULL,
-  `telephone2` VARCHAR(20) NULL,
-  `adresse` VARCHAR(255) NULL,
-  `ville` VARCHAR(100) NULL DEFAULT 'Errachidia',
-  `code_postal` VARCHAR(10) NULL,
-  `pays` VARCHAR(50) NOT NULL DEFAULT 'Maroc',
-  `cin` VARCHAR(20) NULL COMMENT 'Carte nationale identité',
-  `notes_internes` TEXT NULL,
-  `source` ENUM(
-    'site_web',
-    'telephone',
-    'reference',
-    'facebook',
-    'instagram',
-    'autre'
-  ) DEFAULT 'site_web',
-  `actif` TINYINT(1) NOT NULL DEFAULT 1,
-  `created_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  `updated_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-  `deleted_at` TIMESTAMP NULL,
-  PRIMARY KEY (`id`),
-  UNIQUE KEY `uq_clients_email` (`email`),
-  KEY `idx_clients_user` (`user_id`),
-  KEY `idx_clients_ville` (`ville`),
-  CONSTRAINT `fk_clients_user` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE
-  SET
-    NULL ON UPDATE CASCADE
-) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_unicode_ci COMMENT = 'Fiches clients de Traiteur EL MOUSSAOUI';
-
--- ============================================================
---  TABLE : types_evenements
---  Catégories d'événements organisés
--- ============================================================
-CREATE TABLE `types_evenements` (
-  `id` INT UNSIGNED NOT NULL AUTO_INCREMENT,
-  `nom` VARCHAR(100) NOT NULL,
-  `nom_ar` VARCHAR(100) NULL COMMENT 'Nom en arabe',
-  `slug` VARCHAR(120) NOT NULL,
-  `description` TEXT NULL,
-  `icone` VARCHAR(100) NULL COMMENT 'Classe CSS icône (Font Awesome)',
-  `couleur` VARCHAR(7) NULL COMMENT 'Couleur hex ex: #B8860B',
-  `image` VARCHAR(255) NULL,
-  `ordre` INT UNSIGNED NOT NULL DEFAULT 0,
-  `actif` TINYINT(1) NOT NULL DEFAULT 1,
-  PRIMARY KEY (`id`),
-  UNIQUE KEY `uq_types_slug` (`slug`)
-) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_unicode_ci COMMENT = 'Types d''événements organisés';
-
-INSERT INTO
-  `types_evenements` (
-    `nom`,
-    `nom_ar`,
-    `slug`,
-    `description`,
-    `icone`,
-    `couleur`,
-    `ordre`,
-    `actif`
-  )
-VALUES
-  (
-    'Mariage',
-    'عرس',
-    'mariage',
-    'Organisation complète de cérémonies de mariage traditionnelles et modernes',
-    'fa-heart',
-    '#D4AF37',
-    1,
-    1
-  ),
-  (
-    'Fiançailles',
-    'خطوبة',
-    'fiancailles',
-    'Cérémonie de fiançailles élégante et mémorable',
-    'fa-ring',
-    '#B8860B',
-    2,
-    1
-  ),
-  (
-    'Circoncision',
-    'عقيقة وختان',
-    'circoncision',
-    'Fêtes traditionnelles de circoncision avec décoration et buffet',
-    'fa-baby',
-    '#C0A000',
-    3,
-    1
-  ),
-  (
-    'Anniversaire',
-    'عيد ميلاد',
-    'anniversaire',
-    'Célébrations d''anniversaire pour tous les âges',
-    'fa-birthday-cake',
-    '#FFD700',
-    4,
-    1
-  ),
-  (
-    'Réception d''entreprise',
-    'تظاهرة مهنية',
-    'reception-pro',
-    'Séminaires, conférences, galas et réceptions professionnelles',
-    'fa-briefcase',
-    '#8B7500',
-    5,
-    1
-  ),
-  (
-    'Buffet & Banquet',
-    'بوفيه وضيافة',
-    'buffet-banquet',
-    'Service de buffet froid/chaud et banquets pour toutes occasions',
-    'fa-utensils',
-    '#A0800B',
-    6,
-    1
-  ),
-  (
-    'Cérémonie religieuse',
-    'مناسبة دينية',
-    'ceremonie-reli',
-    'Fêtes religieuses : Aid, Mouloud, Laylat Al-Qadr...',
-    'fa-mosque',
-    '#6B5B00',
-    7,
-    1
-  ),
-  (
-    'Autre',
-    'مناسبة أخرى',
-    'autre',
-    'Tout autre type de célébration ou d''événement',
-    'fa-star',
-    '#9A8000',
-    8,
-    1
-  );
-
--- ============================================================
---  TABLE : services
---  Services proposés par le traiteur
--- ============================================================
-CREATE TABLE `services` (
-  `id` INT UNSIGNED NOT NULL AUTO_INCREMENT,
-  `nom` VARCHAR(150) NOT NULL,
-  `nom_ar` VARCHAR(150) NULL,
-  `slug` VARCHAR(170) NOT NULL,
-  `description` TEXT NULL,
-  `description_ar` TEXT NULL,
-  `prix_base` DECIMAL(10, 2) NULL COMMENT 'Prix de base unitaire (MAD)',
-  `unite` VARCHAR(50) NULL COMMENT 'Ex: par personne, forfait, par heure',
-  `image` VARCHAR(255) NULL,
-  `icone` VARCHAR(100) NULL,
-  `ordre` INT UNSIGNED NOT NULL DEFAULT 0,
-  `actif` TINYINT(1) NOT NULL DEFAULT 1,
-  `created_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  `updated_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-  PRIMARY KEY (`id`),
-  UNIQUE KEY `uq_services_slug` (`slug`)
-) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_unicode_ci COMMENT = 'Services proposés par Traiteur EL MOUSSAOUI';
-
-INSERT INTO
-  `services` (
-    `nom`,
-    `nom_ar`,
-    `slug`,
-    `description`,
-    `prix_base`,
-    `unite`,
-    `icone`,
-    `ordre`,
-    `actif`
-  )
-VALUES
-  (
-    'Restauration & Traiteur',
-    'خدمات الطبخ والضيافة',
-    'restauration-traiteur',
-    'Préparation et service de repas marocains et internationaux',
-    80.00,
-    'par personne',
-    'fa-utensils',
-    1,
-    1
-  ),
-  (
-    'Décoration & Scénographie',
-    'الديكور والزينة',
-    'decoration-sceno',
-    'Décoration florale, ballons, mise en scène, thèmes personnalisés',
-    2000.00,
-    'forfait',
-    'fa-leaf',
-    2,
-    1
-  ),
-  (
-    'Tentes & Mobilier',
-    'الخيام والأثاث',
-    'tentes-mobilier',
-    'Location de tentes de réception, tables, chaises, nappage',
-    500.00,
-    'par unité',
-    'fa-campground',
-    3,
-    1
-  ),
-  (
-    'Animation & Musique',
-    'التنشيط والموسيقى',
-    'animation-musique',
-    'DJ, groupe musical traditionnel (gnaoua, chaabi), animateur',
-    3000.00,
-    'forfait',
-    'fa-music',
-    4,
-    1
-  ),
-  (
-    'Photographe & Vidéaste',
-    'التصوير الفوتوغرافي',
-    'photo-video',
-    'Reportage photo et vidéo professionnel de l''événement',
-    2500.00,
-    'forfait',
-    'fa-camera',
-    5,
-    1
-  ),
-  (
-    'Service & Personnel',
-    'فريق الخدمة',
-    'service-personnel',
-    'Serveurs, maître d''hôtel, coordinateurs d''événements',
-    200.00,
-    'par personne',
-    'fa-user-tie',
-    6,
-    1
-  ),
-  (
-    'Gâteau de fête',
-    'كعكة الاحتفال',
-    'gateau-fete',
-    'Pièce montée et gâteaux personnalisés sur commande',
-    800.00,
-    'forfait',
-    'fa-birthday-cake',
-    7,
-    1
-  ),
-  (
-    'Habillement & Coiffure',
-    'تجميل وتزيين',
-    'habillement-coiffure',
-    'Services de maquillage, henné et coiffure pour la mariée',
-    1500.00,
-    'forfait',
-    'fa-spa',
-    8,
-    1
-  ),
-  (
-    'Transport & Limousine',
-    'النقل والليموزين',
-    'transport-limousine',
-    'Voitures décorées pour le cortège et transport des invités',
-    1200.00,
-    'par véhicule',
-    'fa-car',
-    9,
-    1
-  ),
-  (
-    'Invitations & Papeterie',
-    'الدعوات والطباعة',
-    'invitations',
-    'Conception et impression des cartons d''invitation',
-    15.00,
-    'par unité',
-    'fa-envelope',
-    10,
-    1
-  );
-
--- ============================================================
---  TABLE : packages
---  Formules tarifaires (Bronze, Argent, Or, Platine)
--- ============================================================
-CREATE TABLE `packages` (
-  `id` INT UNSIGNED NOT NULL AUTO_INCREMENT,
-  `nom` VARCHAR(100) NOT NULL,
-  `nom_ar` VARCHAR(100) NULL,
-  `slug` VARCHAR(120) NOT NULL,
-  `description` TEXT NULL,
-  `couleur_badge` VARCHAR(7) NULL COMMENT 'Couleur hex du badge',
-  `prix` DECIMAL(10, 2) NOT NULL COMMENT 'Prix total du package (MAD)',
-  `min_personnes` INT UNSIGNED NULL,
-  `max_personnes` INT UNSIGNED NULL,
-  `duree_heures` DECIMAL(4, 1) NULL COMMENT 'Durée incluse en heures',
-  `contenu` JSON NULL COMMENT 'Liste des éléments inclus',
-  `mis_en_avant` TINYINT(1) NOT NULL DEFAULT 0 COMMENT '1 = recommandé (badge)',
-  `ordre` INT UNSIGNED NOT NULL DEFAULT 0,
-  `actif` TINYINT(1) NOT NULL DEFAULT 1,
-  `created_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  `updated_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-  PRIMARY KEY (`id`),
-  UNIQUE KEY `uq_packages_slug` (`slug`)
-) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_unicode_ci COMMENT = 'Packages tarifaires proposés';
-
-INSERT INTO
-  `packages` (
-    `nom`,
-    `nom_ar`,
-    `slug`,
-    `description`,
-    `couleur_badge`,
-    `prix`,
-    `min_personnes`,
-    `max_personnes`,
-    `duree_heures`,
-    `contenu`,
-    `mis_en_avant`,
-    `ordre`,
-    `actif`
-  )
-VALUES
-  (
-    'Formule Bronze',
-    'الباقة البرونزية',
-    'bronze',
-    'L''essentiel pour une belle fête',
-    '#CD7F32',
-    5000.00,
-    50,
-    100,
-    5.0,
-    '["Restauration basique","Décoration simple","1 serveur","Thé et pâtisseries"]',
-    0,
-    1,
-    1
-  ),
-  (
-    'Formule Argent',
-    'الباقة الفضية',
-    'argent',
-    'Confort et élégance réunis',
-    '#C0C0C0',
-    10000.00,
-    80,
-    150,
-    7.0,
-    '["Restauration complète","Décoration florale","3 serveurs","Gâteau","Son de base"]',
-    0,
-    2,
-    1
-  ),
-  (
-    'Formule Or',
-    'الباقة الذهبية',
-    'or',
-    'L''excellence à votre service',
-    '#D4AF37',
-    18000.00,
-    120,
-    250,
-    9.0,
-    '["Repas gastronomique","Décoration premium","5 serveurs","Gâteau","DJ","Photo"]',
-    1,
-    3,
-    1
-  ),
-  (
-    'Formule Platine',
-    'الباقة البلاتينية',
-    'platine',
-    'Le tout inclus, zéro souci',
-    '#E5E4E2',
-    30000.00,
-    200,
-    500,
-    12.0,
-    '["Tout service","Tente","Limousine","Animateur","Photo & Vidéo","Invitations"]',
-    0,
-    4,
-    1
-  );
-
--- ============================================================
---  TABLE : packages_services  (pivot)
---  Services inclus dans chaque package
--- ============================================================
-CREATE TABLE `packages_services` (
-  `package_id` INT UNSIGNED NOT NULL,
-  `service_id` INT UNSIGNED NOT NULL,
-  `quantite` INT UNSIGNED NOT NULL DEFAULT 1,
-  `note` VARCHAR(255) NULL,
-  PRIMARY KEY (`package_id`, `service_id`),
-  CONSTRAINT `fk_pkgsvc_package` FOREIGN KEY (`package_id`) REFERENCES `packages` (`id`) ON DELETE CASCADE,
-  CONSTRAINT `fk_pkgsvc_service` FOREIGN KEY (`service_id`) REFERENCES `services` (`id`) ON DELETE CASCADE
-) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_unicode_ci COMMENT = 'Services inclus dans chaque package';
-
--- ============================================================
---  TABLE : salles
---  Salles et espaces de réception gérés ou partenaires
--- ============================================================
-CREATE TABLE `salles` (
-  `id` INT UNSIGNED NOT NULL AUTO_INCREMENT,
-  `nom` VARCHAR(150) NOT NULL,
-  `adresse` VARCHAR(255) NULL,
-  `ville` VARCHAR(100) NOT NULL DEFAULT 'Errachidia',
-  `capacite_min` INT UNSIGNED NULL,
-  `capacite_max` INT UNSIGNED NULL,
-  `description` TEXT NULL,
-  `image` VARCHAR(255) NULL,
-  `telephone` VARCHAR(20) NULL,
-  `est_partenaire` TINYINT(1) NOT NULL DEFAULT 0,
-  `actif` TINYINT(1) NOT NULL DEFAULT 1,
-  `created_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  PRIMARY KEY (`id`)
-) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_unicode_ci COMMENT = 'Salles et espaces disponibles pour les événements';
-
--- ============================================================
---  TABLE : reservations
---  Réservations confirmées des clients
--- ============================================================
-CREATE TABLE `reservations` (
-  `id` INT UNSIGNED NOT NULL AUTO_INCREMENT,
-  `reference` VARCHAR(30) NOT NULL COMMENT 'Ex: RES-2025-0001',
-  `client_id` INT UNSIGNED NOT NULL,
-  `type_evenement_id` INT UNSIGNED NOT NULL,
-  `package_id` INT UNSIGNED NULL,
-  `salle_id` INT UNSIGNED NULL,
-  `date_evenement` DATE NOT NULL,
-  `heure_debut` TIME NOT NULL DEFAULT '18:00:00',
-  `heure_fin` TIME NULL,
-  `lieu` VARCHAR(255) NULL COMMENT 'Si salle hors liste',
-  `nbr_invites` INT UNSIGNED NOT NULL DEFAULT 100,
-  `statut` ENUM(
-    'en_attente',
-    'confirmee',
-    'en_cours',
-    'terminee',
-    'annulee'
-  ) NOT NULL DEFAULT 'en_attente',
-  `motif_annulation` TEXT NULL,
-  `notes_client` TEXT NULL,
-  `notes_internes` TEXT NULL,
-  `montant_total` DECIMAL(12, 2) NOT NULL DEFAULT 0.00,
-  `montant_acompte` DECIMAL(12, 2) NOT NULL DEFAULT 0.00,
-  `acompte_paye` TINYINT(1) NOT NULL DEFAULT 0,
-  `solde_restant` DECIMAL(12, 2) GENERATED ALWAYS AS (`montant_total` - `montant_acompte`) VIRTUAL,
-  `user_id_createur` INT UNSIGNED NULL COMMENT 'Admin ayant créé/saisi la réservation',
-  `created_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  `updated_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-  `deleted_at` TIMESTAMP NULL,
-  PRIMARY KEY (`id`),
-  UNIQUE KEY `uq_reservations_ref` (`reference`),
-  KEY `idx_res_client` (`client_id`),
-  KEY `idx_res_type_event` (`type_evenement_id`),
-  KEY `idx_res_date` (`date_evenement`),
-  KEY `idx_res_statut` (`statut`),
-  CONSTRAINT `fk_res_client` FOREIGN KEY (`client_id`) REFERENCES `clients` (`id`) ON UPDATE CASCADE,
-  CONSTRAINT `fk_res_type_evt` FOREIGN KEY (`type_evenement_id`) REFERENCES `types_evenements` (`id`) ON UPDATE CASCADE,
-  CONSTRAINT `fk_res_package` FOREIGN KEY (`package_id`) REFERENCES `packages` (`id`) ON DELETE
-  SET
-    NULL,
-    CONSTRAINT `fk_res_salle` FOREIGN KEY (`salle_id`) REFERENCES `salles` (`id`) ON DELETE
-  SET
-    NULL,
-    CONSTRAINT `fk_res_createur` FOREIGN KEY (`user_id_createur`) REFERENCES `users` (`id`) ON DELETE
-  SET
-    NULL
-) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_unicode_ci COMMENT = 'Réservations d''événements';
-
--- ============================================================
---  TABLE : reservation_services  (pivot)
---  Services commandés dans une réservation
--- ============================================================
-CREATE TABLE `reservation_services` (
-  `id` INT UNSIGNED NOT NULL AUTO_INCREMENT,
-  `reservation_id` INT UNSIGNED NOT NULL,
-  `service_id` INT UNSIGNED NOT NULL,
-  `quantite` INT UNSIGNED NOT NULL DEFAULT 1,
-  `prix_unitaire` DECIMAL(10, 2) NOT NULL DEFAULT 0.00,
-  `prix_total` DECIMAL(10, 2) GENERATED ALWAYS AS (`quantite` * `prix_unitaire`) STORED,
-  `note` VARCHAR(255) NULL,
-  PRIMARY KEY (`id`),
-  KEY `idx_ressvc_reservation` (`reservation_id`),
-  KEY `idx_ressvc_service` (`service_id`),
-  CONSTRAINT `fk_ressvc_reservation` FOREIGN KEY (`reservation_id`) REFERENCES `reservations` (`id`) ON DELETE CASCADE,
-  CONSTRAINT `fk_ressvc_service` FOREIGN KEY (`service_id`) REFERENCES `services` (`id`) ON UPDATE CASCADE
-) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_unicode_ci COMMENT = 'Détail des services par réservation';
-
--- ============================================================
---  TABLE : devis
---  Demandes de devis et devis générés
--- ============================================================
-CREATE TABLE `devis` (
-  `id` INT UNSIGNED NOT NULL AUTO_INCREMENT,
-  `reference` VARCHAR(30) NOT NULL COMMENT 'Ex: DEV-2025-0001',
-  `client_id` INT UNSIGNED NULL COMMENT 'NULL si prospect sans fiche',
-  `nom_prospect` VARCHAR(200) NULL COMMENT 'Si pas encore client',
-  `email_prospect` VARCHAR(191) NULL,
-  `telephone_prospect` VARCHAR(20) NULL,
-  `type_evenement_id` INT UNSIGNED NULL,
-  `date_evenement` DATE NULL,
-  `nbr_invites` INT UNSIGNED NULL,
-  `lieu` VARCHAR(255) NULL,
-  `message` TEXT NULL COMMENT 'Demande initiale du client',
-  `notes_internes` TEXT NULL,
-  `statut` ENUM(
-    'recu',
-    'en_traitement',
-    'envoye',
-    'accepte',
-    'refuse',
-    'expire'
-  ) NOT NULL DEFAULT 'recu',
-  `date_expiration` DATE NULL COMMENT 'Validité du devis',
-  `montant_ht` DECIMAL(12, 2) NOT NULL DEFAULT 0.00,
-  `tva_pct` DECIMAL(5, 2) NOT NULL DEFAULT 20.00 COMMENT 'TVA en %',
-  `montant_tva` DECIMAL(12, 2) GENERATED ALWAYS AS (`montant_ht` * `tva_pct` / 100) STORED,
-  `montant_ttc` DECIMAL(12, 2) GENERATED ALWAYS AS (`montant_ht` + `montant_ht` * `tva_pct` / 100) STORED,
-  `reservation_id` INT UNSIGNED NULL COMMENT 'Si converti en réservation',
-  `user_id_traitant` INT UNSIGNED NULL COMMENT 'Admin qui traite ce devis',
-  `created_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  `updated_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-  PRIMARY KEY (`id`),
-  UNIQUE KEY `uq_devis_ref` (`reference`),
-  KEY `idx_devis_client` (`client_id`),
-  KEY `idx_devis_statut` (`statut`),
-  KEY `idx_devis_date_evt` (`date_evenement`),
-  CONSTRAINT `fk_devis_client` FOREIGN KEY (`client_id`) REFERENCES `clients` (`id`) ON DELETE
-  SET
-    NULL,
-    CONSTRAINT `fk_devis_type_evt` FOREIGN KEY (`type_evenement_id`) REFERENCES `types_evenements` (`id`) ON DELETE
-  SET
-    NULL,
-    CONSTRAINT `fk_devis_reservation` FOREIGN KEY (`reservation_id`) REFERENCES `reservations` (`id`) ON DELETE
-  SET
-    NULL,
-    CONSTRAINT `fk_devis_traitant` FOREIGN KEY (`user_id_traitant`) REFERENCES `users` (`id`) ON DELETE
-  SET
-    NULL
-) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_unicode_ci COMMENT = 'Demandes et documents de devis';
-
--- ============================================================
---  TABLE : devis_lignes
---  Lignes de détail d'un devis
--- ============================================================
-CREATE TABLE `devis_lignes` (
-  `id` INT UNSIGNED NOT NULL AUTO_INCREMENT,
-  `devis_id` INT UNSIGNED NOT NULL,
-  `service_id` INT UNSIGNED NULL,
-  `designation` VARCHAR(255) NOT NULL,
-  `description` TEXT NULL,
-  `quantite` DECIMAL(8, 2) NOT NULL DEFAULT 1,
-  `unite` VARCHAR(50) NULL,
-  `prix_unitaire` DECIMAL(10, 2) NOT NULL DEFAULT 0.00,
-  `remise_pct` DECIMAL(5, 2) NOT NULL DEFAULT 0.00,
-  `montant_ht` DECIMAL(12, 2) GENERATED ALWAYS AS (
-    `quantite` * `prix_unitaire` * (1 - `remise_pct` / 100)
-  ) STORED,
-  `ordre` INT UNSIGNED NOT NULL DEFAULT 0,
-  PRIMARY KEY (`id`),
-  KEY `idx_devlig_devis` (`devis_id`),
-  KEY `idx_devlig_service` (`service_id`),
-  CONSTRAINT `fk_devlig_devis` FOREIGN KEY (`devis_id`) REFERENCES `devis` (`id`) ON DELETE CASCADE,
-  CONSTRAINT `fk_devlig_service` FOREIGN KEY (`service_id`) REFERENCES `services` (`id`) ON DELETE
-  SET
-    NULL
-) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_unicode_ci COMMENT = 'Lignes de détail des devis';
-
--- ============================================================
---  TABLE : factures
---  Factures liées aux réservations
--- ============================================================
-CREATE TABLE `factures` (
-  `id` INT UNSIGNED NOT NULL AUTO_INCREMENT,
-  `reference` VARCHAR(30) NOT NULL COMMENT 'Ex: FAC-2025-0001',
-  `reservation_id` INT UNSIGNED NOT NULL,
-  `client_id` INT UNSIGNED NOT NULL,
-  `date_facture` DATE NOT NULL DEFAULT (CURDATE()),
-  `date_echeance` DATE NULL,
-  `statut` ENUM(
-    'en_attente',
-    'partiellement_payee',
-    'payee',
-    'annulee'
-  ) NOT NULL DEFAULT 'en_attente',
-  `montant_ht` DECIMAL(12, 2) NOT NULL DEFAULT 0.00,
-  `tva_pct` DECIMAL(5, 2) NOT NULL DEFAULT 20.00,
-  `montant_tva` DECIMAL(12, 2) GENERATED ALWAYS AS (`montant_ht` * `tva_pct` / 100) STORED,
-  `montant_ttc` DECIMAL(12, 2) GENERATED ALWAYS AS (`montant_ht` + `montant_ht` * `tva_pct` / 100) STORED,
-  `montant_paye` DECIMAL(12, 2) NOT NULL DEFAULT 0.00,
-  `notes` TEXT NULL,
-  `created_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  `updated_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-  PRIMARY KEY (`id`),
-  UNIQUE KEY `uq_factures_ref` (`reference`),
-  KEY `idx_fac_reservation` (`reservation_id`),
-  KEY `idx_fac_client` (`client_id`),
-  KEY `idx_fac_statut` (`statut`),
-  CONSTRAINT `fk_fac_reservation` FOREIGN KEY (`reservation_id`) REFERENCES `reservations` (`id`) ON UPDATE CASCADE,
-  CONSTRAINT `fk_fac_client` FOREIGN KEY (`client_id`) REFERENCES `clients` (`id`) ON UPDATE CASCADE
-) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_unicode_ci COMMENT = 'Factures des prestations';
-
--- ============================================================
---  TABLE : paiements
---  Enregistrement des paiements reçus
--- ============================================================
-CREATE TABLE `paiements` (
-  `id` INT UNSIGNED NOT NULL AUTO_INCREMENT,
-  `facture_id` INT UNSIGNED NOT NULL,
-  `montant` DECIMAL(12, 2) NOT NULL,
-  `mode` ENUM(
-    'especes',
-    'virement',
-    'cheque',
-    'cmi',
-    'wave',
-    'whatsapp_pay',
-    'autre'
-  ) NOT NULL DEFAULT 'especes',
-  `reference_pmt` VARCHAR(100) NULL COMMENT 'Numéro de virement, chèque, etc.',
-  `date_paiement` DATE NOT NULL DEFAULT (CURDATE()),
-  `recu_par` INT UNSIGNED NULL COMMENT 'FK user admin',
-  `note` TEXT NULL,
-  `created_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  PRIMARY KEY (`id`),
-  KEY `idx_pmt_facture` (`facture_id`),
-  CONSTRAINT `fk_pmt_facture` FOREIGN KEY (`facture_id`) REFERENCES `factures` (`id`) ON DELETE CASCADE
-) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_unicode_ci COMMENT = 'Paiements reçus';
-
--- ============================================================
---  TABLE : categories_galerie
---  Catégories pour classer les photos/vidéos
--- ============================================================
-CREATE TABLE `categories_galerie` (
-  `id` INT UNSIGNED NOT NULL AUTO_INCREMENT,
-  `nom` VARCHAR(100) NOT NULL,
-  `nom_ar` VARCHAR(100) NULL,
-  `slug` VARCHAR(120) NOT NULL,
-  `ordre` INT UNSIGNED NOT NULL DEFAULT 0,
-  `actif` TINYINT(1) NOT NULL DEFAULT 1,
-  PRIMARY KEY (`id`),
-  UNIQUE KEY `uq_catgal_slug` (`slug`)
-) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_unicode_ci COMMENT = 'Catégories de la galerie';
-
-INSERT INTO
-  `categories_galerie` (`nom`, `nom_ar`, `slug`, `ordre`, `actif`)
-VALUES
-  (
-    'Mariages',
-    'الأعراس',
-    'mariages',
-    1,
-    1
-  ),
-  (
-    'Fiançailles',
-    'الخطوبة',
-    'fiancailles',
-    2,
-    1
-  ),
-  (
-    'Décoration',
-    'الديكور',
-    'decoration',
-    3,
-    1
-  ),
-  (
-    'Buffets',
-    'البوفيه',
-    'buffets',
-    4,
-    1
-  ),
-  (
-    'Anniversaires',
-    'أعياد الميلاد',
-    'anniversaires',
-    5,
-    1
-  ),
-  (
-    'Tentes & Salles',
-    'الخيام والقاعات',
-    'tentes-salles',
-    6,
-    1
-  ),
-  (
-    'Équipe',
-    'الفريق',
-    'equipe',
-    7,
-    1
-  );
-
--- ============================================================
---  TABLE : galerie
---  Médias (photos et vidéos) d'événements
--- ============================================================
-CREATE TABLE `galerie` (
-  `id` INT UNSIGNED NOT NULL AUTO_INCREMENT,
-  `categorie_id` INT UNSIGNED NOT NULL,
-  `type` ENUM('photo', 'video') NOT NULL DEFAULT 'photo',
-  `titre` VARCHAR(200) NULL,
-  `description` TEXT NULL,
-  `fichier` VARCHAR(255) NULL COMMENT 'Chemin fichier image',
-  `url_video` VARCHAR(500) NULL COMMENT 'URL YouTube/Vimeo si vidéo',
-  `miniature` VARCHAR(255) NULL COMMENT 'Chemin miniature',
-  `alt_text` VARCHAR(255) NULL COMMENT 'Texte alternatif SEO',
-  `tags` JSON NULL,
-  `ordre` INT UNSIGNED NOT NULL DEFAULT 0,
-  `vues` INT UNSIGNED NOT NULL DEFAULT 0,
-  `en_vedette` TINYINT(1) NOT NULL DEFAULT 0,
-  `actif` TINYINT(1) NOT NULL DEFAULT 1,
-  `created_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  `updated_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-  PRIMARY KEY (`id`),
-  KEY `idx_galerie_cat` (`categorie_id`),
-  KEY `idx_galerie_type` (`type`),
-  KEY `idx_galerie_vedette` (`en_vedette`),
-  CONSTRAINT `fk_galerie_cat` FOREIGN KEY (`categorie_id`) REFERENCES `categories_galerie` (`id`) ON UPDATE CASCADE
-) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_unicode_ci COMMENT = 'Photos et vidéos des événements réalisés';
-
--- ============================================================
---  TABLE : categories_blog
--- ============================================================
-CREATE TABLE `categories_blog` (
-  `id` INT UNSIGNED NOT NULL AUTO_INCREMENT,
-  `nom` VARCHAR(100) NOT NULL,
-  `nom_ar` VARCHAR(100) NULL,
-  `slug` VARCHAR(120) NOT NULL,
-  `ordre` INT UNSIGNED NOT NULL DEFAULT 0,
-  `actif` TINYINT(1) NOT NULL DEFAULT 1,
-  PRIMARY KEY (`id`),
-  UNIQUE KEY `uq_catblog_slug` (`slug`)
-) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_unicode_ci;
-
-INSERT INTO
-  `categories_blog` (`nom`, `nom_ar`, `slug`, `ordre`)
-VALUES
-  (
-    'Conseils Mariage',
-    'نصائح الزواج',
-    'conseils-mariage',
-    1
-  ),
-  (
-    'Tendances Décoration',
-    'ترندات الديكور',
-    'tendances-decoration',
-    2
-  ),
-  (
-    'Reportages',
-    'ريبورتاجات',
-    'reportages',
-    3
-  ),
-  (
-    'Recettes & Buffets',
-    'وصفات وبوفيه',
-    'recettes-buffets',
-    4
-  ),
-  (
-    'Actualités',
-    'أخبار',
-    'actualites',
-    5
-  );
-
--- ============================================================
---  TABLE : blog_articles
--- ============================================================
-CREATE TABLE `blog_articles` (
-  `id` INT UNSIGNED NOT NULL AUTO_INCREMENT,
-  `categorie_id` INT UNSIGNED NOT NULL,
-  `auteur_id` INT UNSIGNED NULL,
-  `titre` VARCHAR(255) NOT NULL,
-  `titre_ar` VARCHAR(255) NULL,
-  `slug` VARCHAR(280) NOT NULL,
-  `extrait` TEXT NULL,
-  `contenu` LONGTEXT NOT NULL,
-  `image_principale` VARCHAR(255) NULL,
-  `tags` JSON NULL,
-  `statut` ENUM('brouillon', 'publie', 'archive') NOT NULL DEFAULT 'brouillon',
-  `date_publication` TIMESTAMP NULL,
-  `vues` INT UNSIGNED NOT NULL DEFAULT 0,
-  `meta_titre` VARCHAR(160) NULL,
-  `meta_description` VARCHAR(320) NULL,
-  `created_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  `updated_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-  PRIMARY KEY (`id`),
-  UNIQUE KEY `uq_blog_slug` (`slug`),
-  KEY `idx_blog_cat` (`categorie_id`),
-  KEY `idx_blog_statut` (`statut`),
-  KEY `idx_blog_date_pub` (`date_publication`),
-  CONSTRAINT `fk_blog_cat` FOREIGN KEY (`categorie_id`) REFERENCES `categories_blog` (`id`),
-  CONSTRAINT `fk_blog_auteur` FOREIGN KEY (`auteur_id`) REFERENCES `users` (`id`) ON DELETE
-  SET
-    NULL
-) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_unicode_ci COMMENT = 'Articles du blog';
-
--- ============================================================
---  TABLE : commentaires
--- ============================================================
-CREATE TABLE `commentaires` (
-  `id` INT UNSIGNED NOT NULL AUTO_INCREMENT,
-  `article_id` INT UNSIGNED NOT NULL,
-  `parent_id` INT UNSIGNED NULL COMMENT 'Pour les réponses',
-  `nom` VARCHAR(100) NOT NULL,
-  `email` VARCHAR(191) NOT NULL,
-  `contenu` TEXT NOT NULL,
-  `statut` ENUM('en_attente', 'approuve', 'spam') NOT NULL DEFAULT 'en_attente',
-  `ip_address` VARCHAR(45) NULL,
-  `created_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  PRIMARY KEY (`id`),
-  KEY `idx_com_article` (`article_id`),
-  KEY `idx_com_parent` (`parent_id`),
-  KEY `idx_com_statut` (`statut`),
-  CONSTRAINT `fk_com_article` FOREIGN KEY (`article_id`) REFERENCES `blog_articles` (`id`) ON DELETE CASCADE,
-  CONSTRAINT `fk_com_parent` FOREIGN KEY (`parent_id`) REFERENCES `commentaires` (`id`) ON DELETE CASCADE
-) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_unicode_ci;
-
--- ============================================================
---  TABLE : temoignages
---  Avis et témoignages clients
--- ============================================================
-CREATE TABLE `temoignages` (
-  `id` INT UNSIGNED NOT NULL AUTO_INCREMENT,
-  `client_id` INT UNSIGNED NULL,
-  `reservation_id` INT UNSIGNED NULL,
-  `nom_client` VARCHAR(150) NOT NULL,
-  `ville` VARCHAR(100) NULL,
-  `contenu` TEXT NOT NULL,
-  `note` TINYINT UNSIGNED NOT NULL DEFAULT 5 COMMENT 'Note /5',
-  `type_evenement` VARCHAR(100) NULL,
-  `photo` VARCHAR(255) NULL,
-  `statut` ENUM('en_attente', 'publie', 'refuse') NOT NULL DEFAULT 'en_attente',
-  `en_vedette` TINYINT(1) NOT NULL DEFAULT 0,
-  `ordre` INT UNSIGNED NOT NULL DEFAULT 0,
-  `created_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  PRIMARY KEY (`id`),
-  KEY `idx_tem_client` (`client_id`),
-  KEY `idx_tem_statut` (`statut`),
-  CONSTRAINT `fk_tem_client` FOREIGN KEY (`client_id`) REFERENCES `clients` (`id`) ON DELETE
-  SET
-    NULL,
-    CONSTRAINT `fk_tem_reservation` FOREIGN KEY (`reservation_id`) REFERENCES `reservations` (`id`) ON DELETE
-  SET
-    NULL
-) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_unicode_ci COMMENT = 'Témoignages et avis des clients';
-
--- Témoignages de démonstration
-INSERT INTO
-  `temoignages` (
-    `nom_client`,
-    `ville`,
-    `contenu`,
-    `note`,
-    `type_evenement`,
-    `statut`,
-    `en_vedette`,
-    `ordre`
-  )
-VALUES
-  (
-    'Fatima Zahra B.',
-    'Errachidia',
-    'Un service exceptionnel pour notre mariage ! L''équipe d''EL MOUSSAOUI a tout géré avec professionnalisme. La décoration était magnifique et le buffet délicieux. Nous recommandons vivement !',
-    5,
-    'Mariage',
-    'publie',
-    1,
-    1
-  ),
-  (
-    'Mohammed K.',
-    'Errachidia',
-    'Très satisfait de l''organisation de notre cérémonie de fiançailles. Équipe réactive, prix raisonnables et résultat au-delà de nos espérances. Merci !',
-    5,
-    'Fiançailles',
-    'publie',
-    1,
-    2
-  ),
-  (
-    'Aicha M.',
-    'Goulmima',
-    'Service de qualité pour notre buffet familial. Livraison à temps, plats chauds et savoureux. Je referai appel à Traiteur EL MOUSSAOUI sans hésitation.',
-    4,
-    'Buffet',
-    'publie',
-    0,
-    3
-  ),
-  (
-    'Hassan El A.',
-    'Erfoud',
-    'Notre mariage était un vrai conte de fée grâce à leur travail. La tente, la décoration, la musique... tout était parfait. Bravo à toute l''équipe !',
-    5,
-    'Mariage',
-    'publie',
-    1,
-    4
-  );
-
--- ============================================================
---  TABLE : contacts
---  Messages reçus via le formulaire de contact
--- ============================================================
-CREATE TABLE `contacts` (
-  `id` INT UNSIGNED NOT NULL AUTO_INCREMENT,
-  `nom` VARCHAR(100) NOT NULL,
-  `prenom` VARCHAR(100) NULL,
-  `email` VARCHAR(191) NOT NULL,
-  `telephone` VARCHAR(20) NULL,
-  `sujet` VARCHAR(200) NULL,
-  `message` TEXT NOT NULL,
-  `statut` ENUM('nouveau', 'lu', 'traite', 'archive') NOT NULL DEFAULT 'nouveau',
-  `ip_address` VARCHAR(45) NULL,
-  `lu_le` TIMESTAMP NULL,
-  `repondu_le` TIMESTAMP NULL,
-  `created_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  PRIMARY KEY (`id`),
-  KEY `idx_contacts_statut` (`statut`),
-  KEY `idx_contacts_date` (`created_at`)
-) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_unicode_ci COMMENT = 'Messages du formulaire de contact';
-
--- ============================================================
---  TABLE : notifications
---  Notifications internes pour les admins
--- ============================================================
-CREATE TABLE `notifications` (
-  `id` CHAR(36) NOT NULL COMMENT 'UUID',
-  `type` VARCHAR(100) NOT NULL COMMENT 'Classe de notification',
-  `notifiable_type` VARCHAR(100) NOT NULL,
-  `notifiable_id` INT UNSIGNED NOT NULL,
-  `data` JSON NOT NULL,
-  `read_at` TIMESTAMP NULL,
-  `created_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  `updated_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-  PRIMARY KEY (`id`),
-  KEY `idx_notif_notifiable` (`notifiable_type`, `notifiable_id`),
-  KEY `idx_notif_read` (`read_at`)
-) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_unicode_ci COMMENT = 'Notifications système';
-
--- ============================================================
---  TABLE : parametres
---  Configuration générale du site web
--- ============================================================
-CREATE TABLE `parametres` (
-  `id` INT UNSIGNED NOT NULL AUTO_INCREMENT,
-  `cle` VARCHAR(100) NOT NULL COMMENT 'Clé de configuration',
-  `valeur` TEXT NULL,
-  `groupe` VARCHAR(50) NOT NULL DEFAULT 'general',
-  `label` VARCHAR(150) NULL,
-  `type` ENUM(
-    'text',
-    'textarea',
-    'number',
-    'boolean',
-    'json',
-    'color',
-    'email',
-    'url',
-    'password'
-  ) DEFAULT 'text',
-  `ordre` INT UNSIGNED NOT NULL DEFAULT 0,
-  PRIMARY KEY (`id`),
-  UNIQUE KEY `uq_param_cle` (`cle`),
-  KEY `idx_param_groupe` (`groupe`)
-) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_unicode_ci COMMENT = 'Paramètres de configuration du site';
-
-INSERT INTO
-  `parametres` (
-    `cle`,
-    `valeur`,
-    `groupe`,
-    `label`,
-    `type`,
-    `ordre`
-  )
-VALUES
-  -- Informations générales
-  (
-    'site_nom',
-    'Traiteur EL MOUSSAOUI',
-    'general',
-    'Nom du site',
-    'text',
-    1
-  ),
-  (
-    'site_slogan',
-    'Organisation des Évènements et des Fêtes',
-    'general',
-    'Slogan',
-    'text',
-    2
-  ),
-  (
-    'site_slogan_ar',
-    'تنظيم وتجهيز جميع المناسبات والحفلات',
-    'general',
-    'Slogan (Arabe)',
-    'text',
-    3
-  ),
-  (
-    'site_description',
-    'Votre traiteur de confiance à Errachidia pour tous vos événements et fêtes.',
-    'general',
-    'Description courte',
-    'textarea',
-    4
-  ),
-  (
-    'site_couleur_primaire',
-    '#D4AF37',
-    'general',
-    'Couleur principale',
-    'color',
-    5
-  ),
-  (
-    'site_logo',
-    'assets/img/logo.png',
-    'general',
-    'Logo principal',
-    'text',
-    6
-  ),
-  -- Contact
-  (
-    'contact_telephone',
-    '0626986533',
-    'contact',
-    'Téléphone principal',
-    'text',
-    1
-  ),
-  (
-    'contact_whatsapp',
-    '+212626986533',
-    'contact',
-    'Numéro WhatsApp',
-    'text',
-    2
-  ),
-  (
-    'contact_email',
-    'contact@traiteur-elmoussaoui.ma',
-    'contact',
-    'E-mail de contact',
-    'email',
-    3
-  ),
-  (
-    'contact_adresse',
-    'Errachidia, Région Drâa-Tafilalet, Maroc',
-    'contact',
-    'Adresse',
-    'textarea',
-    4
-  ),
-  (
-    'contact_maps_lat',
-    '31.9314',
-    'contact',
-    'Latitude Google Maps',
-    'text',
-    5
-  ),
-  (
-    'contact_maps_lng',
-    '-4.4264',
-    'contact',
-    'Longitude Google Maps',
-    'text',
-    6
-  ),
-  (
-    'horaires_ouverture',
-    'Lun–Sam : 08h–20h | Dim : 09h–18h',
-    'contact',
-    'Horaires d''ouverture',
-    'text',
-    7
-  ),
-  -- Réseaux sociaux
-  (
-    'rs_facebook',
-    'https://facebook.com/traiteur.elmoussaoui',
-    'social',
-    'Facebook',
-    'url',
-    1
-  ),
-  (
-    'rs_instagram',
-    'https://instagram.com/elmoussaoui_traiteur',
-    'social',
-    'Instagram',
-    'url',
-    2
-  ),
-  (
-    'rs_tiktok',
-    '',
-    'social',
-    'TikTok',
-    'url',
-    3
-  ),
-  (
-    'rs_youtube',
-    '',
-    'social',
-    'YouTube',
-    'url',
-    4
-  ),
-  -- SEO
-  (
-    'seo_meta_titre',
-    'Traiteur EL MOUSSAOUI — Errachidia | Organisation Mariages & Fêtes',
-    'seo',
-    'Meta Titre',
-    'text',
-    1
-  ),
-  (
-    'seo_meta_description',
-    'Traiteur EL MOUSSAOUI, spécialiste organisation mariages, fiançailles et événements à Errachidia, Maroc. Contact : 0626 986 533',
-    'seo',
-    'Meta Description',
-    'textarea',
-    2
-  ),
-  -- Email SMTP
-  (
-    'smtp_host',
-    'smtp.gmail.com',
-    'email',
-    'Serveur SMTP',
-    'text',
-    1
-  ),
-  (
-    'smtp_port',
-    '587',
-    'email',
-    'Port SMTP',
-    'number',
-    2
-  ),
-  (
-    'smtp_encryption',
-    'tls',
-    'email',
-    'Chiffrement',
-    'text',
-    3
-  ),
-  (
-    'smtp_utilisateur',
-    'noreply@traiteur-elmoussaoui.ma',
-    'email',
-    'Utilisateur SMTP',
-    'email',
-    4
-  ),
-  (
-    'smtp_mot_de_passe',
-    '',
-    'email',
-    'Mot de passe SMTP',
-    'password',
-    5
-  ),
-  (
-    'email_expediteur',
-    'noreply@traiteur-elmoussaoui.ma',
-    'email',
-    'E-mail expéditeur',
-    'email',
-    6
-  ),
-  (
-    'email_nom_expediteur',
-    'Traiteur EL MOUSSAOUI',
-    'email',
-    'Nom expéditeur',
-    'text',
-    7
-  ),
-  -- Paramètres réservation
-  (
-    'devis_tva_defaut',
-    '20',
-    'reservation',
-    'TVA par défaut (%)',
-    'number',
-    1
-  ),
-  (
-    'devis_validite_jours',
-    '30',
-    'reservation',
-    'Validité devis (j)',
-    'number',
-    2
-  ),
-  (
-    'reservation_acompte_pct',
-    '30',
-    'reservation',
-    'Acompte requis (%)',
-    'number',
-    3
-  ),
-  (
-    'maintenance_mode',
-    '0',
-    'system',
-    'Mode maintenance',
-    'boolean',
-    1
-  );
-
--- ============================================================
---  TABLE : activity_logs
---  Journal d'activité des administrateurs
--- ============================================================
 CREATE TABLE `activity_logs` (
-  `id` BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
-  `user_id` INT UNSIGNED NULL,
-  `action` VARCHAR(100) NOT NULL COMMENT 'Ex: create, update, delete, login',
-  `module` VARCHAR(100) NULL COMMENT 'Ex: reservations, devis, clients',
-  `description` TEXT NULL,
-  `entite_type` VARCHAR(100) NULL,
-  `entite_id` INT UNSIGNED NULL,
-  `donnees_avant` JSON NULL COMMENT 'Données avant modification',
-  `donnees_apres` JSON NULL COMMENT 'Données après modification',
-  `ip_address` VARCHAR(45) NULL,
-  `user_agent` VARCHAR(500) NULL,
-  `created_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  PRIMARY KEY (`id`),
-  KEY `idx_log_user` (`user_id`),
-  KEY `idx_log_action` (`action`),
-  KEY `idx_log_module` (`module`),
-  KEY `idx_log_date` (`created_at`),
-  CONSTRAINT `fk_log_user` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE
-  SET
-    NULL
-) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_unicode_ci COMMENT = 'Journal d''activité administrateur';
+  `id` bigint(20) UNSIGNED NOT NULL,
+  `user_id` int(10) UNSIGNED DEFAULT NULL,
+  `action` varchar(100) NOT NULL COMMENT 'Ex: create, update, delete, login',
+  `module` varchar(100) DEFAULT NULL COMMENT 'Ex: reservations, devis, clients',
+  `description` text DEFAULT NULL,
+  `entite_type` varchar(100) DEFAULT NULL,
+  `entite_id` int(10) UNSIGNED DEFAULT NULL,
+  `donnees_avant` longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_bin DEFAULT NULL COMMENT 'Données avant modification' CHECK (json_valid(`donnees_avant`)),
+  `donnees_apres` longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_bin DEFAULT NULL COMMENT 'Données après modification' CHECK (json_valid(`donnees_apres`)),
+  `ip_address` varchar(45) DEFAULT NULL,
+  `user_agent` varchar(500) DEFAULT NULL,
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp()
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='Journal d''activité administrateur';
 
--- ============================================================
---  TABLE : calendrier_disponibilites
---  Gestion des disponibilités pour les réservations
--- ============================================================
+-- --------------------------------------------------------
+
+--
+-- Structure de la table `blog_articles`
+--
+
+CREATE TABLE `blog_articles` (
+  `id` int(10) UNSIGNED NOT NULL,
+  `categorie_id` int(10) UNSIGNED NOT NULL,
+  `auteur_id` int(10) UNSIGNED DEFAULT NULL,
+  `titre` varchar(255) NOT NULL,
+  `titre_ar` varchar(255) DEFAULT NULL,
+  `slug` varchar(280) NOT NULL,
+  `extrait` text DEFAULT NULL,
+  `contenu` longtext NOT NULL,
+  `image_principale` varchar(255) DEFAULT NULL,
+  `tags` longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_bin DEFAULT NULL CHECK (json_valid(`tags`)),
+  `statut` enum('brouillon','publie','archive') NOT NULL DEFAULT 'brouillon',
+  `date_publication` timestamp NULL DEFAULT NULL,
+  `vues` int(10) UNSIGNED NOT NULL DEFAULT 0,
+  `meta_titre` varchar(160) DEFAULT NULL,
+  `meta_description` varchar(320) DEFAULT NULL,
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='Articles du blog';
+
+-- --------------------------------------------------------
+
+--
+-- Structure de la table `calendrier_disponibilites`
+--
+
 CREATE TABLE `calendrier_disponibilites` (
-  `id` INT UNSIGNED NOT NULL AUTO_INCREMENT,
-  `date` DATE NOT NULL,
-  `statut` ENUM('disponible', 'occupe', 'bloque', 'maintenance') NOT NULL DEFAULT 'disponible',
-  `reservation_id` INT UNSIGNED NULL,
-  `note` VARCHAR(255) NULL,
-  `created_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  PRIMARY KEY (`id`),
-  UNIQUE KEY `uq_cal_date` (`date`),
-  KEY `idx_cal_statut` (`statut`),
-  CONSTRAINT `fk_cal_reservation` FOREIGN KEY (`reservation_id`) REFERENCES `reservations` (`id`) ON DELETE
-  SET
-    NULL
-) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_unicode_ci COMMENT = 'Calendrier des disponibilités';
+  `id` int(10) UNSIGNED NOT NULL,
+  `date` date NOT NULL,
+  `statut` enum('disponible','occupe','bloque','maintenance') NOT NULL DEFAULT 'disponible',
+  `reservation_id` int(10) UNSIGNED DEFAULT NULL,
+  `note` varchar(255) DEFAULT NULL,
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp()
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='Calendrier des disponibilités';
 
--- ============================================================
---  TABLE : demandes_informations
---  Formulaire de demande de renseignements rapide
--- ============================================================
+-- --------------------------------------------------------
+
+--
+-- Structure de la table `categories_blog`
+--
+
+CREATE TABLE `categories_blog` (
+  `id` int(10) UNSIGNED NOT NULL,
+  `nom` varchar(100) NOT NULL,
+  `nom_ar` varchar(100) DEFAULT NULL,
+  `slug` varchar(120) NOT NULL,
+  `ordre` int(10) UNSIGNED NOT NULL DEFAULT 0,
+  `actif` tinyint(1) NOT NULL DEFAULT 1
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+--
+-- Déchargement des données de la table `categories_blog`
+--
+
+INSERT INTO `categories_blog` (`id`, `nom`, `nom_ar`, `slug`, `ordre`, `actif`) VALUES
+(1, 'Conseils Mariage', 'نصائح الزواج', 'conseils-mariage', 1, 1),
+(2, 'Tendances Décoration', 'ترندات الديكور', 'tendances-decoration', 2, 1),
+(3, 'Reportages', 'ريبورتاجات', 'reportages', 3, 1),
+(4, 'Recettes & Buffets', 'وصفات وبوفيه', 'recettes-buffets', 4, 1),
+(5, 'Actualités', 'أخبار', 'actualites', 5, 1);
+
+-- --------------------------------------------------------
+
+--
+-- Structure de la table `categories_galerie`
+--
+
+CREATE TABLE `categories_galerie` (
+  `id` int(10) UNSIGNED NOT NULL,
+  `nom` varchar(100) NOT NULL,
+  `nom_ar` varchar(100) DEFAULT NULL,
+  `slug` varchar(120) NOT NULL,
+  `ordre` int(10) UNSIGNED NOT NULL DEFAULT 0,
+  `actif` tinyint(1) NOT NULL DEFAULT 1
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='Catégories de la galerie';
+
+--
+-- Déchargement des données de la table `categories_galerie`
+--
+
+INSERT INTO `categories_galerie` (`id`, `nom`, `nom_ar`, `slug`, `ordre`, `actif`) VALUES
+(1, 'Mariages', 'الأعراس', 'mariages', 1, 1),
+(2, 'Fiançailles', 'الخطوبة', 'fiancailles', 2, 1),
+(3, 'Décoration', 'الديكور', 'decoration', 3, 1),
+(4, 'Buffets', 'البوفيه', 'buffets', 4, 1),
+(5, 'Anniversaires', 'أعياد الميلاد', 'anniversaires', 5, 1),
+(6, 'Tentes & Salles', 'الخيام والقاعات', 'tentes-salles', 6, 1),
+(7, 'Équipe', 'الفريق', 'equipe', 7, 1);
+
+-- --------------------------------------------------------
+
+--
+-- Structure de la table `clients`
+--
+
+CREATE TABLE `clients` (
+  `id` int(10) UNSIGNED NOT NULL,
+  `user_id` int(10) UNSIGNED DEFAULT NULL COMMENT 'NULL si client sans compte',
+  `civilite` enum('M.','Mme','Dr','Prof') NOT NULL DEFAULT 'M.',
+  `nom` varchar(100) NOT NULL,
+  `prenom` varchar(100) NOT NULL,
+  `email` varchar(191) NOT NULL,
+  `telephone` varchar(20) NOT NULL,
+  `telephone2` varchar(20) DEFAULT NULL,
+  `adresse` varchar(255) DEFAULT NULL,
+  `ville` varchar(100) DEFAULT 'Errachidia',
+  `code_postal` varchar(10) DEFAULT NULL,
+  `pays` varchar(50) NOT NULL DEFAULT 'Maroc',
+  `cin` varchar(20) DEFAULT NULL COMMENT 'Carte nationale identité',
+  `notes_internes` text DEFAULT NULL,
+  `source` enum('site_web','telephone','reference','facebook','instagram','autre') DEFAULT 'site_web',
+  `actif` tinyint(1) NOT NULL DEFAULT 1,
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
+  `deleted_at` timestamp NULL DEFAULT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='Fiches clients de Traiteur EL MOUSSAOUI';
+
+--
+-- Déchargement des données de la table `clients`
+--
+
+INSERT INTO `clients` (`id`, `user_id`, `civilite`, `nom`, `prenom`, `email`, `telephone`, `telephone2`, `adresse`, `ville`, `code_postal`, `pays`, `cin`, `notes_internes`, `source`, `actif`, `created_at`, `updated_at`, `deleted_at`) VALUES
+(1, NULL, 'M.', 'NADIM', 'Imrane', 'imrane10nadim@gmail.com', '0697374762', NULL, NULL, 'Alnif', NULL, 'Maroc', NULL, NULL, 'site_web', 1, '2026-08-16 17:46:52', '2026-08-16 17:46:52', NULL),
+(2, NULL, 'M.', 'hhhh', 'jjj', '', '06777777', NULL, NULL, 'Errachidia', NULL, 'Maroc', NULL, NULL, 'site_web', 1, '2026-08-17 12:19:55', '2026-08-17 12:19:55', NULL);
+
+-- --------------------------------------------------------
+
+--
+-- Structure de la table `commentaires`
+--
+
+CREATE TABLE `commentaires` (
+  `id` int(10) UNSIGNED NOT NULL,
+  `article_id` int(10) UNSIGNED NOT NULL,
+  `parent_id` int(10) UNSIGNED DEFAULT NULL COMMENT 'Pour les réponses',
+  `nom` varchar(100) NOT NULL,
+  `email` varchar(191) NOT NULL,
+  `contenu` text NOT NULL,
+  `statut` enum('en_attente','approuve','spam') NOT NULL DEFAULT 'en_attente',
+  `ip_address` varchar(45) DEFAULT NULL,
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp()
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- --------------------------------------------------------
+
+--
+-- Structure de la table `contacts`
+--
+
+CREATE TABLE `contacts` (
+  `id` int(10) UNSIGNED NOT NULL,
+  `nom` varchar(100) NOT NULL,
+  `prenom` varchar(100) DEFAULT NULL,
+  `email` varchar(191) NOT NULL,
+  `telephone` varchar(20) DEFAULT NULL,
+  `sujet` varchar(200) DEFAULT NULL,
+  `message` text NOT NULL,
+  `statut` enum('nouveau','lu','traite','archive') NOT NULL DEFAULT 'nouveau',
+  `ip_address` varchar(45) DEFAULT NULL,
+  `lu_le` timestamp NULL DEFAULT NULL,
+  `repondu_le` timestamp NULL DEFAULT NULL,
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp()
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='Messages du formulaire de contact';
+
+-- --------------------------------------------------------
+
+--
+-- Structure de la table `demandes_informations`
+--
+
 CREATE TABLE `demandes_informations` (
-  `id` INT UNSIGNED NOT NULL AUTO_INCREMENT,
-  `nom` VARCHAR(150) NOT NULL,
-  `telephone` VARCHAR(20) NOT NULL,
-  `email` VARCHAR(191) NULL,
-  `type_evenement_id` INT UNSIGNED NULL,
-  `date_evenement` DATE NULL,
-  `nbr_invites` INT UNSIGNED NULL,
-  `message` TEXT NULL,
-  `statut` ENUM(
-    'nouveau',
-    'contacte',
-    'transforme_devis',
-    'ferme'
-  ) NOT NULL DEFAULT 'nouveau',
-  `ip_address` VARCHAR(45) NULL,
-  `created_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  PRIMARY KEY (`id`),
-  KEY `idx_dem_statut` (`statut`),
-  CONSTRAINT `fk_dem_type_evt` FOREIGN KEY (`type_evenement_id`) REFERENCES `types_evenements` (`id`) ON DELETE
-  SET
-    NULL
-) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_unicode_ci COMMENT = 'Demandes de renseignements rapides (formulaire accueil)';
+  `id` int(10) UNSIGNED NOT NULL,
+  `nom` varchar(150) NOT NULL,
+  `telephone` varchar(20) NOT NULL,
+  `email` varchar(191) DEFAULT NULL,
+  `type_evenement_id` int(10) UNSIGNED DEFAULT NULL,
+  `date_evenement` date DEFAULT NULL,
+  `nbr_invites` int(10) UNSIGNED DEFAULT NULL,
+  `message` text DEFAULT NULL,
+  `statut` enum('nouveau','contacte','transforme_devis','ferme') NOT NULL DEFAULT 'nouveau',
+  `ip_address` varchar(45) DEFAULT NULL,
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp()
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='Demandes de renseignements rapides (formulaire accueil)';
 
--- ============================================================
---  VUES UTILES
--- ============================================================
--- Vue : Réservations avec infos client et type d'événement
-CREATE
-OR REPLACE VIEW `v_reservations_detail` AS
-SELECT
-  r.id,
-  r.reference,
-  r.date_evenement,
-  r.heure_debut,
-  r.nbr_invites,
-  r.statut,
-  r.montant_total,
-  r.montant_acompte,
-  CONCAT(c.prenom, ' ', c.nom) AS client_nom_complet,
-  c.email AS client_email,
-  c.telephone AS client_telephone,
-  te.nom AS type_evenement,
-  p.nom AS package_nom,
-  p.prix AS package_prix,
-  s.nom AS salle_nom,
-  r.created_at
-FROM
-  `reservations` r
-  JOIN `clients` c ON r.client_id = c.id
-  JOIN `types_evenements` te ON r.type_evenement_id = te.id
-  LEFT JOIN `packages` p ON r.package_id = p.id
-  LEFT JOIN `salles` s ON r.salle_id = s.id
-WHERE
-  r.deleted_at IS NULL;
+-- --------------------------------------------------------
 
--- Vue : Statistiques du tableau de bord
-CREATE
-OR REPLACE VIEW `v_stats_dashboard` AS
-SELECT
-  (
-    SELECT
-      COUNT(*)
-    FROM
-      `reservations`
-    WHERE
-      statut NOT IN ('annulee')
-      AND deleted_at IS NULL
-  ) AS total_reservations,
-  (
-    SELECT
-      COUNT(*)
-    FROM
-      `reservations`
-    WHERE
-      statut = 'en_attente'
-      AND deleted_at IS NULL
-  ) AS reservations_en_attente,
-  (
-    SELECT
-      COUNT(*)
-    FROM
-      `reservations`
-    WHERE
-      statut = 'confirmee'
-      AND deleted_at IS NULL
-  ) AS reservations_confirmees,
-  (
-    SELECT
-      COUNT(*)
-    FROM
-      `devis`
-    WHERE
-      statut IN ('recu', 'en_traitement')
-  ) AS devis_en_attente,
-  (
-    SELECT
-      COUNT(*)
-    FROM
-      `clients`
-    WHERE
-      deleted_at IS NULL
-  ) AS total_clients,
-  (
-    SELECT
-      COUNT(*)
-    FROM
-      `contacts`
-    WHERE
-      statut = 'nouveau'
-  ) AS messages_nouveaux,
-  (
-    SELECT
-      COALESCE(SUM(montant_total), 0)
-    FROM
-      `reservations`
-    WHERE
-      statut IN ('confirmee', 'en_cours', 'terminee')
-      AND deleted_at IS NULL
-  ) AS ca_total,
-  (
-    SELECT
-      COALESCE(SUM(montant_total), 0)
-    FROM
-      `reservations`
-    WHERE
-      statut IN ('confirmee', 'en_cours', 'terminee')
-      AND MONTH(date_evenement) = MONTH(CURDATE())
-      AND YEAR(date_evenement) = YEAR(CURDATE())
-      AND deleted_at IS NULL
-  ) AS ca_mois_courant,
-  (
-    SELECT
-      COUNT(*)
-    FROM
-      `reservations`
-    WHERE
-      date_evenement = CURDATE()
-      AND statut NOT IN ('annulee')
-      AND deleted_at IS NULL
-  ) AS evenements_aujourd_hui;
-
--- ============================================================
---  RÉACTIVATION DES CLÉS ÉTRANGÈRES
--- ============================================================
-SET
-  FOREIGN_KEY_CHECKS = 1;
-
--- ============================================================
---  RÉSUMÉ DES TABLES CRÉÉES
--- ============================================================
--- 1.  roles                      — Rôles utilisateurs
--- 2.  users                      — Comptes utilisateurs (admin + client)
--- 3.  clients                    — Fiches clients détaillées
--- 4.  types_evenements           — Catégories d'événements
--- 5.  services                   — Services proposés
--- 6.  packages                   — Formules tarifaires
--- 7.  packages_services          — Pivot packages ↔ services
--- 8.  salles                     — Salles et espaces disponibles
--- 9.  reservations               — Réservations confirmées
--- 10. reservation_services       — Pivot réservations ↔ services
--- 11. devis                      — Demandes et documents de devis
--- 12. devis_lignes               — Lignes de détail devis
--- 13. factures                   — Factures
--- 14. paiements                  — Paiements reçus
--- 15. categories_galerie         — Catégories galerie
--- 16. galerie                    — Photos & vidéos
--- 17. categories_blog            — Catégories blog
--- 18. blog_articles              — Articles blog
--- 19. commentaires               — Commentaires articles
--- 20. temoignages                — Avis clients
--- 21. contacts                   — Messages formulaire contact
--- 22. notifications              — Notifications système
--- 23. parametres                 — Configuration site
--- 24. activity_logs              — Journal d'activité admin
--- 25. calendrier_disponibilites  — Calendrier réservations
--- 26. demandes_informations      — Formulaire renseignements rapide
 --
--- VUES :
---  v_reservations_detail         — Réservations avec détails
---  v_stats_dashboard             — Statistiques tableau de bord
+-- Structure de la table `devis`
 --
--- ============================================================
---  FIN DU SCRIPT — db_traiteur_elmoussaoui
---  Traiteur EL MOUSSAOUI | Errachidia, Maroc | 0626 986 533
--- ============================================================
+
+CREATE TABLE `devis` (
+  `id` int(10) UNSIGNED NOT NULL,
+  `reference` varchar(30) NOT NULL COMMENT 'Ex: DEV-2025-0001',
+  `client_id` int(10) UNSIGNED DEFAULT NULL COMMENT 'NULL si prospect sans fiche',
+  `nom_prospect` varchar(200) DEFAULT NULL COMMENT 'Si pas encore client',
+  `email_prospect` varchar(191) DEFAULT NULL,
+  `telephone_prospect` varchar(20) DEFAULT NULL,
+  `type_evenement_id` int(10) UNSIGNED DEFAULT NULL,
+  `date_evenement` date DEFAULT NULL,
+  `nbr_invites` int(10) UNSIGNED DEFAULT NULL,
+  `lieu` varchar(255) DEFAULT NULL,
+  `message` text DEFAULT NULL COMMENT 'Demande initiale du client',
+  `notes_internes` text DEFAULT NULL,
+  `statut` enum('recu','en_traitement','envoye','accepte','refuse','expire') NOT NULL DEFAULT 'recu',
+  `date_expiration` date DEFAULT NULL COMMENT 'Validité du devis',
+  `montant_ht` decimal(12,2) NOT NULL DEFAULT 0.00,
+  `tva_pct` decimal(5,2) NOT NULL DEFAULT 20.00 COMMENT 'TVA en %',
+  `montant_tva` decimal(12,2) GENERATED ALWAYS AS (`montant_ht` * `tva_pct` / 100) STORED,
+  `montant_ttc` decimal(12,2) GENERATED ALWAYS AS (`montant_ht` + `montant_ht` * `tva_pct` / 100) STORED,
+  `reservation_id` int(10) UNSIGNED DEFAULT NULL COMMENT 'Si converti en réservation',
+  `user_id_traitant` int(10) UNSIGNED DEFAULT NULL COMMENT 'Admin qui traite ce devis',
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='Demandes et documents de devis';
+
+-- --------------------------------------------------------
+
+--
+-- Structure de la table `devis_generes`
+--
+
+CREATE TABLE `devis_generes` (
+  `id` int(10) UNSIGNED NOT NULL,
+  `numero` varchar(30) NOT NULL,
+  `nom_client` varchar(200) NOT NULL,
+  `prenom` varchar(100) DEFAULT NULL,
+  `nom` varchar(100) DEFAULT NULL,
+  `telephone` varchar(20) DEFAULT NULL,
+  `email` varchar(191) DEFAULT NULL,
+  `type_evenement` varchar(100) DEFAULT NULL,
+  `date_evenement` date DEFAULT NULL,
+  `ville` varchar(100) DEFAULT NULL,
+  `nb_personnes` int(11) DEFAULT NULL,
+  `services_json` text DEFAULT NULL COMMENT 'JSON: [{id, nom, prix}]',
+  `montant_total` decimal(10,2) NOT NULL DEFAULT 0.00,
+  `notes` text DEFAULT NULL,
+  `statut` enum('nouveau','en_cours','accepte','refuse') DEFAULT 'nouveau',
+  `pdf_path` varchar(255) DEFAULT NULL,
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  `updated_at` timestamp NULL DEFAULT NULL ON UPDATE current_timestamp()
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+--
+-- Déchargement des données de la table `devis_generes`
+--
+
+INSERT INTO `devis_generes` (`id`, `numero`, `nom_client`, `prenom`, `nom`, `telephone`, `email`, `type_evenement`, `date_evenement`, `ville`, `nb_personnes`, `services_json`, `montant_total`, `notes`, `statut`, `pdf_path`, `created_at`, `updated_at`) VALUES
+(1, 'DEV-2026-0001', 'Imrane NADIM', 'Imrane', 'NADIM', '0697374762', 'imrane10nadim@gmail.com', 'mariage', '2026-07-28', 'Errachidia', 150, '[{\"id\":11,\"nom\":\"Restauration & Traiteur\",\"prix\":3500,\"tier\":\"or\"}]', 3500.00, 'mrc', 'nouveau', NULL, '2026-07-20 23:20:27', '2026-08-21 11:28:24'),
+(2, 'DEV-2026-0002', 'Imrane NADIM', 'Imrane', 'NADIM', '0697374762', 'imrane10nadim@gmail.com', 'fiancailles', '2026-09-02', 'Errachidia', 60, '[{\"id\":15,\"nom\":\"Gâteau de Cérémonie\",\"nomAr\":\"كعكة الاحتفال\",\"prix\":800,\"tier\":\"bronze\"},{\"id\":16,\"nom\":\"Tables & Chaises\",\"nomAr\":\"الطاولات والكراسي\",\"prix\":600,\"tier\":\"bronze\"},{\"id\":12,\"nom\":\"Décoration & Scénographie\",\"nomAr\":\"الزينة والديكور\",\"prix\":1500,\"tier\":\"argent\"},{\"id\":4,\"nom\":\"Animation & Musique\",\"nomAr\":\"الموسيقى والترفيه\",\"prix\":1000,\"tier\":\"argent\"},{\"id\":5,\"nom\":\"Photographe & Vidéaste\",\"nomAr\":\"التصوير الفوتوغرافي والفيديو\",\"prix\":2000,\"tier\":\"argent\"}]', 5900.00, 'i hope the best for you', 'refuse', NULL, '2026-07-31 11:25:41', '2026-08-21 11:28:24'),
+(3, 'DEV-2026-0003', 'Imrane NADIM', 'Imrane', 'NADIM', '0697374762', 'imrane10nadim@gmail.com', 'buffet', '2026-08-28', 'Merzouga', 100, '[{\"id\":21,\"nom\":\"Café & Thé Service\",\"nomAr\":\"خدمة القهوة والشاي\",\"prix\":400,\"tier\":\"bronze\"}]', 400.00, 'ffff', '', NULL, '2026-08-03 14:53:54', '2026-08-21 11:28:24'),
+(4, 'DEV-2026-0004', 'Imrane NADIM', 'Imrane', 'NADIM', '0697374762', 'imrane10nadim@gmail.com', 'mariage', '2026-08-19', 'Merzouga', 150, '[{\"id\":17,\"nom\":\"Vaisselle & Couverts\",\"nomAr\":\"الأواني وأدوات المائدة\",\"prix\":500,\"tier\":\"bronze\"},{\"id\":16,\"nom\":\"Tables & Chaises\",\"nomAr\":\"الطاولات والكراسي\",\"prix\":600,\"tier\":\"bronze\"},{\"id\":12,\"nom\":\"Décoration & Scénographie\",\"nomAr\":\"الزينة والديكور\",\"prix\":1500,\"tier\":\"argent\"},{\"id\":15,\"nom\":\"Gâteau de Cérémonie\",\"nomAr\":\"كعكة الاحتفال\",\"prix\":800,\"tier\":\"bronze\"},{\"id\":14,\"nom\":\"Animation Musicale\",\"nomAr\":\"الموسيقى والترفيه\",\"prix\":1500,\"tier\":\"argent\"},{\"id\":18,\"nom\":\"Hôtesse & Personnel de Service\",\"nomAr\":\"الصوت والإضاءة\",\"prix\":1200,\"tier\":\"argent\"},{\"id\":11,\"nom\":\"Restauration & Traiteur\",\"nomAr\":\"التموين والمطعم\",\"prix\":3500,\"tier\":\"or\"}]', 9600.00, 'mariage', '', NULL, '2026-08-11 11:27:07', '2026-08-21 11:28:24'),
+(5, 'DEV-2026-0005', 'Imrane NADIM', 'Imrane', 'NADIM', '0697374762', 'imrane10nadim@gmail.com', 'religieux', '2026-09-03', 'Merzouga', 445, '[{\"id\":11,\"nom\":\"Restauration & Traiteur\",\"prix\":3500,\"tier\":\"or\"}]', 3500.00, '..', '', NULL, '2026-08-11 11:59:19', '2026-08-21 11:28:24'),
+(6, 'DEV-2026-0006', 'Imrane NADIM', 'Imrane', 'NADIM', '0697374762', 'imrane10nadim@gmail.com', 'religieux', '2026-09-03', 'Merzouga', 445, '[{\"id\":11,\"nom\":\"Restauration & Traiteur\",\"prix\":3500,\"tier\":\"or\"}]', 3500.00, '..', 'refuse', NULL, '2026-08-11 11:59:28', '2026-08-21 11:28:24'),
+(7, 'DEV-2026-0007', 'Imrane NADIM', 'Imrane', 'NADIM', '0697374762', 'imrane10nadim@gmail.com', 'circoncision', '2026-08-24', 'Alnif', 121, '[{\"id\":17,\"nom\":\"Vaisselle & Couverts\",\"prix\":500,\"tier\":\"bronze\"},{\"id\":16,\"nom\":\"Tables & Chaises\",\"prix\":600,\"tier\":\"bronze\"},{\"id\":15,\"nom\":\"Gâteau de Cérémonie\",\"prix\":800,\"tier\":\"bronze\"},{\"id\":21,\"nom\":\"Café & Thé Service\",\"prix\":400,\"tier\":\"bronze\"},{\"id\":2,\"nom\":\"Décoration & Scénographie\",\"prix\":1500,\"tier\":\"argent\"},{\"id\":6,\"nom\":\"Service & Personnel\",\"prix\":1000,\"tier\":\"argent\"},{\"id\":11,\"nom\":\"Restauration & Traiteur\",\"prix\":3500,\"tier\":\"or\"},{\"id\":18,\"nom\":\"Hôtesse & Personnel de Service\",\"prix\":1200,\"tier\":\"argent\"}]', 9500.00, 'vrai', '', NULL, '2026-08-16 17:46:52', '2026-08-21 11:28:24'),
+(8, 'DEV-2026-0008', 'Imrane NADIM', 'Imrane', 'NADIM', '0697374762', 'imrane10nadim@gmail.com', 'circoncision', '2026-08-24', 'Alnif', 121, '[{\"id\":17,\"nom\":\"Vaisselle & Couverts\",\"prix\":500,\"tier\":\"bronze\"},{\"id\":16,\"nom\":\"Tables & Chaises\",\"prix\":600,\"tier\":\"bronze\"},{\"id\":15,\"nom\":\"Gâteau de Cérémonie\",\"prix\":800,\"tier\":\"bronze\"},{\"id\":21,\"nom\":\"Café & Thé Service\",\"prix\":400,\"tier\":\"bronze\"},{\"id\":2,\"nom\":\"Décoration & Scénographie\",\"prix\":1500,\"tier\":\"argent\"},{\"id\":6,\"nom\":\"Service & Personnel\",\"prix\":1000,\"tier\":\"argent\"},{\"id\":11,\"nom\":\"Restauration & Traiteur\",\"prix\":3500,\"tier\":\"or\"},{\"id\":18,\"nom\":\"Hôtesse & Personnel de Service\",\"prix\":1200,\"tier\":\"argent\"}]', 9500.00, 'vrai', '', NULL, '2026-08-16 17:47:00', '2026-08-21 11:28:24'),
+(9, 'DEV-2026-0009', 'jjj hhhh', 'jjj', 'hhhh', '06777777', '', 'religieux', '2026-08-27', 'Errachidia', 14, '[{\"id\":13,\"nom\":\"Tente & Structure\",\"prix\":2000,\"tier\":\"or\"},{\"id\":1,\"nom\":\"Restauration & Traiteur\",\"prix\":3500,\"tier\":\"or\"},{\"id\":12,\"nom\":\"Décoration & Scénographie\",\"prix\":1500,\"tier\":\"argent\"},{\"id\":11,\"nom\":\"Restauration & Traiteur\",\"prix\":3500,\"tier\":\"or\"},{\"id\":2,\"nom\":\"Décoration & Scénographie\",\"prix\":1500,\"tier\":\"argent\"},{\"id\":21,\"nom\":\"Café & Thé Service\",\"prix\":400,\"tier\":\"bronze\"},{\"id\":20,\"nom\":\"Chapiteau Funéraire\",\"prix\":800,\"tier\":\"bronze\"}]', 13200.00, '', '', NULL, '2026-08-17 12:19:55', '2026-08-21 11:28:24'),
+(12, 'DEV-2026-0010', 'KHALIL MOH', 'KHALIL', 'MOH', '06777777', '', 'religieux', '2026-08-26', 'Erfoud', 11, '[{\"id\":2,\"nom\":\"Décoration & Scénographie\",\"prix\":1500,\"tier\":\"argent\"}]', 1500.00, '', '', NULL, '2026-08-17 12:21:45', '2026-08-21 11:28:24'),
+(13, 'DEV-2026-0013', 'KHALIL MOH', 'KHALIL', 'MOH', '06777777', '', 'religieux', '2026-08-26', 'Erfoud', 11, '[{\"id\":2,\"nom\":\"Décoration & Scénographie\",\"prix\":1500,\"tier\":\"argent\"}]', 1500.00, '', '', NULL, '2026-08-17 12:21:58', '2026-08-21 11:28:24');
+
+-- --------------------------------------------------------
+
+--
+-- Structure de la table `devis_lignes`
+--
+
+CREATE TABLE `devis_lignes` (
+  `id` int(10) UNSIGNED NOT NULL,
+  `devis_id` int(10) UNSIGNED NOT NULL,
+  `service_id` int(10) UNSIGNED DEFAULT NULL,
+  `designation` varchar(255) NOT NULL,
+  `description` text DEFAULT NULL,
+  `quantite` decimal(8,2) NOT NULL DEFAULT 1.00,
+  `unite` varchar(50) DEFAULT NULL,
+  `prix_unitaire` decimal(10,2) NOT NULL DEFAULT 0.00,
+  `remise_pct` decimal(5,2) NOT NULL DEFAULT 0.00,
+  `montant_ht` decimal(12,2) GENERATED ALWAYS AS (`quantite` * `prix_unitaire` * (1 - `remise_pct` / 100)) STORED,
+  `ordre` int(10) UNSIGNED NOT NULL DEFAULT 0
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='Lignes de détail des devis';
+
+-- --------------------------------------------------------
+
+--
+-- Structure de la table `factures`
+--
+
+CREATE TABLE `factures` (
+  `id` int(10) UNSIGNED NOT NULL,
+  `reference` varchar(30) NOT NULL COMMENT 'Ex: FAC-2025-0001',
+  `reservation_id` int(10) UNSIGNED NOT NULL,
+  `client_id` int(10) UNSIGNED NOT NULL,
+  `date_facture` date NOT NULL DEFAULT curdate(),
+  `date_echeance` date DEFAULT NULL,
+  `statut` enum('en_attente','partiellement_payee','payee','annulee') NOT NULL DEFAULT 'en_attente',
+  `montant_ht` decimal(12,2) NOT NULL DEFAULT 0.00,
+  `tva_pct` decimal(5,2) NOT NULL DEFAULT 20.00,
+  `montant_tva` decimal(12,2) GENERATED ALWAYS AS (`montant_ht` * `tva_pct` / 100) STORED,
+  `montant_ttc` decimal(12,2) GENERATED ALWAYS AS (`montant_ht` + `montant_ht` * `tva_pct` / 100) STORED,
+  `montant_paye` decimal(12,2) NOT NULL DEFAULT 0.00,
+  `notes` text DEFAULT NULL,
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='Factures des prestations';
+
+-- --------------------------------------------------------
+
+--
+-- Structure de la table `galerie`
+--
+
+CREATE TABLE `galerie` (
+  `id` int(10) UNSIGNED NOT NULL,
+  `categorie_id` int(10) UNSIGNED NOT NULL,
+  `type` enum('photo','video') NOT NULL DEFAULT 'photo',
+  `titre` varchar(200) DEFAULT NULL,
+  `description` text DEFAULT NULL,
+  `fichier` varchar(255) DEFAULT NULL COMMENT 'Chemin fichier image',
+  `url_video` varchar(500) DEFAULT NULL COMMENT 'URL YouTube/Vimeo si vidéo',
+  `miniature` varchar(255) DEFAULT NULL COMMENT 'Chemin miniature',
+  `alt_text` varchar(255) DEFAULT NULL COMMENT 'Texte alternatif SEO',
+  `tags` longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_bin DEFAULT NULL CHECK (json_valid(`tags`)),
+  `ordre` int(10) UNSIGNED NOT NULL DEFAULT 0,
+  `vues` int(10) UNSIGNED NOT NULL DEFAULT 0,
+  `en_vedette` tinyint(1) NOT NULL DEFAULT 0,
+  `actif` tinyint(1) NOT NULL DEFAULT 1,
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='Photos et vidéos des événements réalisés';
+
+--
+-- Déchargement des données de la table `galerie`
+--
+
+INSERT INTO `galerie` (`id`, `categorie_id`, `type`, `titre`, `description`, `fichier`, `url_video`, `miniature`, `alt_text`, `tags`, `ordre`, `vues`, `en_vedette`, `actif`, `created_at`, `updated_at`) VALUES
+(16, 3, 'photo', 'tente', NULL, 'galerie/img_6a6f83bd837a0_1785693117.jpg', NULL, NULL, 'tente', NULL, 0, 0, 0, 1, '2026-08-02 17:51:57', '2026-08-02 17:51:57'),
+(19, 3, 'photo', 'tente', NULL, 'galerie/img_6a6f8439b911b_1785693241.jpg', NULL, NULL, 'tente', NULL, 0, 0, 0, 1, '2026-08-02 17:54:01', '2026-08-02 17:54:01'),
+(20, 3, 'photo', 'tente', NULL, 'galerie/img_6a6f84604ae38_1785693280.jpg', NULL, NULL, 'tente', NULL, 0, 0, 0, 1, '2026-08-02 17:54:40', '2026-08-02 17:54:40'),
+(23, 3, 'photo', 'tente', NULL, 'galerie/img_6a6f84a884dbb_1785693352.jpg', NULL, NULL, 'tente', NULL, 0, 0, 0, 1, '2026-08-02 17:55:52', '2026-08-02 17:55:52'),
+(24, 3, 'photo', 'tente', NULL, 'galerie/img_6a6f84e3e9a32_1785693411.jpg', NULL, NULL, 'tente', NULL, 0, 0, 0, 1, '2026-08-02 17:56:51', '2026-08-02 17:56:51'),
+(25, 3, 'photo', 'tente', NULL, 'galerie/img_6a6f8512be6df_1785693458.jpg', NULL, NULL, 'tente', NULL, 0, 0, 0, 1, '2026-08-02 17:57:38', '2026-08-02 17:57:38'),
+(27, 3, 'photo', 'tente', NULL, 'galerie/img_6a6f8544e994c_1785693508.jpg', NULL, NULL, 'tente', NULL, 0, 0, 0, 1, '2026-08-02 17:58:28', '2026-08-02 17:58:28'),
+(29, 3, 'photo', 'tente', NULL, 'galerie/img_6a6f85dbf0e6d_1785693659.jpg', NULL, NULL, 'tente', NULL, 0, 0, 0, 1, '2026-08-02 18:00:59', '2026-08-02 18:00:59'),
+(30, 3, 'photo', 'tente', NULL, 'galerie/img_6a6f85f2ebcc8_1785693682.jpg', NULL, NULL, 'tente', NULL, 0, 0, 0, 1, '2026-08-02 18:01:22', '2026-08-02 18:01:22'),
+(31, 3, 'photo', 'tente', NULL, 'galerie/img_6a6f865bd7a73_1785693787.jpg', NULL, NULL, 'tente', NULL, 0, 0, 0, 1, '2026-08-02 18:03:07', '2026-08-02 18:03:07'),
+(32, 1, 'photo', 'Tente Réception', NULL, 'accueil/accueil_6a6f86f2a896c_1785693938.jpg', NULL, NULL, 'Tente Réception', NULL, 0, 0, 1, 1, '2026-08-02 18:05:38', '2026-08-02 18:05:38');
+
+-- --------------------------------------------------------
+
+--
+-- Structure de la table `notifications`
+--
+
+CREATE TABLE `notifications` (
+  `id` char(36) NOT NULL COMMENT 'UUID',
+  `type` varchar(100) NOT NULL COMMENT 'Classe de notification',
+  `notifiable_type` varchar(100) NOT NULL,
+  `notifiable_id` int(10) UNSIGNED NOT NULL,
+  `data` longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_bin NOT NULL CHECK (json_valid(`data`)),
+  `read_at` timestamp NULL DEFAULT NULL,
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='Notifications système';
+
+-- --------------------------------------------------------
+
+--
+-- Structure de la table `packages`
+--
+
+CREATE TABLE `packages` (
+  `id` int(10) UNSIGNED NOT NULL,
+  `nom` varchar(100) NOT NULL,
+  `nom_ar` varchar(100) DEFAULT NULL,
+  `slug` varchar(120) NOT NULL,
+  `description` text DEFAULT NULL,
+  `description_ar` text DEFAULT NULL,
+  `couleur_badge` varchar(7) DEFAULT NULL COMMENT 'Couleur hex du badge',
+  `prix` decimal(10,2) NOT NULL COMMENT 'Prix total du package (MAD)',
+  `min_personnes` int(10) UNSIGNED DEFAULT NULL,
+  `max_personnes` int(10) UNSIGNED DEFAULT NULL,
+  `duree_heures` decimal(4,1) DEFAULT NULL COMMENT 'Durée incluse en heures',
+  `contenu` longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_bin DEFAULT NULL COMMENT 'Liste des éléments inclus' CHECK (json_valid(`contenu`)),
+  `contenu_ar` longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_bin DEFAULT NULL CHECK (json_valid(`contenu_ar`)),
+  `mis_en_avant` tinyint(1) NOT NULL DEFAULT 0 COMMENT '1 = recommandé (badge)',
+  `ordre` int(10) UNSIGNED NOT NULL DEFAULT 0,
+  `actif` tinyint(1) NOT NULL DEFAULT 1,
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='Packages tarifaires proposés';
+
+--
+-- Déchargement des données de la table `packages`
+--
+
+INSERT INTO `packages` (`id`, `nom`, `nom_ar`, `slug`, `description`, `description_ar`, `couleur_badge`, `prix`, `min_personnes`, `max_personnes`, `duree_heures`, `contenu`, `contenu_ar`, `mis_en_avant`, `ordre`, `actif`, `created_at`, `updated_at`) VALUES
+(1, 'Formule Bronze', 'الباقة البرونزية', 'bronze', 'L&#039;essentiel pour une belle fête', 'صيغة أساسية للحفلات العائلية الصغيرة', '#CD7F32', 6500.00, 80, 100, 5.0, '[\"Restauration de base\",\"Thé & pâtisseries marocaines\",\"Décoration simple\",\"1 serveur professionnel\",\"Tables & chaises incluses\"]', '[\"تموين أساسي\",\"شاي ومعجنات مغربية\",\"زينة بسيطة\",\"نادل محترف واحد\",\"طاولات وكراسي شاملة\"]', 0, 1, 1, '2026-06-10 18:05:38', '2026-07-26 22:47:04'),
+(2, 'Formule Argent', 'الباقة الفضية', 'argent', 'Confort et élégance réunis', 'صيغة متوسطة لمناسبات ناجحة', '#C0C0C0', 10000.00, 80, 150, 7.0, '[\"Restauration complète\",\"Buffet marocain & international\",\"Décoration florale\",\"3 serveurs professionnels\",\"Gâteau d anniversaire inclus\",\"Sonorisation de base\"]', '[\"تموين متكامل\",\"بوفيه مغربي ودولي\",\"زينة زهرية\",\"3 نادلين محترفين\",\"كعكة مجانية\",\"تجهيز صوتي أساسي\"]', 0, 2, 1, '2026-06-10 18:05:38', '2026-07-26 22:47:04'),
+(3, 'Formule Or', 'الباقة الذهبية', 'or', 'L\'excellence à votre service', 'صيغتنا الأكثر شعبية لحفلات الزفاف والمناسبات الكبرى', '#D4AF37', 18000.00, 120, 250, 9.0, '[\"Repas gastronomique premium\",\"Buffet complet 20 plats\",\"Décoration florale premium\",\"5 serveurs en tenue\",\"Gâteau personnalisé 3 étages\",\"DJ + équipement son/lumière\",\"Photographe professionnel\"]', '[\"وجبة غاسترونومية فاخرة\",\"بوفيه كامل 20 طبق\",\"زينة زهرية فاخرة\",\"5 نادلين بزي رسمي\",\"كعكة مخصصة 3 طوابق\",\"DJ + صوت وإضاءة\",\"مصور فوتوغرافي محترف\"]', 1, 3, 1, '2026-06-10 18:05:38', '2026-07-26 22:47:04'),
+(4, 'Formule Platine', 'الباقة البلاتينية', 'platine', 'Le tout inclus, zéro souci', 'التجربة الكاملة الشاملة للمناسبات الاستثنائية', '#E8E8FF', 30000.00, 200, 500, 12.0, '[\"Tout en Formule Or\",\"Tente de réception 500 places\",\"Limousine décorée + cortège\",\"Photographe + Vidéaste HD\",\"Animateur professionnel live\",\"Invitations imprimées (500)\",\"Habillement & maquillage\",\"Coordinateur dédié J-1\",\"Gâteau 5 étages sur mesure\"]', '[\"كل شيء في صيغة الذهب\",\"خيمة استقبال 500 شخص\",\"ليموزين مزينة + موكب\",\"مصور + مصور فيديو HD\",\"منشط محترف\",\"دعوات مطبوعة (500)\",\"هندام ومكياج\",\"منسق مخصص يوم الحفل\",\"كعكة 5 طوابق مخصصة\"]', 0, 4, 1, '2026-06-10 18:05:38', '2026-07-26 22:47:04');
+
+-- --------------------------------------------------------
+
+--
+-- Structure de la table `packages_services`
+--
+
+CREATE TABLE `packages_services` (
+  `package_id` int(10) UNSIGNED NOT NULL,
+  `service_id` int(10) UNSIGNED NOT NULL,
+  `quantite` int(10) UNSIGNED NOT NULL DEFAULT 1,
+  `note` varchar(255) DEFAULT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='Services inclus dans chaque package';
+
+-- --------------------------------------------------------
+
+--
+-- Structure de la table `paiements`
+--
+
+CREATE TABLE `paiements` (
+  `id` int(10) UNSIGNED NOT NULL,
+  `facture_id` int(10) UNSIGNED NOT NULL,
+  `montant` decimal(12,2) NOT NULL,
+  `mode` enum('especes','virement','cheque','cmi','wave','whatsapp_pay','autre') NOT NULL DEFAULT 'especes',
+  `reference_pmt` varchar(100) DEFAULT NULL COMMENT 'Numéro de virement, chèque, etc.',
+  `date_paiement` date NOT NULL DEFAULT curdate(),
+  `recu_par` int(10) UNSIGNED DEFAULT NULL COMMENT 'FK user admin',
+  `note` text DEFAULT NULL,
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp()
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='Paiements reçus';
+
+-- --------------------------------------------------------
+
+--
+-- Structure de la table `parametres`
+--
+
+CREATE TABLE `parametres` (
+  `id` int(10) UNSIGNED NOT NULL,
+  `cle` varchar(100) NOT NULL COMMENT 'Clé de configuration',
+  `valeur` text DEFAULT NULL,
+  `groupe` varchar(50) NOT NULL DEFAULT 'general',
+  `label` varchar(150) DEFAULT NULL,
+  `type` enum('text','textarea','number','boolean','json','color','email','url','password') DEFAULT 'text',
+  `ordre` int(10) UNSIGNED NOT NULL DEFAULT 0
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='Paramètres de configuration du site';
+
+--
+-- Déchargement des données de la table `parametres`
+--
+
+INSERT INTO `parametres` (`id`, `cle`, `valeur`, `groupe`, `label`, `type`, `ordre`) VALUES
+(1, 'site_nom', 'Traiteur EL MOUSSAOUI', 'general', 'Nom du site', 'text', 1),
+(2, 'site_slogan', 'Organisation des Évènements et des Fêtes', 'general', 'Slogan', 'text', 2),
+(3, 'site_slogan_ar', 'تنظيم وتجهيز جميع المناسبات والحفلات', 'general', 'Slogan (Arabe)', 'text', 3),
+(4, 'site_description', 'Votre traiteur de confiance à Errachidia pour tous vos événements et fêtes.', 'general', 'Description courte', 'textarea', 4),
+(5, 'site_couleur_primaire', '#D4AF37', 'general', 'Couleur principale', 'color', 5),
+(6, 'site_logo', 'assets/img/logo.png', 'general', 'Logo principal', 'text', 6),
+(7, 'contact_telephone', '0626986533', 'contact', 'Téléphone principal', 'text', 1),
+(8, 'contact_whatsapp', '+212626986533', 'contact', 'Numéro WhatsApp', 'text', 2),
+(9, 'contact_email', 'contact@traiteur-elmoussaoui.ma', 'contact', 'E-mail de contact', 'email', 3),
+(10, 'contact_adresse', 'Errachidia, Région Drâa-Tafilalet, Maroc', 'contact', 'Adresse', 'textarea', 4),
+(11, 'contact_maps_lat', '31.9314', 'contact', 'Latitude Google Maps', 'text', 5),
+(12, 'contact_maps_lng', '-4.4264', 'contact', 'Longitude Google Maps', 'text', 6),
+(13, 'horaires_ouverture', 'Lun–Sam : 08h–20h | Dim : 09h–18h', 'contact', 'Horaires d\'ouverture', 'text', 7),
+(14, 'rs_facebook', 'https://facebook.com/traiteur.elmoussaoui', 'social', 'Facebook', 'url', 1),
+(15, 'rs_instagram', 'https://instagram.com/elmoussaoui_traiteur', 'social', 'Instagram', 'url', 2),
+(16, 'rs_tiktok', '', 'social', 'TikTok', 'url', 3),
+(17, 'rs_youtube', '', 'social', 'YouTube', 'url', 4),
+(18, 'seo_meta_titre', 'Traiteur EL MOUSSAOUI — Errachidia | Organisation Mariages & Fêtes', 'seo', 'Meta Titre', 'text', 1),
+(19, 'seo_meta_description', 'Traiteur EL MOUSSAOUI, spécialiste organisation mariages, fiançailles et événements à Errachidia, Maroc. Contact : 0626 986 533', 'seo', 'Meta Description', 'textarea', 2),
+(20, 'smtp_host', 'smtp.gmail.com', 'email', 'Serveur SMTP', 'text', 1),
+(21, 'smtp_port', '587', 'email', 'Port SMTP', 'number', 2),
+(22, 'smtp_encryption', 'tls', 'email', 'Chiffrement', 'text', 3),
+(23, 'smtp_utilisateur', 'noreply@traiteur-elmoussaoui.ma', 'email', 'Utilisateur SMTP', 'email', 4),
+(24, 'smtp_mot_de_passe', '', 'email', 'Mot de passe SMTP', 'password', 5),
+(25, 'email_expediteur', 'noreply@traiteur-elmoussaoui.ma', 'email', 'E-mail expéditeur', 'email', 6),
+(26, 'email_nom_expediteur', 'Traiteur EL MOUSSAOUI', 'email', 'Nom expéditeur', 'text', 7),
+(27, 'devis_tva_defaut', '20', 'reservation', 'TVA par défaut (%)', 'number', 1),
+(28, 'devis_validite_jours', '30', 'reservation', 'Validité devis (j)', 'number', 2),
+(29, 'reservation_acompte_pct', '30', 'reservation', 'Acompte requis (%)', 'number', 3),
+(30, 'maintenance_mode', '0', 'system', 'Mode maintenance', 'boolean', 1);
+
+-- --------------------------------------------------------
+
+--
+-- Structure de la table `reservations`
+--
+
+CREATE TABLE `reservations` (
+  `id` int(10) UNSIGNED NOT NULL,
+  `reference` varchar(30) NOT NULL COMMENT 'Ex: RES-2025-0001',
+  `client_id` int(10) UNSIGNED NOT NULL,
+  `type_evenement_id` int(10) UNSIGNED NOT NULL,
+  `package_id` int(10) UNSIGNED DEFAULT NULL,
+  `salle_id` int(10) UNSIGNED DEFAULT NULL,
+  `date_evenement` date NOT NULL,
+  `heure_debut` time NOT NULL DEFAULT '18:00:00',
+  `heure_fin` time DEFAULT NULL,
+  `lieu` varchar(255) DEFAULT NULL COMMENT 'Si salle hors liste',
+  `nbr_invites` int(10) UNSIGNED NOT NULL DEFAULT 100,
+  `statut` enum('en_attente','confirmee','en_cours','terminee','annulee') NOT NULL DEFAULT 'en_attente',
+  `motif_annulation` text DEFAULT NULL,
+  `notes_client` text DEFAULT NULL,
+  `notes_internes` text DEFAULT NULL,
+  `montant_total` decimal(12,2) NOT NULL DEFAULT 0.00,
+  `montant_acompte` decimal(12,2) NOT NULL DEFAULT 0.00,
+  `acompte_paye` tinyint(1) NOT NULL DEFAULT 0,
+  `solde_restant` decimal(12,2) GENERATED ALWAYS AS (`montant_total` - `montant_acompte`) VIRTUAL,
+  `user_id_createur` int(10) UNSIGNED DEFAULT NULL COMMENT 'Admin ayant créé/saisi la réservation',
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
+  `deleted_at` timestamp NULL DEFAULT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='Réservations d''événements';
+
+--
+-- Déchargement des données de la table `reservations`
+--
+
+INSERT INTO `reservations` (`id`, `reference`, `client_id`, `type_evenement_id`, `package_id`, `salle_id`, `date_evenement`, `heure_debut`, `heure_fin`, `lieu`, `nbr_invites`, `statut`, `motif_annulation`, `notes_client`, `notes_internes`, `montant_total`, `montant_acompte`, `acompte_paye`, `user_id_createur`, `created_at`, `updated_at`, `deleted_at`) VALUES
+(1, 'RES-2026-0007', 1, 3, NULL, NULL, '2026-08-24', '18:00:00', NULL, 'Alnif', 121, 'en_attente', NULL, 'vrai', NULL, 0.00, 0.00, 0, NULL, '2026-08-16 17:46:52', '2026-08-16 17:46:52', NULL),
+(2, 'RES-2026-0008', 1, 3, NULL, NULL, '2026-08-24', '18:00:00', NULL, 'Alnif', 121, 'en_attente', NULL, 'vrai', NULL, 0.00, 0.00, 0, NULL, '2026-08-16 17:47:00', '2026-08-16 17:47:00', NULL),
+(3, 'RES-2026-0009', 2, 1, NULL, NULL, '2026-08-27', '18:00:00', NULL, 'Errachidia', 14, 'en_attente', NULL, '', NULL, 0.00, 0.00, 0, NULL, '2026-08-17 12:19:55', '2026-08-17 12:19:55', NULL),
+(4, 'RES-2026-0012', 2, 1, NULL, NULL, '2026-08-26', '18:00:00', NULL, 'Erfoud', 11, 'en_attente', NULL, '', NULL, 0.00, 0.00, 0, NULL, '2026-08-17 12:21:45', '2026-08-17 12:21:45', NULL),
+(5, 'RES-2026-0013', 2, 1, NULL, NULL, '2026-08-26', '18:00:00', NULL, 'Erfoud', 11, 'en_attente', NULL, '', NULL, 0.00, 0.00, 0, NULL, '2026-08-17 12:21:58', '2026-08-17 12:21:58', NULL);
+
+-- --------------------------------------------------------
+
+--
+-- Structure de la table `reservation_services`
+--
+
+CREATE TABLE `reservation_services` (
+  `id` int(10) UNSIGNED NOT NULL,
+  `reservation_id` int(10) UNSIGNED NOT NULL,
+  `service_id` int(10) UNSIGNED NOT NULL,
+  `quantite` int(10) UNSIGNED NOT NULL DEFAULT 1,
+  `prix_unitaire` decimal(10,2) NOT NULL DEFAULT 0.00,
+  `prix_total` decimal(10,2) GENERATED ALWAYS AS (`quantite` * `prix_unitaire`) STORED,
+  `note` varchar(255) DEFAULT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='Détail des services par réservation';
+
+-- --------------------------------------------------------
+
+--
+-- Structure de la table `roles`
+--
+
+CREATE TABLE `roles` (
+  `id` int(10) UNSIGNED NOT NULL,
+  `nom` varchar(50) NOT NULL COMMENT 'Ex: super_admin, admin, gestionnaire, client',
+  `label` varchar(100) NOT NULL COMMENT 'Libellé affiché',
+  `permissions` longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_bin DEFAULT NULL COMMENT 'Liste des permissions JSON' CHECK (json_valid(`permissions`)),
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='Rôles et permissions des utilisateurs';
+
+--
+-- Déchargement des données de la table `roles`
+--
+
+INSERT INTO `roles` (`id`, `nom`, `label`, `permissions`, `created_at`, `updated_at`) VALUES
+(1, 'super_admin', 'Super Administrateur', '[\"all\"]', '2026-06-10 18:05:37', '2026-06-10 18:05:37'),
+(2, 'admin', 'Administrateur', '[\"reservations\",\"devis\",\"clients\",\"galerie\",\"blog\",\"parametres\"]', '2026-06-10 18:05:37', '2026-06-10 18:05:37'),
+(3, 'gestionnaire', 'Gestionnaire', '[\"reservations\",\"devis\",\"clients\"]', '2026-06-10 18:05:37', '2026-06-10 18:05:37'),
+(4, 'client', 'Client', '[\"profile\",\"reservations_view\",\"devis_view\"]', '2026-06-10 18:05:37', '2026-06-10 18:05:37');
+
+-- --------------------------------------------------------
+
+--
+-- Structure de la table `salles`
+--
+
+CREATE TABLE `salles` (
+  `id` int(10) UNSIGNED NOT NULL,
+  `nom` varchar(150) NOT NULL,
+  `adresse` varchar(255) DEFAULT NULL,
+  `ville` varchar(100) NOT NULL DEFAULT 'Errachidia',
+  `capacite_min` int(10) UNSIGNED DEFAULT NULL,
+  `capacite_max` int(10) UNSIGNED DEFAULT NULL,
+  `description` text DEFAULT NULL,
+  `image` varchar(255) DEFAULT NULL,
+  `telephone` varchar(20) DEFAULT NULL,
+  `est_partenaire` tinyint(1) NOT NULL DEFAULT 0,
+  `actif` tinyint(1) NOT NULL DEFAULT 1,
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp()
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='Salles et espaces disponibles pour les événements';
+
+-- --------------------------------------------------------
+
+--
+-- Structure de la table `services`
+--
+
+CREATE TABLE `services` (
+  `id` int(10) UNSIGNED NOT NULL,
+  `nom` varchar(150) NOT NULL,
+  `nom_ar` varchar(150) DEFAULT NULL,
+  `slug` varchar(170) NOT NULL,
+  `description` text DEFAULT NULL,
+  `description_ar` text DEFAULT NULL,
+  `prix_base` decimal(10,2) DEFAULT NULL COMMENT 'Prix de base unitaire (MAD)',
+  `unite` varchar(50) DEFAULT NULL COMMENT 'Ex: par personne, forfait, par heure',
+  `image` varchar(255) DEFAULT NULL,
+  `icone` varchar(100) DEFAULT NULL,
+  `ordre` int(10) UNSIGNED NOT NULL DEFAULT 0,
+  `actif` tinyint(1) NOT NULL DEFAULT 1,
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
+  `prix` decimal(10,2) DEFAULT NULL COMMENT 'Prix en MAD',
+  `categorie_tarif` enum('bronze','argent','or') DEFAULT 'bronze',
+  `types_evenements` text DEFAULT NULL COMMENT 'JSON: mariage,fiancailles,etc.'
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='Services proposés par Traiteur EL MOUSSAOUI';
+
+--
+-- Déchargement des données de la table `services`
+--
+
+INSERT INTO `services` (`id`, `nom`, `nom_ar`, `slug`, `description`, `description_ar`, `prix_base`, `unite`, `image`, `icone`, `ordre`, `actif`, `created_at`, `updated_at`, `prix`, `categorie_tarif`, `types_evenements`) VALUES
+(1, 'Restauration & Traiteur', 'التموين والمطعم', 'restauration-traiteur', 'Préparation et service de repas marocains et internationaux', 'بوفيه متكامل، أطباق مغربية تقليدية وعصرية، حلويات، عصائر طازجة.', 80.00, 'par personne', NULL, 'fa-utensils', 1, 1, '2026-06-10 18:05:38', '2026-07-26 12:02:16', 3500.00, 'or', '[\"mariage\",\"fiancailles\",\"circoncision\",\"anniversaire\",\"reception_pro\",\"buffet\",\"religieux\"]'),
+(2, 'Décoration & Scénographie', 'الزينة والديكور', 'decoration-sceno', 'Décoration florale, ballons, mise en scène, thèmes personnalisés', 'زينة زهرية، أقمشة، إضاءة LED وتزيين كامل للقاعة.', 2000.00, 'forfait', NULL, 'fa-leaf', 3, 1, '2026-06-10 18:05:38', '2026-07-26 16:58:12', 1500.00, 'argent', '[\"mariage\",\"fiancailles\",\"circoncision\",\"anniversaire\",\"reception_pro\",\"religieux\"]'),
+(3, 'Tentes & Mobilier', 'الخيمة والهيكل', 'tentes-mobilier', 'Location de tentes de réception, tables, chaises, nappage', 'تأجير وتركيب خيام الاستقبال بجميع الأحجام والهياكل والمظلات.', 500.00, 'par unité', NULL, 'fa-campground', 5, 1, '2026-06-10 18:05:38', '2026-07-26 12:02:16', NULL, 'bronze', NULL),
+(4, 'Animation & Musique', 'الموسيقى والترفيه', 'animation-musique', 'DJ, groupe musical traditionnel (gnaoua, chaabi), animateur', 'فرقة موسيقية، DJ، مغني أندلسي أو كناوي حسب تفضيلاتكم.', 3000.00, 'forfait', NULL, 'fa-music', 7, 1, '2026-06-10 18:05:38', '2026-07-26 16:58:12', 1000.00, 'argent', '[\"mariage\",\"fiancailles\",\"circoncision\",\"anniversaire\"]'),
+(5, 'Photographe & Vidéaste', 'التصوير الفوتوغرافي والفيديو', 'photo-video', 'Reportage photo et vidéo professionnel de l\'événement', 'مصور ومصور فيديو محترفان، تغطية كاملة للحفل، طائرة مسيّرة متاحة.', 2500.00, 'forfait', NULL, 'fa-camera', 9, 1, '2026-06-10 18:05:38', '2026-07-26 12:02:16', 2000.00, 'argent', '[\"mariage\",\"fiancailles\",\"anniversaire\",\"reception_pro\"]'),
+(6, 'Service & Personnel', 'الصوت والإضاءة', 'service-personnel', 'Serveurs, maître d\'hôtel, coordinateurs d\'événements', 'معدات صوت احترافية، إضاءة LED متطورة وتجهيزات المسرح الكاملة.', 200.00, 'par personne', NULL, 'fa-user-tie', 10, 1, '2026-06-10 18:05:38', '2026-07-26 16:58:12', 1000.00, 'argent', '[\"mariage\",\"fiancailles\",\"circoncision\",\"anniversaire\"]'),
+(7, 'Gâteau de fête', 'كعكة الاحتفال', 'gateau-fete', 'Pièce montée et gâteaux personnalisés sur commande', 'كعكات مخصصة بعدة طوابق مزينة حسب ذوقكم وطلبكم.', 800.00, 'forfait', NULL, 'fa-birthday-cake', 12, 1, '2026-06-10 18:05:38', '2026-07-26 16:58:12', NULL, 'bronze', NULL),
+(8, 'Habillement & Coiffure', 'تجميل وتزيين', 'habillement-coiffure', 'Services de maquillage, henné et coiffure pour la mariée', 'خدمات المكياج والحناء وتصفيف الشعر للعروس وضيفاتها.', 1500.00, 'forfait', NULL, 'fa-spa', 14, 1, '2026-06-10 18:05:38', '2026-07-26 16:58:12', NULL, 'bronze', NULL),
+(9, 'Transport & Limousine', 'النقل والليموزين', 'transport-limousine', 'Voitures décorées pour le cortège et transport des invités', 'سيارات مزينة وليموزين فاخرة لنقل العروسين وضيوفهم.', 1200.00, 'par véhicule', NULL, 'fa-car', 16, 1, '2026-06-10 18:05:38', '2026-07-26 16:58:12', NULL, 'bronze', NULL),
+(10, 'Invitations & Papeterie', 'بطاقات الدعوة', 'invitations', 'Conception et impression des cartons d\'invitation', 'تصميم وطباعة بطاقات دعوة فاخرة مخصصة حسب طلبكم.', 15.00, 'par unité', NULL, 'fa-envelope', 18, 1, '2026-06-10 18:05:38', '2026-07-26 16:58:12', NULL, 'bronze', NULL),
+(11, 'Restauration & Traiteur', 'التموين والمطعم', 'restauration', 'Buffet complet, plats marocains traditionnels et modernes.', 'بوفيه متكامل، أطباق مغربية تقليدية وعصرية، حلويات، عصائر طازجة.', NULL, NULL, NULL, 'fa-utensils', 2, 1, '2026-07-20 23:13:25', '2026-07-26 12:02:16', 3500.00, 'or', '[\"mariage\",\"fiancailles\",\"circoncision\",\"anniversaire\",\"reception_pro\",\"buffet\",\"religieux\"]'),
+(12, 'Décoration & Scénographie', 'الزينة والديكور', 'decoration', 'Décoration florale, tissus, éclairages et mise en scène de la salle.', 'زينة زهرية، أقمشة، إضاءة LED وتزيين كامل للقاعة.', NULL, NULL, NULL, 'fa-paint-brush', 4, 1, '2026-07-20 23:13:25', '2026-07-26 16:58:12', 1500.00, 'argent', '[\"mariage\",\"fiancailles\",\"circoncision\",\"anniversaire\",\"reception_pro\",\"religieux\"]'),
+(13, 'Tente & Structure', 'الخيمة والهيكل', 'tente', 'Location et installation de tentes de réception toutes tailles.', 'تأجير وتركيب خيام الاستقبال بجميع الأحجام والهياكل والمظلات.', NULL, NULL, NULL, 'fa-tent', 6, 1, '2026-07-20 23:13:25', '2026-07-26 12:02:16', 2000.00, 'or', '[\"mariage\",\"fiancailles\",\"circoncision\",\"anniversaire\",\"reception_pro\",\"religieux\"]'),
+(14, 'Animation Musicale', 'الموسيقى والترفيه', 'animation', 'Groupe musical, DJ, chanteur andalou ou gnaoua.', 'فرقة موسيقية، DJ، مغني أندلسي أو كناوي حسب تفضيلاتكم.', NULL, NULL, NULL, 'fa-music', 8, 1, '2026-07-20 23:13:25', '2026-07-26 16:58:12', 1500.00, 'argent', '[\"mariage\",\"fiancailles\",\"anniversaire\"]'),
+(15, 'Gâteau de Cérémonie', 'كعكة الاحتفال', 'gateau', 'Pièces montées, gâteaux personnalisés et desserts assortis.', 'كعكات مخصصة بعدة طوابق مزينة حسب ذوقكم وطلبكم.', NULL, NULL, NULL, 'fa-birthday-cake', 11, 1, '2026-07-20 23:13:25', '2026-07-26 16:58:12', 800.00, 'bronze', '[\"mariage\",\"fiancailles\",\"circoncision\",\"anniversaire\"]'),
+(16, 'Tables & Chaises', 'الطاولات والكراسي', 'mobilier', 'Location de tables rondes, chaises Napoléon, housses et nappes.', 'تأجير طاولات مستديرة وكراسي نابليون وأغطية وأغطية الطاولات.', NULL, NULL, NULL, 'fa-chair', 13, 1, '2026-07-20 23:13:25', '2026-07-26 16:58:12', 600.00, 'bronze', '[\"mariage\",\"fiancailles\",\"circoncision\",\"anniversaire\",\"reception_pro\",\"buffet\"]'),
+(17, 'Vaisselle & Couverts', 'الأواني وأدوات المائدة', 'vaisselle', 'Service complet de vaisselle, verres et couverts pour tous les convives.', 'خدمة كاملة للأواني والكؤوس وأدوات المائدة لجميع الضيوف.', NULL, NULL, NULL, 'fa-concierge-bell', 15, 1, '2026-07-20 23:13:25', '2026-07-26 16:58:12', 500.00, 'bronze', '[\"mariage\",\"fiancailles\",\"circoncision\",\"anniversaire\",\"reception_pro\",\"buffet\"]'),
+(18, 'Hôtesse & Personnel de Service', 'الصوت والإضاءة', 'personnel', 'Serveurs professionnels, hôtesses d\'accueil et maître de cérémonie.', 'معدات صوت احترافية، إضاءة LED متطورة وتجهيزات المسرح الكاملة.', NULL, NULL, NULL, 'fa-user-tie', 17, 1, '2026-07-20 23:13:25', '2026-07-26 16:58:12', 1200.00, 'argent', '[\"mariage\",\"fiancailles\",\"circoncision\",\"anniversaire\",\"reception_pro\"]'),
+(19, 'Sonorisation & Éclairage', 'الصوت والإضاءة', 'sono', 'Système audio professionnel, éclairage de scène et effets lumineux.', 'معدات صوت احترافية، إضاءة LED متطورة وتجهيزات المسرح الكاملة.', NULL, NULL, NULL, 'fa-microphone', 19, 1, '2026-07-20 23:13:25', '2026-07-26 16:58:12', 1000.00, 'argent', '[\"mariage\",\"fiancailles\",\"anniversaire\",\"reception_pro\"]'),
+(20, 'Chapiteau Funéraire', 'خيمة العزاء', 'chapiteau-funera', 'Tente traditionnelle pour cérémonies religieuses de condoléances.', 'خيمة تقليدية مخصصة لمراسم العزاء والتأبين.', NULL, NULL, NULL, 'fa-star-and-crescent', 20, 1, '2026-07-20 23:13:25', '2026-07-26 17:02:13', 800.00, 'bronze', '[\"religieux\"]'),
+(21, 'Café & Thé Service', 'خدمة القهوة والشاي', 'cafe-the', 'Service de café marocain, thé à la menthe et jus de fruits.', 'خدمة القهوة والشاي المغربي والنعناع وعصائر الفواكه الطازجة.', NULL, NULL, NULL, 'fa-coffee', 21, 1, '2026-07-20 23:13:25', '2026-07-26 17:02:13', 400.00, 'bronze', '[\"religieux\",\"reception_pro\",\"buffet\",\"circoncision\"]'),
+(22, 'Transport & Navette', 'النقل والليموزين', 'transport', 'Service de navette pour les invités et transport des équipements.', 'سيارات مزينة وليموزين فاخرة لنقل العروسين وضيوفهم.', NULL, NULL, NULL, 'fa-car', 22, 1, '2026-07-20 23:13:25', '2026-07-26 16:58:12', 1000.00, 'argent', '[\"mariage\",\"fiancailles\"]'),
+(23, 'Coordinateur d\'Événement', 'تنسيق الحفل', 'coordination', 'Chef de projet dédié pour coordonner tous les prestataires le jour J.', 'مدير مشروع مخصص لتنسيق جميع مزودي الخدمات يوم مناسبتك.', NULL, NULL, NULL, 'fa-clipboard-list', 23, 1, '2026-07-20 23:13:25', '2026-07-26 12:02:17', 2500.00, 'or', '[\"mariage\",\"fiancailles\",\"anniversaire\",\"reception_pro\"]');
+
+-- --------------------------------------------------------
+
+--
+-- Structure de la table `temoignages`
+--
+
+CREATE TABLE `temoignages` (
+  `id` int(10) UNSIGNED NOT NULL,
+  `client_id` int(10) UNSIGNED DEFAULT NULL,
+  `reservation_id` int(10) UNSIGNED DEFAULT NULL,
+  `nom_client` varchar(150) NOT NULL,
+  `ville` varchar(100) DEFAULT NULL,
+  `contenu` text NOT NULL,
+  `note` tinyint(3) UNSIGNED NOT NULL DEFAULT 5 COMMENT 'Note /5',
+  `type_evenement` varchar(100) DEFAULT NULL,
+  `photo` varchar(255) DEFAULT NULL,
+  `statut` enum('en_attente','publie','refuse') NOT NULL DEFAULT 'en_attente',
+  `en_vedette` tinyint(1) NOT NULL DEFAULT 0,
+  `ordre` int(10) UNSIGNED NOT NULL DEFAULT 0,
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp()
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='Témoignages et avis des clients';
+
+--
+-- Déchargement des données de la table `temoignages`
+--
+
+INSERT INTO `temoignages` (`id`, `client_id`, `reservation_id`, `nom_client`, `ville`, `contenu`, `note`, `type_evenement`, `photo`, `statut`, `en_vedette`, `ordre`, `created_at`) VALUES
+(1, NULL, NULL, 'Fatima Zahra B.', 'Errachidia', 'Un service exceptionnel pour notre mariage ! L\'équipe d\'EL MOUSSAOUI a tout géré avec professionnalisme. La décoration était magnifique et le buffet délicieux. Nous recommandons vivement !', 5, 'Mariage', NULL, 'publie', 1, 1, '2026-06-10 18:05:40'),
+(2, NULL, NULL, 'Mohammed K.', 'Errachidia', 'Très satisfait de l\'organisation de notre cérémonie de fiançailles. Équipe réactive, prix raisonnables et résultat au-delà de nos espérances. Merci !', 5, 'Fiançailles', NULL, 'publie', 1, 2, '2026-06-10 18:05:40'),
+(3, NULL, NULL, 'Aicha M.', 'Goulmima', 'Service de qualité pour notre buffet familial. Livraison à temps, plats chauds et savoureux. Je referai appel à Traiteur EL MOUSSAOUI sans hésitation.', 4, 'Buffet', NULL, 'publie', 0, 3, '2026-06-10 18:05:40'),
+(4, NULL, NULL, 'Hassan El A.', 'Erfoud', 'Notre mariage était un vrai conte de fée grâce à leur travail. La tente, la décoration, la musique... tout était parfait. Bravo à toute l\'équipe !', 5, 'Mariage', NULL, 'publie', 1, 4, '2026-06-10 18:05:40');
+
+-- --------------------------------------------------------
+
+--
+-- Structure de la table `types_evenements`
+--
+
+CREATE TABLE `types_evenements` (
+  `id` int(10) UNSIGNED NOT NULL,
+  `nom` varchar(100) NOT NULL,
+  `nom_ar` varchar(100) DEFAULT NULL COMMENT 'Nom en arabe',
+  `slug` varchar(120) NOT NULL,
+  `description` text DEFAULT NULL,
+  `icone` varchar(100) DEFAULT NULL COMMENT 'Classe CSS icône (Font Awesome)',
+  `couleur` varchar(7) DEFAULT NULL COMMENT 'Couleur hex ex: #B8860B',
+  `image` varchar(255) DEFAULT NULL,
+  `ordre` int(10) UNSIGNED NOT NULL DEFAULT 0,
+  `actif` tinyint(1) NOT NULL DEFAULT 1
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='Types d''événements organisés';
+
+--
+-- Déchargement des données de la table `types_evenements`
+--
+
+INSERT INTO `types_evenements` (`id`, `nom`, `nom_ar`, `slug`, `description`, `icone`, `couleur`, `image`, `ordre`, `actif`) VALUES
+(1, 'Mariage', 'عرس', 'mariage', 'Organisation complète de cérémonies de mariage traditionnelles et modernes', 'fa-heart', '#D4AF37', NULL, 1, 1),
+(2, 'Fiançailles', 'خطوبة', 'fiancailles', 'Cérémonie de fiançailles élégante et mémorable', 'fa-ring', '#B8860B', NULL, 2, 1),
+(3, 'Circoncision', 'عقيقة وختان', 'circoncision', 'Fêtes traditionnelles de circoncision avec décoration et buffet', 'fa-baby', '#C0A000', NULL, 3, 1),
+(4, 'Anniversaire', 'عيد ميلاد', 'anniversaire', 'Célébrations d\'anniversaire pour tous les âges', 'fa-birthday-cake', '#FFD700', NULL, 4, 1),
+(5, 'Réception d\'entreprise', 'تظاهرة مهنية', 'reception-pro', 'Séminaires, conférences, galas et réceptions professionnelles', 'fa-briefcase', '#8B7500', NULL, 5, 1),
+(6, 'Buffet & Banquet', 'بوفيه وضيافة', 'buffet-banquet', 'Service de buffet froid/chaud et banquets pour toutes occasions', 'fa-utensils', '#A0800B', NULL, 6, 1),
+(7, 'Cérémonie religieuse', 'مناسبة دينية', 'ceremonie-reli', 'Fêtes religieuses : Aid, Mouloud, Laylat Al-Qadr...', 'fa-mosque', '#6B5B00', NULL, 7, 1),
+(8, 'Autre', 'مناسبة أخرى', 'autre', 'Tout autre type de célébration ou d\'événement', 'fa-star', '#9A8000', NULL, 8, 1);
+
+-- --------------------------------------------------------
+
+--
+-- Structure de la table `users`
+--
+
+CREATE TABLE `users` (
+  `id` int(10) UNSIGNED NOT NULL,
+  `role_id` int(10) UNSIGNED NOT NULL DEFAULT 4 COMMENT 'FK vers roles',
+  `nom` varchar(100) NOT NULL,
+  `prenom` varchar(100) NOT NULL,
+  `email` varchar(191) NOT NULL,
+  `email_verifie_le` timestamp NULL DEFAULT NULL,
+  `password` varchar(255) NOT NULL COMMENT 'Hash bcrypt',
+  `telephone` varchar(20) DEFAULT NULL,
+  `avatar` varchar(255) DEFAULT NULL COMMENT 'Chemin image profil',
+  `langue` enum('fr','ar','en') NOT NULL DEFAULT 'fr',
+  `remember_token` varchar(100) DEFAULT NULL,
+  `actif` tinyint(1) NOT NULL DEFAULT 1,
+  `derniere_connexion` timestamp NULL DEFAULT NULL,
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
+  `deleted_at` timestamp NULL DEFAULT NULL COMMENT 'Soft delete'
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='Utilisateurs du système (admins et clients connectés)';
+
+--
+-- Déchargement des données de la table `users`
+--
+
+INSERT INTO `users` (`id`, `role_id`, `nom`, `prenom`, `email`, `email_verifie_le`, `password`, `telephone`, `avatar`, `langue`, `remember_token`, `actif`, `derniere_connexion`, `created_at`, `updated_at`, `deleted_at`) VALUES
+(1, 1, 'MOUSSAOUI', 'Admin', 'admin@traiteur-elmoussaoui.ma', NULL, '$2y$12$eImiTXuWVxfM37uY4JANjQ==hashedpassword_change_this', '0626986533', NULL, 'fr', NULL, 1, NULL, '2026-06-10 18:05:37', '2026-06-10 18:05:37', NULL);
+
+-- --------------------------------------------------------
+
+--
+-- Doublure de structure pour la vue `v_reservations_detail`
+-- (Voir ci-dessous la vue réelle)
+--
+CREATE TABLE `v_reservations_detail` (
+`id` int(10) unsigned
+,`reference` varchar(30)
+,`date_evenement` date
+,`heure_debut` time
+,`nbr_invites` int(10) unsigned
+,`statut` enum('en_attente','confirmee','en_cours','terminee','annulee')
+,`montant_total` decimal(12,2)
+,`montant_acompte` decimal(12,2)
+,`client_nom_complet` varchar(201)
+,`client_email` varchar(191)
+,`client_telephone` varchar(20)
+,`type_evenement` varchar(100)
+,`package_nom` varchar(100)
+,`package_prix` decimal(10,2)
+,`salle_nom` varchar(150)
+,`created_at` timestamp
+);
+
+-- --------------------------------------------------------
+
+--
+-- Doublure de structure pour la vue `v_stats_dashboard`
+-- (Voir ci-dessous la vue réelle)
+--
+CREATE TABLE `v_stats_dashboard` (
+`total_reservations` bigint(21)
+,`reservations_en_attente` bigint(21)
+,`reservations_confirmees` bigint(21)
+,`devis_en_attente` bigint(21)
+,`total_clients` bigint(21)
+,`messages_nouveaux` bigint(21)
+,`ca_total` decimal(34,2)
+,`ca_mois_courant` decimal(34,2)
+,`evenements_aujourd_hui` bigint(21)
+);
+
+-- --------------------------------------------------------
+
+--
+-- Structure de la vue `v_reservations_detail`
+--
+DROP TABLE IF EXISTS `v_reservations_detail`;
+
+CREATE ALGORITHM=UNDEFINED DEFINER=`root`@`localhost` SQL SECURITY DEFINER VIEW `v_reservations_detail`  AS SELECT `r`.`id` AS `id`, `r`.`reference` AS `reference`, `r`.`date_evenement` AS `date_evenement`, `r`.`heure_debut` AS `heure_debut`, `r`.`nbr_invites` AS `nbr_invites`, `r`.`statut` AS `statut`, `r`.`montant_total` AS `montant_total`, `r`.`montant_acompte` AS `montant_acompte`, concat(`c`.`prenom`,' ',`c`.`nom`) AS `client_nom_complet`, `c`.`email` AS `client_email`, `c`.`telephone` AS `client_telephone`, `te`.`nom` AS `type_evenement`, `p`.`nom` AS `package_nom`, `p`.`prix` AS `package_prix`, `s`.`nom` AS `salle_nom`, `r`.`created_at` AS `created_at` FROM ((((`reservations` `r` join `clients` `c` on(`r`.`client_id` = `c`.`id`)) join `types_evenements` `te` on(`r`.`type_evenement_id` = `te`.`id`)) left join `packages` `p` on(`r`.`package_id` = `p`.`id`)) left join `salles` `s` on(`r`.`salle_id` = `s`.`id`)) WHERE `r`.`deleted_at` is null ;
+
+-- --------------------------------------------------------
+
+--
+-- Structure de la vue `v_stats_dashboard`
+--
+DROP TABLE IF EXISTS `v_stats_dashboard`;
+
+CREATE ALGORITHM=UNDEFINED DEFINER=`root`@`localhost` SQL SECURITY DEFINER VIEW `v_stats_dashboard`  AS SELECT (select count(0) from `reservations` where `reservations`.`statut` <> 'annulee' and `reservations`.`deleted_at` is null) AS `total_reservations`, (select count(0) from `reservations` where `reservations`.`statut` = 'en_attente' and `reservations`.`deleted_at` is null) AS `reservations_en_attente`, (select count(0) from `reservations` where `reservations`.`statut` = 'confirmee' and `reservations`.`deleted_at` is null) AS `reservations_confirmees`, (select count(0) from `devis` where `devis`.`statut` in ('recu','en_traitement')) AS `devis_en_attente`, (select count(0) from `clients` where `clients`.`deleted_at` is null) AS `total_clients`, (select count(0) from `contacts` where `contacts`.`statut` = 'nouveau') AS `messages_nouveaux`, (select coalesce(sum(`reservations`.`montant_total`),0) from `reservations` where `reservations`.`statut` in ('confirmee','en_cours','terminee') and `reservations`.`deleted_at` is null) AS `ca_total`, (select coalesce(sum(`reservations`.`montant_total`),0) from `reservations` where `reservations`.`statut` in ('confirmee','en_cours','terminee') and month(`reservations`.`date_evenement`) = month(curdate()) and year(`reservations`.`date_evenement`) = year(curdate()) and `reservations`.`deleted_at` is null) AS `ca_mois_courant`, (select count(0) from `reservations` where `reservations`.`date_evenement` = curdate() and `reservations`.`statut` <> 'annulee' and `reservations`.`deleted_at` is null) AS `evenements_aujourd_hui` ;
+
+--
+-- Index pour les tables déchargées
+--
+
+--
+-- Index pour la table `activity_logs`
+--
+ALTER TABLE `activity_logs`
+  ADD PRIMARY KEY (`id`),
+  ADD KEY `idx_log_user` (`user_id`),
+  ADD KEY `idx_log_action` (`action`),
+  ADD KEY `idx_log_module` (`module`),
+  ADD KEY `idx_log_date` (`created_at`);
+
+--
+-- Index pour la table `blog_articles`
+--
+ALTER TABLE `blog_articles`
+  ADD PRIMARY KEY (`id`),
+  ADD UNIQUE KEY `uq_blog_slug` (`slug`),
+  ADD KEY `idx_blog_cat` (`categorie_id`),
+  ADD KEY `idx_blog_statut` (`statut`),
+  ADD KEY `idx_blog_date_pub` (`date_publication`),
+  ADD KEY `fk_blog_auteur` (`auteur_id`);
+
+--
+-- Index pour la table `calendrier_disponibilites`
+--
+ALTER TABLE `calendrier_disponibilites`
+  ADD PRIMARY KEY (`id`),
+  ADD UNIQUE KEY `uq_cal_date` (`date`),
+  ADD KEY `idx_cal_statut` (`statut`),
+  ADD KEY `fk_cal_reservation` (`reservation_id`);
+
+--
+-- Index pour la table `categories_blog`
+--
+ALTER TABLE `categories_blog`
+  ADD PRIMARY KEY (`id`),
+  ADD UNIQUE KEY `uq_catblog_slug` (`slug`);
+
+--
+-- Index pour la table `categories_galerie`
+--
+ALTER TABLE `categories_galerie`
+  ADD PRIMARY KEY (`id`),
+  ADD UNIQUE KEY `uq_catgal_slug` (`slug`);
+
+--
+-- Index pour la table `clients`
+--
+ALTER TABLE `clients`
+  ADD PRIMARY KEY (`id`),
+  ADD UNIQUE KEY `uq_clients_email` (`email`),
+  ADD KEY `idx_clients_user` (`user_id`),
+  ADD KEY `idx_clients_ville` (`ville`);
+
+--
+-- Index pour la table `commentaires`
+--
+ALTER TABLE `commentaires`
+  ADD PRIMARY KEY (`id`),
+  ADD KEY `idx_com_article` (`article_id`),
+  ADD KEY `idx_com_parent` (`parent_id`),
+  ADD KEY `idx_com_statut` (`statut`);
+
+--
+-- Index pour la table `contacts`
+--
+ALTER TABLE `contacts`
+  ADD PRIMARY KEY (`id`),
+  ADD KEY `idx_contacts_statut` (`statut`),
+  ADD KEY `idx_contacts_date` (`created_at`);
+
+--
+-- Index pour la table `demandes_informations`
+--
+ALTER TABLE `demandes_informations`
+  ADD PRIMARY KEY (`id`),
+  ADD KEY `idx_dem_statut` (`statut`),
+  ADD KEY `fk_dem_type_evt` (`type_evenement_id`);
+
+--
+-- Index pour la table `devis`
+--
+ALTER TABLE `devis`
+  ADD PRIMARY KEY (`id`),
+  ADD UNIQUE KEY `uq_devis_ref` (`reference`),
+  ADD KEY `idx_devis_client` (`client_id`),
+  ADD KEY `idx_devis_statut` (`statut`),
+  ADD KEY `idx_devis_date_evt` (`date_evenement`),
+  ADD KEY `fk_devis_type_evt` (`type_evenement_id`),
+  ADD KEY `fk_devis_reservation` (`reservation_id`),
+  ADD KEY `fk_devis_traitant` (`user_id_traitant`);
+
+--
+-- Index pour la table `devis_generes`
+--
+ALTER TABLE `devis_generes`
+  ADD PRIMARY KEY (`id`);
+
+--
+-- Index pour la table `devis_lignes`
+--
+ALTER TABLE `devis_lignes`
+  ADD PRIMARY KEY (`id`),
+  ADD KEY `idx_devlig_devis` (`devis_id`),
+  ADD KEY `idx_devlig_service` (`service_id`);
+
+--
+-- Index pour la table `factures`
+--
+ALTER TABLE `factures`
+  ADD PRIMARY KEY (`id`),
+  ADD UNIQUE KEY `uq_factures_ref` (`reference`),
+  ADD KEY `idx_fac_reservation` (`reservation_id`),
+  ADD KEY `idx_fac_client` (`client_id`),
+  ADD KEY `idx_fac_statut` (`statut`);
+
+--
+-- Index pour la table `galerie`
+--
+ALTER TABLE `galerie`
+  ADD PRIMARY KEY (`id`),
+  ADD KEY `idx_galerie_cat` (`categorie_id`),
+  ADD KEY `idx_galerie_type` (`type`),
+  ADD KEY `idx_galerie_vedette` (`en_vedette`);
+
+--
+-- Index pour la table `notifications`
+--
+ALTER TABLE `notifications`
+  ADD PRIMARY KEY (`id`),
+  ADD KEY `idx_notif_notifiable` (`notifiable_type`,`notifiable_id`),
+  ADD KEY `idx_notif_read` (`read_at`);
+
+--
+-- Index pour la table `packages`
+--
+ALTER TABLE `packages`
+  ADD PRIMARY KEY (`id`),
+  ADD UNIQUE KEY `uq_packages_slug` (`slug`);
+
+--
+-- Index pour la table `packages_services`
+--
+ALTER TABLE `packages_services`
+  ADD PRIMARY KEY (`package_id`,`service_id`),
+  ADD KEY `fk_pkgsvc_service` (`service_id`);
+
+--
+-- Index pour la table `paiements`
+--
+ALTER TABLE `paiements`
+  ADD PRIMARY KEY (`id`),
+  ADD KEY `idx_pmt_facture` (`facture_id`);
+
+--
+-- Index pour la table `parametres`
+--
+ALTER TABLE `parametres`
+  ADD PRIMARY KEY (`id`),
+  ADD UNIQUE KEY `uq_param_cle` (`cle`),
+  ADD KEY `idx_param_groupe` (`groupe`);
+
+--
+-- Index pour la table `reservations`
+--
+ALTER TABLE `reservations`
+  ADD PRIMARY KEY (`id`),
+  ADD UNIQUE KEY `uq_reservations_ref` (`reference`),
+  ADD KEY `idx_res_client` (`client_id`),
+  ADD KEY `idx_res_type_event` (`type_evenement_id`),
+  ADD KEY `idx_res_date` (`date_evenement`),
+  ADD KEY `idx_res_statut` (`statut`),
+  ADD KEY `fk_res_package` (`package_id`),
+  ADD KEY `fk_res_salle` (`salle_id`),
+  ADD KEY `fk_res_createur` (`user_id_createur`);
+
+--
+-- Index pour la table `reservation_services`
+--
+ALTER TABLE `reservation_services`
+  ADD PRIMARY KEY (`id`),
+  ADD KEY `idx_ressvc_reservation` (`reservation_id`),
+  ADD KEY `idx_ressvc_service` (`service_id`);
+
+--
+-- Index pour la table `roles`
+--
+ALTER TABLE `roles`
+  ADD PRIMARY KEY (`id`),
+  ADD UNIQUE KEY `uq_roles_nom` (`nom`);
+
+--
+-- Index pour la table `salles`
+--
+ALTER TABLE `salles`
+  ADD PRIMARY KEY (`id`);
+
+--
+-- Index pour la table `services`
+--
+ALTER TABLE `services`
+  ADD PRIMARY KEY (`id`),
+  ADD UNIQUE KEY `uq_services_slug` (`slug`);
+
+--
+-- Index pour la table `temoignages`
+--
+ALTER TABLE `temoignages`
+  ADD PRIMARY KEY (`id`),
+  ADD KEY `idx_tem_client` (`client_id`),
+  ADD KEY `idx_tem_statut` (`statut`),
+  ADD KEY `fk_tem_reservation` (`reservation_id`);
+
+--
+-- Index pour la table `types_evenements`
+--
+ALTER TABLE `types_evenements`
+  ADD PRIMARY KEY (`id`),
+  ADD UNIQUE KEY `uq_types_slug` (`slug`);
+
+--
+-- Index pour la table `users`
+--
+ALTER TABLE `users`
+  ADD PRIMARY KEY (`id`),
+  ADD UNIQUE KEY `uq_users_email` (`email`),
+  ADD KEY `idx_users_role` (`role_id`),
+  ADD KEY `idx_users_actif` (`actif`);
+
+--
+-- AUTO_INCREMENT pour les tables déchargées
+--
+
+--
+-- AUTO_INCREMENT pour la table `activity_logs`
+--
+ALTER TABLE `activity_logs`
+  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT;
+
+--
+-- AUTO_INCREMENT pour la table `blog_articles`
+--
+ALTER TABLE `blog_articles`
+  MODIFY `id` int(10) UNSIGNED NOT NULL AUTO_INCREMENT;
+
+--
+-- AUTO_INCREMENT pour la table `calendrier_disponibilites`
+--
+ALTER TABLE `calendrier_disponibilites`
+  MODIFY `id` int(10) UNSIGNED NOT NULL AUTO_INCREMENT;
+
+--
+-- AUTO_INCREMENT pour la table `categories_blog`
+--
+ALTER TABLE `categories_blog`
+  MODIFY `id` int(10) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=6;
+
+--
+-- AUTO_INCREMENT pour la table `categories_galerie`
+--
+ALTER TABLE `categories_galerie`
+  MODIFY `id` int(10) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=8;
+
+--
+-- AUTO_INCREMENT pour la table `clients`
+--
+ALTER TABLE `clients`
+  MODIFY `id` int(10) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=5;
+
+--
+-- AUTO_INCREMENT pour la table `commentaires`
+--
+ALTER TABLE `commentaires`
+  MODIFY `id` int(10) UNSIGNED NOT NULL AUTO_INCREMENT;
+
+--
+-- AUTO_INCREMENT pour la table `contacts`
+--
+ALTER TABLE `contacts`
+  MODIFY `id` int(10) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=2;
+
+--
+-- AUTO_INCREMENT pour la table `demandes_informations`
+--
+ALTER TABLE `demandes_informations`
+  MODIFY `id` int(10) UNSIGNED NOT NULL AUTO_INCREMENT;
+
+--
+-- AUTO_INCREMENT pour la table `devis`
+--
+ALTER TABLE `devis`
+  MODIFY `id` int(10) UNSIGNED NOT NULL AUTO_INCREMENT;
+
+--
+-- AUTO_INCREMENT pour la table `devis_generes`
+--
+ALTER TABLE `devis_generes`
+  MODIFY `id` int(10) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=14;
+
+--
+-- AUTO_INCREMENT pour la table `devis_lignes`
+--
+ALTER TABLE `devis_lignes`
+  MODIFY `id` int(10) UNSIGNED NOT NULL AUTO_INCREMENT;
+
+--
+-- AUTO_INCREMENT pour la table `factures`
+--
+ALTER TABLE `factures`
+  MODIFY `id` int(10) UNSIGNED NOT NULL AUTO_INCREMENT;
+
+--
+-- AUTO_INCREMENT pour la table `galerie`
+--
+ALTER TABLE `galerie`
+  MODIFY `id` int(10) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=36;
+
+--
+-- AUTO_INCREMENT pour la table `packages`
+--
+ALTER TABLE `packages`
+  MODIFY `id` int(10) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=6;
+
+--
+-- AUTO_INCREMENT pour la table `paiements`
+--
+ALTER TABLE `paiements`
+  MODIFY `id` int(10) UNSIGNED NOT NULL AUTO_INCREMENT;
+
+--
+-- AUTO_INCREMENT pour la table `parametres`
+--
+ALTER TABLE `parametres`
+  MODIFY `id` int(10) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=31;
+
+--
+-- AUTO_INCREMENT pour la table `reservations`
+--
+ALTER TABLE `reservations`
+  MODIFY `id` int(10) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=6;
+
+--
+-- AUTO_INCREMENT pour la table `reservation_services`
+--
+ALTER TABLE `reservation_services`
+  MODIFY `id` int(10) UNSIGNED NOT NULL AUTO_INCREMENT;
+
+--
+-- AUTO_INCREMENT pour la table `roles`
+--
+ALTER TABLE `roles`
+  MODIFY `id` int(10) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=5;
+
+--
+-- AUTO_INCREMENT pour la table `salles`
+--
+ALTER TABLE `salles`
+  MODIFY `id` int(10) UNSIGNED NOT NULL AUTO_INCREMENT;
+
+--
+-- AUTO_INCREMENT pour la table `services`
+--
+ALTER TABLE `services`
+  MODIFY `id` int(10) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=24;
+
+--
+-- AUTO_INCREMENT pour la table `temoignages`
+--
+ALTER TABLE `temoignages`
+  MODIFY `id` int(10) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=5;
+
+--
+-- AUTO_INCREMENT pour la table `types_evenements`
+--
+ALTER TABLE `types_evenements`
+  MODIFY `id` int(10) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=9;
+
+--
+-- AUTO_INCREMENT pour la table `users`
+--
+ALTER TABLE `users`
+  MODIFY `id` int(10) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=2;
+
+--
+-- Contraintes pour les tables déchargées
+--
+
+--
+-- Contraintes pour la table `activity_logs`
+--
+ALTER TABLE `activity_logs`
+  ADD CONSTRAINT `fk_log_user` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE SET NULL;
+
+--
+-- Contraintes pour la table `blog_articles`
+--
+ALTER TABLE `blog_articles`
+  ADD CONSTRAINT `fk_blog_auteur` FOREIGN KEY (`auteur_id`) REFERENCES `users` (`id`) ON DELETE SET NULL,
+  ADD CONSTRAINT `fk_blog_cat` FOREIGN KEY (`categorie_id`) REFERENCES `categories_blog` (`id`);
+
+--
+-- Contraintes pour la table `calendrier_disponibilites`
+--
+ALTER TABLE `calendrier_disponibilites`
+  ADD CONSTRAINT `fk_cal_reservation` FOREIGN KEY (`reservation_id`) REFERENCES `reservations` (`id`) ON DELETE SET NULL;
+
+--
+-- Contraintes pour la table `clients`
+--
+ALTER TABLE `clients`
+  ADD CONSTRAINT `fk_clients_user` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE SET NULL ON UPDATE CASCADE;
+
+--
+-- Contraintes pour la table `commentaires`
+--
+ALTER TABLE `commentaires`
+  ADD CONSTRAINT `fk_com_article` FOREIGN KEY (`article_id`) REFERENCES `blog_articles` (`id`) ON DELETE CASCADE,
+  ADD CONSTRAINT `fk_com_parent` FOREIGN KEY (`parent_id`) REFERENCES `commentaires` (`id`) ON DELETE CASCADE;
+
+--
+-- Contraintes pour la table `demandes_informations`
+--
+ALTER TABLE `demandes_informations`
+  ADD CONSTRAINT `fk_dem_type_evt` FOREIGN KEY (`type_evenement_id`) REFERENCES `types_evenements` (`id`) ON DELETE SET NULL;
+
+--
+-- Contraintes pour la table `devis`
+--
+ALTER TABLE `devis`
+  ADD CONSTRAINT `fk_devis_client` FOREIGN KEY (`client_id`) REFERENCES `clients` (`id`) ON DELETE SET NULL,
+  ADD CONSTRAINT `fk_devis_reservation` FOREIGN KEY (`reservation_id`) REFERENCES `reservations` (`id`) ON DELETE SET NULL,
+  ADD CONSTRAINT `fk_devis_traitant` FOREIGN KEY (`user_id_traitant`) REFERENCES `users` (`id`) ON DELETE SET NULL,
+  ADD CONSTRAINT `fk_devis_type_evt` FOREIGN KEY (`type_evenement_id`) REFERENCES `types_evenements` (`id`) ON DELETE SET NULL;
+
+--
+-- Contraintes pour la table `devis_lignes`
+--
+ALTER TABLE `devis_lignes`
+  ADD CONSTRAINT `fk_devlig_devis` FOREIGN KEY (`devis_id`) REFERENCES `devis` (`id`) ON DELETE CASCADE,
+  ADD CONSTRAINT `fk_devlig_service` FOREIGN KEY (`service_id`) REFERENCES `services` (`id`) ON DELETE SET NULL;
+
+--
+-- Contraintes pour la table `factures`
+--
+ALTER TABLE `factures`
+  ADD CONSTRAINT `fk_fac_client` FOREIGN KEY (`client_id`) REFERENCES `clients` (`id`) ON UPDATE CASCADE,
+  ADD CONSTRAINT `fk_fac_reservation` FOREIGN KEY (`reservation_id`) REFERENCES `reservations` (`id`) ON UPDATE CASCADE;
+
+--
+-- Contraintes pour la table `galerie`
+--
+ALTER TABLE `galerie`
+  ADD CONSTRAINT `fk_galerie_cat` FOREIGN KEY (`categorie_id`) REFERENCES `categories_galerie` (`id`) ON UPDATE CASCADE;
+
+--
+-- Contraintes pour la table `packages_services`
+--
+ALTER TABLE `packages_services`
+  ADD CONSTRAINT `fk_pkgsvc_package` FOREIGN KEY (`package_id`) REFERENCES `packages` (`id`) ON DELETE CASCADE,
+  ADD CONSTRAINT `fk_pkgsvc_service` FOREIGN KEY (`service_id`) REFERENCES `services` (`id`) ON DELETE CASCADE;
+
+--
+-- Contraintes pour la table `paiements`
+--
+ALTER TABLE `paiements`
+  ADD CONSTRAINT `fk_pmt_facture` FOREIGN KEY (`facture_id`) REFERENCES `factures` (`id`) ON DELETE CASCADE;
+
+--
+-- Contraintes pour la table `reservations`
+--
+ALTER TABLE `reservations`
+  ADD CONSTRAINT `fk_res_client` FOREIGN KEY (`client_id`) REFERENCES `clients` (`id`) ON UPDATE CASCADE,
+  ADD CONSTRAINT `fk_res_createur` FOREIGN KEY (`user_id_createur`) REFERENCES `users` (`id`) ON DELETE SET NULL,
+  ADD CONSTRAINT `fk_res_package` FOREIGN KEY (`package_id`) REFERENCES `packages` (`id`) ON DELETE SET NULL,
+  ADD CONSTRAINT `fk_res_salle` FOREIGN KEY (`salle_id`) REFERENCES `salles` (`id`) ON DELETE SET NULL,
+  ADD CONSTRAINT `fk_res_type_evt` FOREIGN KEY (`type_evenement_id`) REFERENCES `types_evenements` (`id`) ON UPDATE CASCADE;
+
+--
+-- Contraintes pour la table `reservation_services`
+--
+ALTER TABLE `reservation_services`
+  ADD CONSTRAINT `fk_ressvc_reservation` FOREIGN KEY (`reservation_id`) REFERENCES `reservations` (`id`) ON DELETE CASCADE,
+  ADD CONSTRAINT `fk_ressvc_service` FOREIGN KEY (`service_id`) REFERENCES `services` (`id`) ON UPDATE CASCADE;
+
+--
+-- Contraintes pour la table `temoignages`
+--
+ALTER TABLE `temoignages`
+  ADD CONSTRAINT `fk_tem_client` FOREIGN KEY (`client_id`) REFERENCES `clients` (`id`) ON DELETE SET NULL,
+  ADD CONSTRAINT `fk_tem_reservation` FOREIGN KEY (`reservation_id`) REFERENCES `reservations` (`id`) ON DELETE SET NULL;
+
+--
+-- Contraintes pour la table `users`
+--
+ALTER TABLE `users`
+  ADD CONSTRAINT `fk_users_role` FOREIGN KEY (`role_id`) REFERENCES `roles` (`id`) ON UPDATE CASCADE;
+COMMIT;
+
+/*!40101 SET CHARACTER_SET_CLIENT=@OLD_CHARACTER_SET_CLIENT */;
+/*!40101 SET CHARACTER_SET_RESULTS=@OLD_CHARACTER_SET_RESULTS */;
+/*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
