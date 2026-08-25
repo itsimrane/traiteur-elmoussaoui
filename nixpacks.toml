@@ -12,4 +12,4 @@ nixPkgs = [
 ]
 
 [start]
-cmd = "php -S 0.0.0.0:$PORT -t ."
+cmd = "php -c php.ini -S 0.0.0.0:$PORT -t ."
