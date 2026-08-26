@@ -34,7 +34,7 @@ try {
         INSERT INTO devis_generes
             (numero, nom_client, telephone, email, type_evenement,
              date_evenement, ville, nb_personnes, services_json, montant_total, notes, statut, created_at)
-        VALUES (?,?,?,?,?,?,?,?,?,?,?,'en_attente',NOW())
+        VALUES (?,?,?,?,?,?,?,?,?,?,?,'nouveau',NOW())
     ")->execute([
         $numero, $nomClient, $telephone, $email, $type,
         $date, $ville, $nb, $services, $total, $message,
