@@ -21,7 +21,7 @@ if (($_GET['confirm'] ?? '') !== 'IMPORT2026') {
 }
 
 // ── Chemin du fichier SQL à importer ──
-$sqlFile = __DIR__ . '/../sql/db_traiteur_elmoussaoui.sql';
+$sqlFile = __DIR__ . '/../sql/fix_factures_paiements.sql';
 
 header('Content-Type: text/html; charset=utf-8');
 echo "<!DOCTYPE html><html><head><meta charset='utf-8'>
