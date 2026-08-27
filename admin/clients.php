@@ -12,7 +12,8 @@ try {
             c.cin, c.actif, c.source, c.created_at,
             COUNT(DISTINCT d.id) AS nb_reservations
         FROM clients c
-        LEFT JOIN devis_generes d ON d.telephone = c.telephone
+        LEFT JOIN devis_generes d
+            ON d.telephone COLLATE utf8mb4_unicode_ci = c.telephone COLLATE utf8mb4_unicode_ci
         WHERE c.deleted_at IS NULL
         GROUP BY c.id
         ORDER BY c.created_at DESC
@@ -28,13 +29,14 @@ try {
             'site_web' as source, created_at,
             COUNT(*) as nb_reservations
         FROM devis_generes
-        WHERE telephone NOT IN (SELECT telephone FROM clients WHERE telephone IS NOT NULL)
+        WHERE telephone COLLATE utf8mb4_unicode_ci NOT IN (
+            SELECT telephone COLLATE utf8mb4_unicode_ci FROM clients WHERE telephone IS NOT NULL
+        )
         GROUP BY telephone
         ORDER BY created_at DESC
     ")->fetchAll();
 } catch(Exception $e) {
     $clients = [];
-    $debugError = $e->getMessage(); // TEMPORAIRE — pour diagnostiquer, à retirer une fois corrigé
 }
 
 $total  = count($clients);
@@ -255,11 +257,6 @@ if (isset($_GET['msg'])) {
       <?php if ($msg): ?>
       <div class="alert alert-<?= $msgType === 'success' ? 'success' : 'error' ?>" style="margin-bottom:20px">
         <i class="fas fa-<?= $msgType === 'success' ? 'check-circle' : 'exclamation-circle' ?>"></i> <?= htmlspecialchars($msg) ?>
-      </div>
-      <?php endif; ?>
-      <?php if (!empty($debugError)): ?>
-      <div class="alert alert-error" style="margin-bottom:20px;background:rgba(239,68,68,.1);border:1px solid #EF5350;padding:12px 16px;border-radius:8px;color:#EF5350;font-family:monospace;font-size:.8rem">
-        🔍 DEBUG (temporaire) : <?= htmlspecialchars($debugError) ?>
       </div>
       <?php endif; ?>
 
