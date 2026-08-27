@@ -18,26 +18,8 @@ try {
         GROUP BY c.id
         ORDER BY c.created_at DESC
     ")->fetchAll();
-
-  // Compléter avec les clients dans devis_generes non encore dans clients
-  $devis_clients = $pdo->query("
-        SELECT DISTINCT
-            0 as id,
-            SUBSTRING_INDEX(nom_client,' ',1) as prenom,
-            SUBSTRING_INDEX(nom_client,' ',-1) as nom,
-            email, telephone, ville,
-            'site_web' as source, created_at,
-            COUNT(*) as nb_reservations
-        FROM devis_generes
-        WHERE telephone COLLATE utf8mb4_unicode_ci NOT IN (
-            SELECT telephone COLLATE utf8mb4_unicode_ci FROM clients WHERE telephone IS NOT NULL
-        )
-        GROUP BY telephone
-        ORDER BY created_at DESC
-    ")->fetchAll();
 } catch (Exception $e) {
   $clients = [];
-  $debugError = $e->getMessage(); // TEMPORAIRE — pour diagnostiquer
 }
 
 $total = count($clients);
@@ -557,17 +539,6 @@ if (isset($_GET['msg'])) {
           <div class="alert alert-<?= $msgType === 'success' ? 'success' : 'error' ?>" style="margin-bottom:20px">
             <i class="fas fa-<?= $msgType === 'success' ? 'check-circle' : 'exclamation-circle' ?>"></i>
             <?= htmlspecialchars($msg) ?>
-          </div>
-        <?php endif; ?>
-        <?php if (!empty($debugError)): ?>
-          <div class="alert alert-error"
-            style="margin-bottom:20px;background:rgba(239,68,68,.1);border:1px solid #EF5350;padding:12px 16px;border-radius:8px;color:#EF5350;font-family:monospace;font-size:.8rem">
-            🔍 DEBUG (temporaire) : <?= htmlspecialchars($debugError) ?>
-          </div>
-        <?php else: ?>
-          <div
-            style="margin-bottom:20px;background:rgba(96,165,250,.1);border:1px solid #60A5FA;padding:12px 16px;border-radius:8px;color:#60A5FA;font-family:monospace;font-size:.8rem">
-            🔍 DEBUG (temporaire) : aucune erreur SQL — la requête a retourné <?= count($clients) ?> client(s).
           </div>
         <?php endif; ?>
 
