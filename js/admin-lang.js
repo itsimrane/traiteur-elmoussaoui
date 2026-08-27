@@ -6,7 +6,9 @@
   const KEY = 'admin_lang';
 
   function getLang() {
-    return localStorage.getItem(KEY) || 'fr';
+    // Traduction désactivée : l'admin reste toujours en français,
+    // même si un navigateur avait "ar" enregistré depuis un ancien test.
+    return 'fr';
   }
 
   function applyLang(lang) {
@@ -14,7 +16,7 @@
 
     // Direction globale
     document.documentElement.setAttribute('lang', isAr ? 'ar' : 'fr');
-    document.documentElement.setAttribute('dir',  isAr ? 'rtl' : 'ltr');
+    document.documentElement.setAttribute('dir', isAr ? 'rtl' : 'ltr');
     document.body.classList.toggle('rtl-mode', isAr);
 
     // Traduire tous les éléments data-fr / data-ar
@@ -47,8 +49,5 @@
 
   document.addEventListener('DOMContentLoaded', () => {
     applyLang(getLang());
-    document.querySelectorAll('.lang-switch .lang-option').forEach(btn => {
-      btn.addEventListener('click', () => applyLang(btn.dataset.lang));
-    });
   });
 })();
