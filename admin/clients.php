@@ -1,13 +1,15 @@
 <?php
 require_once __DIR__ . '/../includes/config.php';
 requireAdmin();
+header('Cache-Control: no-store, no-cache, must-revalidate');
+header('Pragma: no-cache');
 
 // Récupérer les clients avec leur nombre de réservations
 try {
     $clients = $pdo->query("
         SELECT
-            c.id, c.prenom, c.nom, c.email, c.telephone, c.ville,
-            c.source, c.created_at,
+            c.id, c.civilite, c.prenom, c.nom, c.email, c.telephone, c.ville,
+            c.cin, c.actif, c.source, c.created_at,
             COUNT(DISTINCT d.id) AS nb_reservations
         FROM clients c
         LEFT JOIN devis_generes d ON d.telephone = c.telephone
@@ -32,6 +34,7 @@ try {
     ")->fetchAll();
 } catch(Exception $e) {
     $clients = [];
+    $debugError = $e->getMessage(); // TEMPORAIRE — pour diagnostiquer, à retirer une fois corrigé
 }
 
 $total  = count($clients);
@@ -87,7 +90,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
             $msgType = 'success';
         } catch(PDOException $e) {
             if ($e->getCode() === '23000') {
-                // Doublon détecté (email ou téléphone déjà utilisé par un autre client)
                 if (stripos($e->getMessage(), 'email') !== false) {
                     $msg = 'Un client existe déjà avec cet email. Vérifie la liste des clients ou modifie la fiche existante.';
                 } elseif (stripos($e->getMessage(), 'telephone') !== false) {
@@ -253,6 +255,11 @@ if (isset($_GET['msg'])) {
       <?php if ($msg): ?>
       <div class="alert alert-<?= $msgType === 'success' ? 'success' : 'error' ?>" style="margin-bottom:20px">
         <i class="fas fa-<?= $msgType === 'success' ? 'check-circle' : 'exclamation-circle' ?>"></i> <?= htmlspecialchars($msg) ?>
+      </div>
+      <?php endif; ?>
+      <?php if (!empty($debugError)): ?>
+      <div class="alert alert-error" style="margin-bottom:20px;background:rgba(239,68,68,.1);border:1px solid #EF5350;padding:12px 16px;border-radius:8px;color:#EF5350;font-family:monospace;font-size:.8rem">
+        🔍 DEBUG (temporaire) : <?= htmlspecialchars($debugError) ?>
       </div>
       <?php endif; ?>
 
