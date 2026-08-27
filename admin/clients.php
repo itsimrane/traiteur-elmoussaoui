@@ -85,8 +85,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                 $msg = 'Client mis à jour avec succès !';
             }
             $msgType = 'success';
-        } catch(Exception $e) {
-            $msg = 'Erreur : ' . $e->getMessage();
+        } catch(PDOException $e) {
+            if ($e->getCode() === '23000') {
+                // Doublon détecté (email ou téléphone déjà utilisé par un autre client)
+                if (stripos($e->getMessage(), 'email') !== false) {
+                    $msg = 'Un client existe déjà avec cet email. Vérifie la liste des clients ou modifie la fiche existante.';
+                } elseif (stripos($e->getMessage(), 'telephone') !== false) {
+                    $msg = 'Un client existe déjà avec ce numéro de téléphone. Vérifie la liste des clients ou modifie la fiche existante.';
+                } else {
+                    $msg = 'Ce client existe déjà (email ou téléphone en doublon).';
+                }
+            } else {
+                $msg = 'Erreur : ' . $e->getMessage();
+            }
             $msgType = 'error';
         }
         header('Location: clients.php?msg=' . urlencode($msg) . '&type=' . $msgType);
