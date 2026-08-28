@@ -17,14 +17,7 @@ $adminEmail = $_SESSION['admin_email'] ?? 'admin@traiteur-elmoussaoui.ma';
     <div class="logo-text" style="display:flex;flex-direction:column;align-items:center">
       <span style="font-size:.55rem;letter-spacing:4px;color:var(--text-muted)">TRAITEUR</span>
       <span class="logo-name" style="font-size:1.1rem">EL MOUSSAOUI</span>
-      <span style="font-size:.65rem;color:var(--text-muted)" data-fr="Admin Panel v1.0" data-ar="لوحة الإدارة">Admin Panel v1.0</span>
-    </div>
-    <!-- Bouton langue intégré sous le logo -->
-    <div style="display:flex;justify-content:center;margin-top:10px">
-      <div class="lang-switch admin-lang-switch">
-        <span class="lang-option" data-lang="fr">FR</span>
-        <span class="lang-option" data-lang="ar">AR</span>
-      </div>
+      <span style="font-size:.65rem;color:var(--text-muted)">Admin Panel v1.0</span>
     </div>
   </div>
 
