@@ -32,7 +32,6 @@ $services = json_decode($d['services_json'] ?? '[]', true) ?: [];
 
 <head>
   <meta charset="UTF-8">
-  <link rel="icon" type="image/png" href="../assets/img/favicon-32.png">
   <title>Devis <?= $refNum ?> — Traiteur EL MOUSSAOUI</title>
   <style>
     * {
