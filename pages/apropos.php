@@ -5,6 +5,7 @@ require_once __DIR__ . '/../includes/config.php';
 <html lang="fr" dir="ltr">
 <head>
   <meta charset="UTF-8">
+  <link rel="icon" type="image/png" href="../assets/img/favicon-32.png">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>À Propos — Traiteur EL MOUSSAOUI | Errachidia</title>
   <meta name="description" content="Découvrez l'histoire de Traiteur EL MOUSSAOUI, expert en organisation d'événements à Errachidia depuis plus de 10 ans.">

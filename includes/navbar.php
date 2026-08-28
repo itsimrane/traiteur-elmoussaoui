@@ -14,11 +14,7 @@ $base    = $inPages ? '' : 'pages/';
   <nav class="navbar">
     <div class="nav-logo">
       <a href="<?= $root ?>index.php">
-        <div class="logo-text">
-          <span class="logo-traiteur">TRAITEUR</span>
-          <span class="logo-name">EL MOUSSAOUI</span>
-          <span class="logo-sub">أفراح المساوي</span>
-        </div>
+        <img src="<?= $root ?>assets/img/logo.png" alt="Traiteur EL MOUSSAOUI" style="height:56px;width:auto;display:block">
       </a>
     </div>
     <ul class="nav-links" id="navLinks">

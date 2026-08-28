@@ -14,9 +14,8 @@ $adminEmail = $_SESSION['admin_email'] ?? 'admin@traiteur-elmoussaoui.ma';
 ?>
 <aside class="sidebar" id="sidebar">
   <div class="sidebar-header">
-    <div class="logo-text" style="display:flex;flex-direction:column;align-items:center">
-      <span style="font-size:.55rem;letter-spacing:4px;color:var(--text-muted)">TRAITEUR</span>
-      <span class="logo-name" style="font-size:1.1rem">EL MOUSSAOUI</span>
+    <div style="display:flex;flex-direction:column;align-items:center">
+      <img src="../assets/img/logo.png" alt="Traiteur EL MOUSSAOUI" style="height:90px;width:auto;display:block;margin-bottom:6px">
       <span style="font-size:.65rem;color:var(--text-muted)">Admin Panel v1.0</span>
     </div>
   </div>

@@ -32,6 +32,7 @@ $services = json_decode($d['services_json'] ?? '[]', true) ?: [];
 
 <head>
   <meta charset="UTF-8">
+  <link rel="icon" type="image/png" href="../assets/img/favicon-32.png">
   <title>Devis <?= $refNum ?> — Traiteur EL MOUSSAOUI</title>
   <style>
     * {
@@ -51,6 +52,17 @@ $services = json_decode($d['services_json'] ?? '[]', true) ?: [];
       max-width: 800px;
       margin: 0 auto;
       padding: 40px;
+      position: relative;
+    }
+
+    .watermark {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      width: 480px;
+      transform: translate(-50%, -50%);
+      z-index: -1;
+      pointer-events: none;
     }
 
     /* Header */
@@ -302,12 +314,18 @@ $services = json_decode($d['services_json'] ?? '[]', true) ?: [];
       .page {
         padding: 20px;
       }
+
+      .watermark {
+        print-color-adjust: exact;
+        -webkit-print-color-adjust: exact;
+      }
     }
   </style>
 </head>
 
 <body>
   <div class="page">
+    <img src="../assets/img/logo-watermark.png" alt="" class="watermark">
 
     <!-- Bouton imprimer (masqué à l'impression) -->
     <div class="no-print" style="text-align:right;margin-bottom:20px">

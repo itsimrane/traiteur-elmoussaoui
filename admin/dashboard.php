@@ -51,7 +51,9 @@ try {
 <!DOCTYPE html>
 <html lang="fr">
 <head>
-  <meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">
+  <meta charset="UTF-8">
+  <link rel="icon" type="image/png" href="../assets/img/favicon-32.png">
+  <meta name="viewport" content="width=device-width,initial-scale=1.0">
   <title>Dashboard — Admin EL MOUSSAOUI</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@600;700&family=Jost:wght@300;400;500;600&display=swap" rel="stylesheet">

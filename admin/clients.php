@@ -110,6 +110,7 @@ if (isset($_GET['msg'])) {
 
 <head>
   <meta charset="UTF-8">
+  <link rel="icon" type="image/png" href="../assets/img/favicon-32.png">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Clients — Admin EL MOUSSAOUI</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">

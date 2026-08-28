@@ -33,6 +33,7 @@ $allCats = $pdo->query("SELECT * FROM categories_galerie WHERE actif=1 ORDER BY 
 <html lang="fr" dir="ltr">
 <head>
   <meta charset="UTF-8">
+  <link rel="icon" type="image/png" href="../assets/img/favicon-32.png">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Galerie — Traiteur EL MOUSSAOUI | Errachidia</title>
   <meta name="description" content="Galerie photos et vidéos des événements organisés par Traiteur EL MOUSSAOUI à Errachidia.">
