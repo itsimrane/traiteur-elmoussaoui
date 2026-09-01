@@ -140,7 +140,6 @@ button {
 
 #header.scrolled {
   background: rgba(13, 13, 13, 0.96);
-  backdrop-filter: blur(20px);
   box-shadow: 0 4px 30px rgba(0, 0, 0, 0.5);
 }
 
@@ -2708,6 +2707,13 @@ select.form-control {
 
   .sidebar {
     display: none;
+  }
+
+  /* Le panneau admin utilise aussi la classe .sidebar pour sa navigation
+     latérale — on la réaffiche ici, chaque page admin gère elle-même
+     son ouverture/fermeture mobile via sa propre règle .sidebar.open */
+  .admin-layout .sidebar {
+    display: flex;
   }
 
   .stats-grid {
