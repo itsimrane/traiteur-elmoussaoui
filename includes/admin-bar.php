@@ -24,8 +24,10 @@ $depth = substr_count($_SERVER['PHP_SELF'], '/') - 2;
 $root  = str_repeat('../', max(0, $depth));
 ?>
 <script>
-  window.INLINE_UPLOAD_URL = '<?= rtrim(SITE_URL, '/') ?>/api/inline_upload.php';
-  window.INLINE_DELETE_URL = '<?= rtrim(SITE_URL, '/') ?>/api/delete_media.php';
-  window.INLINE_ZONE       = '<?= $zone ?>';
+  window.INLINE_UPLOAD_URL   = '<?= rtrim(SITE_URL, '/') ?>/api/inline_upload.php';
+  window.INLINE_DELETE_URL   = '<?= rtrim(SITE_URL, '/') ?>/api/delete_media.php';
+  window.INLINE_ZONE         = '<?= $zone ?>';
+  window.ADMIN_DASHBOARD_URL = '<?= rtrim(SITE_URL, '/') ?>/admin/dashboard.php';
+  window.ADMIN_LOGOUT_URL    = '<?= rtrim(SITE_URL, '/') ?>/admin/logout.php';
 </script>
 <script src="<?= $root ?>js/admin-inline.js"></script>

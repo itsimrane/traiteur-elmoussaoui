@@ -35,11 +35,11 @@
             <span class="admin-toggle-slider"></span>
           </label>
           <span style="font-size:.78rem;color:#888">Mode Édition</span>
-          <a href="/Traiteur_Elmoussaoui/admin/dashboard.php"
+          <a href="${window.ADMIN_DASHBOARD_URL || '/admin/dashboard.php'}"
              style="background:rgba(212,175,55,.15);border:1px solid rgba(212,175,55,.3);color:#D4AF37;padding:5px 14px;border-radius:6px;font-size:.75rem;text-decoration:none;font-weight:600">
             <i class="fas fa-tachometer-alt"></i> Dashboard
           </a>
-          <a href="/Traiteur_Elmoussaoui/admin/logout.php"
+          <a href="${window.ADMIN_LOGOUT_URL || '/admin/logout.php'}"
              style="background:rgba(239,68,68,.1);border:1px solid rgba(239,68,68,.2);color:#EF5350;padding:5px 14px;border-radius:6px;font-size:.75rem;text-decoration:none;font-weight:600">
             <i class="fas fa-sign-out-alt"></i> Déconnexion
           </a>
@@ -55,6 +55,11 @@
 
     document.body.insertBefore(bar, document.body.firstChild);
     document.body.style.paddingTop = '44px';
+
+    // La navbar du site (#header) est elle aussi position:fixed;top:0 —
+    // on la décale sous la barre admin pour éviter qu'elles se superposent.
+    const siteHeader = document.getElementById('header');
+    if (siteHeader) siteHeader.style.top = '44px';
 
     // Style du toggle
     const style = document.createElement('style');
