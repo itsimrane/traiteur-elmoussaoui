@@ -24,7 +24,7 @@
     bar.id = 'adminBar';
     bar.innerHTML = `
       <div id="adminBarInner">
-        <div style="display:flex;align-items:center;gap:10px">
+        <div id="adminBarLabels" style="display:flex;align-items:center;gap:10px">
           <span style="font-size:.7rem;letter-spacing:2px;color:#888">ADMIN</span>
           <span style="font-family:'Cormorant Garamond',serif;font-size:1rem;font-weight:700;color:#D4AF37">EL MOUSSAOUI</span>
         </div>
@@ -50,16 +50,23 @@
       position:fixed;top:0;left:0;right:0;z-index:99999;
       background:rgba(10,10,15,.95);backdrop-filter:blur(10px);
       border-bottom:1px solid rgba(212,175,55,.2);
-      padding:0 20px;height:44px;display:flex;align-items:center;
+      padding:0 20px;min-height:44px;display:flex;align-items:center;
       font-family:'Jost',sans-serif;`;
 
     document.body.insertBefore(bar, document.body.firstChild);
-    document.body.style.paddingTop = '44px';
 
     // La navbar du site (#header) est elle aussi position:fixed;top:0 —
     // on la décale sous la barre admin pour éviter qu'elles se superposent.
+    // On mesure la VRAIE hauteur de la barre (au lieu d'un chiffre fixe),
+    // pour que ça reste juste même si son contenu s'étale sur mobile.
     const siteHeader = document.getElementById('header');
-    if (siteHeader) siteHeader.style.top = '44px';
+    function syncBarOffset() {
+      const h = bar.offsetHeight;
+      document.body.style.paddingTop = h + 'px';
+      if (siteHeader) siteHeader.style.top = h + 'px';
+    }
+    syncBarOffset();
+    window.addEventListener('resize', syncBarOffset);
 
     // Style du toggle
     const style = document.createElement('style');
@@ -123,6 +130,20 @@
       .admin-toast.success{background:#1A2E1A;border:1px solid rgba(102,187,106,.4);color:#66BB6A}
       .admin-toast.error{background:#2E1A1A;border:1px solid rgba(239,68,68,.4);color:#EF5350}
       .admin-toast.loading{background:#1A1A2E;border:1px solid rgba(212,175,55,.4);color:#D4AF37}
+
+      /* ── Barre admin : version compacte sur mobile ──────────
+         On cache les libellés décoratifs et on réduit les
+         boutons pour que tout tienne sur une seule ligne. */
+      @media (max-width: 640px) {
+        #adminBar { padding: 0 10px !important; height: auto !important; min-height: 40px; }
+        #adminBarInner { flex-wrap: nowrap; gap: 6px; }
+        #adminBarInner > div { gap: 6px !important; }
+        #adminBarLabels { display: none !important; }
+        #adminBarInner span:not(#editModeLabel) { display: none; }
+        .admin-toggle { flex-shrink: 0; }
+        #adminBarInner a { padding: 5px 8px !important; font-size: 0 !important; }
+        #adminBarInner a i { font-size: .85rem !important; }
+      }
     `;
     document.head.appendChild(style);
 
