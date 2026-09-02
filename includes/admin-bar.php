@@ -30,4 +30,8 @@ $root  = str_repeat('../', max(0, $depth));
   window.ADMIN_DASHBOARD_URL = '<?= rtrim(SITE_URL, '/') ?>/admin/dashboard.php';
   window.ADMIN_LOGOUT_URL    = '<?= rtrim(SITE_URL, '/') ?>/admin/logout.php';
 </script>
-<script src="<?= $root ?>js/admin-inline.js"></script>
+<?php
+$adminInlinePath = __DIR__ . '/../js/admin-inline.js';
+$adminInlineV = file_exists($adminInlinePath) ? filemtime($adminInlinePath) : time();
+?>
+<script src="<?= $root ?>js/admin-inline.js?v=<?= $adminInlineV ?>"></script>
