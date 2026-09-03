@@ -20,7 +20,7 @@ $zone = match($currentPage) {
 };
 
 // Détecter le chemin relatif vers la racine
-$depth = substr_count($_SERVER['PHP_SELF'], '/') - 2;
+$depth = substr_count($_SERVER['PHP_SELF'], '/') - 1;
 $root  = str_repeat('../', max(0, $depth));
 ?>
 <script>
