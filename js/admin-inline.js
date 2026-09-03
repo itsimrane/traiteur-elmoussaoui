@@ -18,57 +18,25 @@
 
   let editMode = localStorage.getItem('admin_edit_mode') !== 'off';
 
-  // ── Barre admin flottante ──────────────────────────────────
-  function createAdminBar() {
-    const bar = document.createElement('div');
-    bar.id = 'adminBar';
-    bar.innerHTML = `
-      <div id="adminBarInner">
-        <div id="adminBarLabels" style="display:flex;align-items:center;gap:10px">
-          <span style="font-size:.7rem;letter-spacing:2px;color:#888">ADMIN</span>
-          <span style="font-family:'Cormorant Garamond',serif;font-size:1rem;font-weight:700;color:#D4AF37">EL MOUSSAOUI</span>
-        </div>
-        <div style="display:flex;align-items:center;gap:10px">
-          <span id="editModeLabel" style="font-size:.78rem"></span>
-          <label class="admin-toggle">
-            <input type="checkbox" id="editModeToggle" ${editMode ? 'checked' : ''}>
-            <span class="admin-toggle-slider"></span>
-          </label>
-          <span style="font-size:.78rem;color:#888">Mode Édition</span>
-          <a href="${window.ADMIN_DASHBOARD_URL || '/admin/dashboard.php'}"
-             style="background:rgba(212,175,55,.15);border:1px solid rgba(212,175,55,.3);color:#D4AF37;padding:5px 14px;border-radius:6px;font-size:.75rem;text-decoration:none;font-weight:600">
-            <i class="fas fa-tachometer-alt"></i> Dashboard
-          </a>
-          <a href="${window.ADMIN_LOGOUT_URL || '/admin/logout.php'}"
-             style="background:rgba(239,68,68,.1);border:1px solid rgba(239,68,68,.2);color:#EF5350;padding:5px 14px;border-radius:6px;font-size:.75rem;text-decoration:none;font-weight:600">
-            <i class="fas fa-sign-out-alt"></i> Déconnexion
-          </a>
-        </div>
-      </div>`;
-
-    bar.style.cssText = `
-      position:fixed;top:0;left:0;right:0;z-index:99999;
-      background:rgba(10,10,15,.95);backdrop-filter:blur(10px);
-      border-bottom:1px solid rgba(212,175,55,.2);
-      padding:0 20px;min-height:44px;display:flex;align-items:center;
-      font-family:'Jost',sans-serif;`;
-
-    document.body.insertBefore(bar, document.body.firstChild);
-
-    // La navbar du site (#header) est elle aussi position:fixed;top:0 —
-    // on la décale sous la barre admin pour éviter qu'elles se superposent.
-    // On mesure la VRAIE hauteur de la barre (au lieu d'un chiffre fixe),
-    // pour que ça reste juste même si son contenu s'étale sur mobile.
+  // ── Décalage de la navbar du site sous la barre admin ──────
+  // Fonctionne avec n'importe quelle barre (celle créée ici, ou
+  // une barre déjà présente sur la page comme sur galerie.php).
+  function syncOffsetFor(barEl) {
     const siteHeader = document.getElementById('header');
-    function syncBarOffset() {
-      const h = bar.offsetHeight;
+    function sync() {
+      const h = barEl.offsetHeight;
       document.body.style.paddingTop = h + 'px';
       if (siteHeader) siteHeader.style.top = h + 'px';
     }
-    syncBarOffset();
-    window.addEventListener('resize', syncBarOffset);
+    sync();
+    window.addEventListener('resize', sync);
+  }
 
-    // Style du toggle
+  // ── Barre admin flottante ──────────────────────────────────
+  function createAdminBar() {
+    // ── Styles partagés (survol photos, overlay, notifications) ──
+    // Toujours injectés, même si cette page a déjà sa propre barre
+    // (ex: galerie.php), car scanPage()/toast() en ont besoin partout.
     const style = document.createElement('style');
     style.textContent = `
       #adminBarInner{display:flex;align-items:center;justify-content:space-between;width:100%}
@@ -146,6 +114,51 @@
       }
     `;
     document.head.appendChild(style);
+
+    // Certaines pages (ex: galerie.php en mode édition) ont déjà
+    // leur propre barre dédiée — on évite d'en créer une deuxième
+    // par-dessus, mais on garde le décalage de la navbar cohérent.
+    const existingBar = document.getElementById('adminEditBar');
+    if (existingBar) {
+      syncOffsetFor(existingBar);
+      return;
+    }
+
+    const bar = document.createElement('div');
+    bar.id = 'adminBar';
+    bar.innerHTML = `
+      <div id="adminBarInner">
+        <div id="adminBarLabels" style="display:flex;align-items:center;gap:10px">
+          <span style="font-size:.7rem;letter-spacing:2px;color:#888">ADMIN</span>
+          <span style="font-family:'Cormorant Garamond',serif;font-size:1rem;font-weight:700;color:#D4AF37">EL MOUSSAOUI</span>
+        </div>
+        <div style="display:flex;align-items:center;gap:10px">
+          <span id="editModeLabel" style="font-size:.78rem"></span>
+          <label class="admin-toggle">
+            <input type="checkbox" id="editModeToggle" ${editMode ? 'checked' : ''}>
+            <span class="admin-toggle-slider"></span>
+          </label>
+          <span style="font-size:.78rem;color:#888">Mode Édition</span>
+          <a href="${window.ADMIN_DASHBOARD_URL || '/admin/dashboard.php'}"
+             style="background:rgba(212,175,55,.15);border:1px solid rgba(212,175,55,.3);color:#D4AF37;padding:5px 14px;border-radius:6px;font-size:.75rem;text-decoration:none;font-weight:600">
+            <i class="fas fa-tachometer-alt"></i> Dashboard
+          </a>
+          <a href="${window.ADMIN_LOGOUT_URL || '/admin/logout.php'}"
+             style="background:rgba(239,68,68,.1);border:1px solid rgba(239,68,68,.2);color:#EF5350;padding:5px 14px;border-radius:6px;font-size:.75rem;text-decoration:none;font-weight:600">
+            <i class="fas fa-sign-out-alt"></i> Déconnexion
+          </a>
+        </div>
+      </div>`;
+
+    bar.style.cssText = `
+      position:fixed;top:0;left:0;right:0;z-index:99999;
+      background:rgba(10,10,15,.95);backdrop-filter:blur(10px);
+      border-bottom:1px solid rgba(212,175,55,.2);
+      padding:0 20px;min-height:44px;display:flex;align-items:center;
+      font-family:'Jost',sans-serif;`;
+
+    document.body.insertBefore(bar, document.body.firstChild);
+    syncOffsetFor(bar);
 
     document.getElementById('editModeToggle').addEventListener('change', function () {
       editMode = this.checked;

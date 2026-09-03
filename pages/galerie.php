@@ -95,6 +95,18 @@ $allCats = $pdo->query("SELECT * FROM categories_galerie WHERE actif=1 ORDER BY 
     @media(max-width:1100px){.masonry-grid{columns:3}.videos-grid{grid-template-columns:repeat(2,1fr)}.gallery-stats{grid-template-columns:repeat(2,1fr)}}
     @media(max-width:768px){.masonry-grid{columns:2}.videos-grid{grid-template-columns:1fr}}
     @media(max-width:480px){.masonry-grid{columns:1}}
+
+    /* ── Barre d'édition galerie : version compacte sur mobile ── */
+    @media(max-width:640px){
+      #adminEditBar{padding:0 10px!important;height:auto!important;min-height:44px;flex-wrap:wrap;gap:6px 0}
+      #adminEditBar > div{gap:6px!important}
+      #adminEditBar span[style*="letter-spacing:3px"]{display:none}
+      #adminEditBar span[style*="Cormorant"]{display:none}
+      #adminEditBar span[style*="background:rgba(37,211,102"]{font-size:0!important;padding:4px!important;width:20px;height:20px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center}
+      #adminEditBar span[style*="background:rgba(37,211,102"]::before{content:'●';font-size:.9rem}
+      #adminEditBar button, #adminEditBar a{padding:6px 8px!important;font-size:0!important}
+      #adminEditBar button i, #adminEditBar a i{font-size:.85rem!important}
+    }
   </style>
 </head>
 <body>
