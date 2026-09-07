@@ -144,6 +144,12 @@ try { $jalons = $pdo->query("SELECT * FROM apropos_timeline ORDER BY ordre ASC, 
     .inline-form textarea{resize:vertical;min-height:60px}
     .inline-form button{background:var(--gold);color:var(--dark);border:none;border-radius:8px;padding:10px;font-weight:700;font-size:.82rem;cursor:pointer}
     .empty-note{color:#555;font-size:.8rem;text-align:center;padding:20px}
+
+    @media(max-width:600px){
+      .inline-form .row-2{grid-template-columns:1fr}
+      .item-row{flex-wrap:wrap}
+      .item-body{min-width:150px}
+    }
   </style>
 </head>
 <body>
