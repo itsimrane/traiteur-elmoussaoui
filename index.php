@@ -4,6 +4,38 @@
  * Traiteur EL MOUSSAOUI
  */
 require_once __DIR__ . '/includes/config.php';
+
+// ── Statistiques réelles (plus de faux chiffres) ──────────────
+$statEvenements = 0;
+$statClients    = 0;
+$statNote       = 0;
+try { $statEvenements = (int)$pdo->query("SELECT COUNT(*) FROM devis_generes")->fetchColumn(); } catch(Exception $e) {}
+try { $statClients    = (int)$pdo->query("SELECT COUNT(*) FROM clients")->fetchColumn(); } catch(Exception $e) {}
+try {
+    $avg = $pdo->query("SELECT AVG(note) FROM temoignages WHERE statut='publie'")->fetchColumn();
+    $statNote = $avg ? round($avg, 1) : 0;
+} catch(Exception $e) {}
+$hasRealStats = ($statEvenements > 0 || $statClients > 0);
+
+// ── 3 témoignages réels et publiés (les plus mis en avant d'abord) ──
+$homeTemoignages = [];
+try {
+    $homeTemoignages = $pdo->query("
+        SELECT nom_client, ville, contenu, note, type_evenement
+        FROM temoignages WHERE statut='publie'
+        ORDER BY en_vedette DESC, ordre ASC, created_at DESC LIMIT 3
+    ")->fetchAll();
+} catch(Exception $e) {}
+
+// ── Aperçu galerie : vraies photos les plus récentes ──────────
+$homeGalerie = [];
+try {
+    $homeGalerie = $pdo->query("
+        SELECT fichier, titre, alt_text
+        FROM galerie WHERE type='photo' AND actif=1 AND fichier IS NOT NULL
+        ORDER BY en_vedette DESC, id DESC LIMIT 6
+    ")->fetchAll();
+} catch(Exception $e) {}
 ?>
 <!DOCTYPE html>
 <html lang="fr" dir="ltr">
@@ -59,30 +91,13 @@ require_once __DIR__ . '/includes/config.php';
 
     <ul class="nav-links" id="navLinks">
       <li><a href="index.php" class="nav-link active" data-fr="Accueil" data-ar="الرئيسية">Accueil</a></li>
-      <li class="has-dropdown">
-        <a href="pages/services.php" class="nav-link" data-fr="Services" data-ar="خدماتنا" data-html>Services <i class="fas fa-chevron-down"></i></a>
-        <ul class="dropdown">
-          <li><a href="pages/services.php#mariages"><i class="fas fa-heart"></i> <span data-fr="Mariages" data-ar="حفلات الزفاف">Mariages</span></a></li>
-          <li><a href="pages/services.php#fiancailles"><i class="fas fa-ring"></i> <span data-fr="Fiançailles" data-ar="الخطوبة">Fiançailles</span></a></li>
-          <li><a href="pages/services.php#circoncision"><i class="fas fa-baby"></i> <span data-fr="Circoncisions" data-ar="حفلات الختان">Circoncisions</span></a></li>
-          <li><a href="pages/services.php#anniversaires"><i class="fas fa-birthday-cake"></i> <span data-fr="Anniversaires" data-ar="أعياد الميلاد">Anniversaires</span></a></li>
-          <li><a href="pages/services.php#entreprise"><i class="fas fa-briefcase"></i> <span data-fr="Réceptions Pro" data-ar="المناسبات المهنية">Réceptions Pro</span></a></li>
-          <li><a href="pages/services.php#buffets"><i class="fas fa-utensils"></i> <span data-fr="Buffets & Banquets" data-ar="البوفيه والولائم">Buffets & Banquets</span></a></li>
-          <li><a href="pages/services.php#ceremonies"><i class="fas fa-mosque"></i> <span data-fr="Cérémonies religieuses" data-ar="المناسبات الدينية">Cérémonies religieuses</span></a></li>
-        </ul>
-      </li>
-      <li><a href="pages/packages.php" class="nav-link" data-fr="Packages" data-ar="الباقات">Packages</a></li>
-      <li><a href="pages/galerie.php" class="nav-link" data-fr="Galerie" data-ar="معرض الصور">Galerie</a></li>
-      <li><a href="pages/blog.php" class="nav-link" data-fr="Blog" data-ar="المقالات">Blog</a></li>
+      <li><a href="pages/services.php" class="nav-link" data-fr="Services" data-ar="خدماتنا">Services</a></li>
+      <li><a href="pages/galerie.php" class="nav-link" data-fr="Nos réalisations" data-ar="أعمالنا">Nos réalisations</a></li>
       <li><a href="pages/apropos.php" class="nav-link" data-fr="À Propos" data-ar="من نحن">À Propos</a></li>
       <li><a href="pages/contact.php" class="nav-link" data-fr="Contact" data-ar="اتصل بنا">Contact</a></li>
     </ul>
 
     <div class="nav-actions">
-      <a href="tel:0626986533" class="nav-tel">
-        <i class="fab fa-whatsapp"></i>
-        <span><span dir="ltr">0626 986 533</span></span>
-      </a>
       <a href="pages/reservation.php" class="btn-reservation" data-fr="Réserver" data-ar="احجز الآن" data-html>
         Réserver <i class="fas fa-arrow-right"></i>
       </a>
@@ -135,22 +150,36 @@ require_once __DIR__ . '/includes/config.php';
         <i class="fas fa-images"></i> Voir nos réalisations
       </a>
     </div>
+    <?php if ($hasRealStats): ?>
     <div class="hero-stats" data-aos="fade-up" data-aos-delay="1000">
+      <?php if ($statEvenements > 0): ?>
       <div class="stat-item">
-        <span class="stat-num" data-count="500">0</span><span class="stat-plus">+</span>
-        <span class="stat-label" data-fr="Événements" data-ar="مناسبة">Événements</span>
+        <span class="stat-num" data-count="<?= $statEvenements ?>">0</span><span class="stat-plus">+</span>
+        <span class="stat-label" data-fr="Événements traités" data-ar="مناسبة">Événements traités</span>
       </div>
+      <?php endif; ?>
+      <?php if ($statEvenements > 0 && $statClients > 0): ?><div class="stat-divider"></div><?php endif; ?>
+      <?php if ($statClients > 0): ?>
+      <div class="stat-item">
+        <span class="stat-num" data-count="<?= $statClients ?>">0</span><span class="stat-plus">+</span>
+        <span class="stat-label" data-fr="Clients accompagnés" data-ar="عملاء">Clients accompagnés</span>
+      </div>
+      <?php endif; ?>
+      <?php if ($statNote > 0): ?>
       <div class="stat-divider"></div>
       <div class="stat-item">
-        <span class="stat-num" data-count="10">0</span><span class="stat-plus">+</span>
-        <span class="stat-label" data-fr="Années d'exp." data-ar="سنوات الخبرة">Années d'exp.</span>
+        <span class="stat-num" dir="ltr"><?= number_format($statNote, 1) ?></span><span class="stat-plus">/5</span>
+        <span class="stat-label" data-fr="Note moyenne clients" data-ar="متوسط تقييم العملاء">Note moyenne clients</span>
       </div>
-      <div class="stat-divider"></div>
-      <div class="stat-item">
-        <span class="stat-num" data-count="98">0</span><span class="stat-pct">%</span>
-        <span class="stat-label" data-fr="Clients satisfaits" data-ar="عملاء راضون">Clients satisfaits</span>
-      </div>
+      <?php endif; ?>
     </div>
+    <?php else: ?>
+    <p class="hero-qualitative" data-aos="fade-up" data-aos-delay="1000"
+       data-fr="Un service reconnu pour son professionnalisme et son souci du détail."
+       data-ar="خدمة معروفة باحترافيتها واهتمامها بالتفاصيل.">
+      Un service reconnu pour son professionnalisme et son souci du détail.
+    </p>
+    <?php endif; ?>
   </div>
 
   <div class="hero-scroll-hint">
@@ -170,67 +199,48 @@ require_once __DIR__ . '/includes/config.php';
       <p class="section-desc" data-fr="De la décoration à la restauration, nous orchestrons chaque détail pour que votre événement soit inoubliable." data-ar="من الديكور إلى الضيافة، نهتم بكل التفاصيل لنجعل مناسبتكم لا تُنسى.">De la décoration à la restauration, nous orchestrons chaque détail pour que votre événement soit inoubliable.</p>
     </div>
 
-    <div class="services-grid">
+    <div class="services-grid services-grid-4">
       <div class="service-card" data-aos="fade-up" data-aos-delay="100">
-        <div class="service-icon"><i class="fas fa-heart"></i></div>
         <div class="service-img" data-zone-empty="services" data-img="mariage.jpg" data-titre="Mariage" style="background-image: url('assets/img/mariage.jpg')"></div>
         <div class="service-body">
           <h3 data-fr="Mariages" data-ar="حفلات الزفاف">Mariages</h3>
-          <p data-fr="Organisation complète de votre mariage : décoration, buffet, animation musicale, coordination." data-ar="تنظيم كامل لحفل زفافك: ديكور، بوفيه، موسيقى، وتنسيق شامل.">Organisation complète de votre mariage : décoration, buffet, animation musicale, coordination.</p>
+          <p data-fr="Décoration, buffet et coordination pour le plus beau jour de votre vie." data-ar="ديكور، بوفيه وتنسيق ليوم لا يُنسى.">Décoration, buffet et coordination pour le plus beau jour de votre vie.</p>
           <a href="pages/services.php#mariages" class="service-link" data-fr="En savoir plus" data-ar="معرفة المزيد" data-html>En savoir plus <i class="fas fa-arrow-right"></i></a>
         </div>
       </div>
 
       <div class="service-card featured" data-aos="fade-up" data-aos-delay="200">
         <div class="service-badge" data-fr="Populaire" data-ar="الأكثر طلباً">Populaire</div>
-        <div class="service-icon"><i class="fas fa-ring"></i></div>
         <div class="service-img" data-zone-empty="services" data-img="fiancailles.jpg" data-titre="Fiançailles" style="background-image: url('assets/img/fiancailles.jpg')"></div>
         <div class="service-body">
           <h3 data-fr="Fiançailles" data-ar="الخطوبة">Fiançailles</h3>
-          <p data-fr="Cérémonie de fiançailles mémorable avec décoration florale et buffet raffiné." data-ar="حفل خطوبة لا يُنسى مع ديكور زهور وبوفيه راقٍ.">Cérémonie de fiançailles mémorable avec décoration florale et buffet raffiné.</p>
+          <p data-fr="Cérémonie mémorable avec décoration florale et buffet raffiné." data-ar="حفل خطوبة لا يُنسى مع ديكور زهور وبوفيه راقٍ.">Cérémonie mémorable avec décoration florale et buffet raffiné.</p>
           <a href="pages/services.php#fiancailles" class="service-link" data-fr="En savoir plus" data-ar="معرفة المزيد" data-html>En savoir plus <i class="fas fa-arrow-right"></i></a>
         </div>
       </div>
 
       <div class="service-card" data-aos="fade-up" data-aos-delay="300">
-        <div class="service-icon"><i class="fas fa-baby"></i></div>
-        <div class="service-img" data-zone-empty="services" data-img="circoncision.jpg" data-titre="Circoncision" style="background-image: url('assets/img/circoncision.jpg')"></div>
+        <div class="service-img" data-zone-empty="services" data-img="anniversaire.jpg" data-titre="Célébrations" style="background-image: url('assets/img/anniversaire.jpg')"></div>
         <div class="service-body">
-          <h3 data-fr="Circoncisions" data-ar="حفلات الختان">Circoncisions</h3>
-          <p data-fr="Fêtes traditionnelles avec décoration colorée, buffet généreux et animation." data-ar="احتفالات تقليدية بديكور مبهج وبوفيه غني وأنشطة ترفيهية.">Fêtes traditionnelles avec décoration colorée, buffet généreux et animation.</p>
-          <a href="pages/services.php#circoncision" class="service-link" data-fr="En savoir plus" data-ar="معرفة المزيد" data-html>En savoir plus <i class="fas fa-arrow-right"></i></a>
-        </div>
-      </div>
-
-      <div class="service-card" data-aos="fade-up" data-aos-delay="100">
-        <div class="service-icon"><i class="fas fa-birthday-cake"></i></div>
-        <div class="service-img" data-zone-empty="services" data-img="anniversaire.jpg" data-titre="Anniversaire" style="background-image: url('assets/img/anniversaire.jpg')"></div>
-        <div class="service-body">
-          <h3 data-fr="Anniversaires" data-ar="أعياد الميلاد">Anniversaires</h3>
-          <p data-fr="Célébrations d'anniversaire pour tous les âges avec ambiance personnalisée." data-ar="احتفالات أعياد ميلاد لجميع الأعمار بأجواء مخصصة.">Célébrations d'anniversaire pour tous les âges avec ambiance personnalisée.</p>
+          <h3 data-fr="Célébrations" data-ar="الاحتفالات">Célébrations</h3>
+          <p data-fr="Anniversaires, circoncisions et fêtes familiales à votre image." data-ar="أعياد ميلاد، ختان واحتفالات عائلية على ذوقكم.">Anniversaires, circoncisions et fêtes familiales à votre image.</p>
           <a href="pages/services.php#anniversaires" class="service-link" data-fr="En savoir plus" data-ar="معرفة المزيد" data-html>En savoir plus <i class="fas fa-arrow-right"></i></a>
         </div>
       </div>
 
-      <div class="service-card" data-aos="fade-up" data-aos-delay="200">
-        <div class="service-icon"><i class="fas fa-briefcase"></i></div>
-        <div class="service-img" data-zone-empty="services" data-img="entreprise.jpg" data-titre="Réception Pro" style="background-image: url('assets/img/entreprise.jpg')"></div>
-        <div class="service-body">
-          <h3 data-fr="Réceptions Pro" data-ar="المناسبات المهنية">Réceptions Pro</h3>
-          <p data-fr="Séminaires, galas d'entreprise et réceptions professionnelles de prestige." data-ar="ندوات وحفلات شركات واستقبالات مهنية راقية.">Séminaires, galas d'entreprise et réceptions professionnelles de prestige.</p>
-          <a href="pages/services.php#entreprise" class="service-link" data-fr="En savoir plus" data-ar="معرفة المزيد" data-html>En savoir plus <i class="fas fa-arrow-right"></i></a>
-        </div>
-      </div>
-
-      <div class="service-card" data-aos="fade-up" data-aos-delay="300">
-        <div class="service-icon"><i class="fas fa-utensils"></i></div>
+      <div class="service-card" data-aos="fade-up" data-aos-delay="400">
         <div class="service-img" data-zone-empty="services" data-img="buffet.jpg" data-titre="Buffet" style="background-image: url('assets/img/buffet.jpg')"></div>
         <div class="service-body">
-          <h3 data-fr="Buffets & Banquets" data-ar="البوفيه والولائم">Buffets & Banquets</h3>
-          <p data-fr="Buffets froids et chauds, gastronomie marocaine et internationale." data-ar="بوفيهات ساخنة وبادرة، مأكولات مغربية وعالمية.">Buffets froids et chauds, gastronomie marocaine et internationale.</p>
+          <h3 data-fr="Buffets & Réceptions" data-ar="البوفيه والاستقبالات">Buffets & Réceptions</h3>
+          <p data-fr="Gastronomie marocaine et internationale pour tous vos événements." data-ar="مأكولات مغربية وعالمية لكل مناسباتكم.">Gastronomie marocaine et internationale pour tous vos événements.</p>
           <a href="pages/services.php#buffets" class="service-link" data-fr="En savoir plus" data-ar="معرفة المزيد" data-html>En savoir plus <i class="fas fa-arrow-right"></i></a>
         </div>
       </div>
+    </div>
+    <div class="text-center" data-aos="fade-up" style="margin-top:40px">
+      <a href="pages/services.php" class="btn-outline" data-fr="Voir tous nos services" data-ar="عرض جميع خدماتنا" data-html>
+        Voir tous nos services <i class="fas fa-arrow-right"></i>
+      </a>
     </div>
   </div>
 </section>
@@ -303,23 +313,15 @@ require_once __DIR__ . '/includes/config.php';
       <h2 class="section-title" data-fr="Packages & Tarifs" data-ar="الباقات والأسعار">Packages & Tarifs</h2>
       <p class="section-desc" data-fr="Des formules adaptées à chaque budget pour que votre fête soit inoubliable." data-ar="باقات تناسب كل الميزانيات لتكون حفلتكم لا تُنسى.">Des formules adaptées à chaque budget pour que votre fête soit inoubliable.</p>
     </div>
-    <div class="packages-grid">
+    <div class="packages-grid packages-grid-simple">
       <div class="pkg-card" data-aos="fade-up" data-aos-delay="100">
         <div class="pkg-header bronze">
           <div class="pkg-icon"><i class="fas fa-medal"></i></div>
           <h3 data-fr="Bronze" data-ar="برونزية">Bronze</h3>
-          <div class="pkg-devis-badge"><i class="fas fa-file-invoice"></i> <span data-fr="Sur devis" data-ar="بعرض أسعار">Sur devis</span></div>
           <p data-fr="50–100 invités" data-ar="50-100 ضيف">50–100 invités</p>
         </div>
-        <ul class="pkg-features">
-          <li><i class="fas fa-check"></i> <span data-fr="Restauration de base" data-ar="ضيافة أساسية">Restauration de base</span></li>
-          <li><i class="fas fa-check"></i> <span data-fr="Décoration simple" data-ar="ديكور بسيط">Décoration simple</span></li>
-          <li><i class="fas fa-check"></i> <span data-fr="1 serveur" data-ar="نادل واحد">1 serveur</span></li>
-          <li><i class="fas fa-check"></i> <span data-fr="Thé & pâtisseries" data-ar="شاي وحلويات">Thé & pâtisseries</span></li>
-          <li class="disabled"><i class="fas fa-times"></i> <span data-fr="Animation musicale" data-ar="فرقة موسيقية">Animation musicale</span></li>
-          <li class="disabled"><i class="fas fa-times"></i> <span data-fr="Photographe" data-ar="مصور">Photographe</span></li>
-        </ul>
-        <a href="pages/packages.php" class="btn-pkg" data-fr="Choisir Bronze" data-ar="اختر البرونزية">Choisir Bronze</a>
+        <p class="pkg-summary" data-fr="L'essentiel pour une fête familiale réussie et sans stress." data-ar="الأساسيات لحفل عائلي ناجح وبدون عناء.">L'essentiel pour une fête familiale réussie et sans stress.</p>
+        <a href="pages/packages.php" class="btn-pkg" data-fr="Voir les détails" data-ar="عرض التفاصيل">Voir les détails</a>
       </div>
 
       <div class="pkg-card featured" data-aos="fade-up" data-aos-delay="200">
@@ -327,36 +329,20 @@ require_once __DIR__ . '/includes/config.php';
         <div class="pkg-header gold">
           <div class="pkg-icon"><i class="fas fa-crown"></i></div>
           <h3 data-fr="Or" data-ar="ذهبية">Or</h3>
-          <div class="pkg-devis-badge"><i class="fas fa-file-invoice"></i> <span data-fr="Sur devis" data-ar="بعرض أسعار">Sur devis</span></div>
           <p data-fr="120–250 invités" data-ar="120-250 ضيف">120–250 invités</p>
         </div>
-        <ul class="pkg-features">
-          <li><i class="fas fa-check"></i> <span data-fr="Repas gastronomique" data-ar="وجبة فاخرة">Repas gastronomique</span></li>
-          <li><i class="fas fa-check"></i> <span data-fr="Décoration premium" data-ar="ديكور راقٍ">Décoration premium</span></li>
-          <li><i class="fas fa-check"></i> <span data-fr="5 serveurs" data-ar="5 نوادل">5 serveurs</span></li>
-          <li><i class="fas fa-check"></i> <span data-fr="Gâteau personnalisé" data-ar="كعكة مخصصة">Gâteau personnalisé</span></li>
-          <li><i class="fas fa-check"></i> <span data-fr="DJ & animation" data-ar="دي جي وأنشطة">DJ & animation</span></li>
-          <li><i class="fas fa-check"></i> <span data-fr="Photographe" data-ar="مصور">Photographe</span></li>
-        </ul>
-        <a href="pages/packages.php" class="btn-pkg gold" data-fr="Choisir Or" data-ar="اختر الذهبية">Choisir Or</a>
+        <p class="pkg-summary" data-fr="Notre formule la plus complète : gastronomie, décor et animation." data-ar="باقتنا الأكثر شمولاً: أكل راقٍ، ديكور وأنشطة." data-html>Notre formule la plus complète : gastronomie, décor et animation.</p>
+        <a href="pages/packages.php" class="btn-pkg gold" data-fr="Voir les détails" data-ar="عرض التفاصيل">Voir les détails</a>
       </div>
 
       <div class="pkg-card" data-aos="fade-up" data-aos-delay="300">
         <div class="pkg-header platinum">
           <div class="pkg-icon"><i class="fas fa-star"></i></div>
           <h3 data-fr="Platine" data-ar="بلاتينية">Platine</h3>
-          <div class="pkg-devis-badge"><i class="fas fa-file-invoice"></i> <span data-fr="Sur devis" data-ar="بعرض أسعار">Sur devis</span></div>
           <p data-fr="200–500 invités" data-ar="200-500 ضيف">200–500 invités</p>
         </div>
-        <ul class="pkg-features">
-          <li><i class="fas fa-check"></i> <span data-fr="Tout inclus" data-ar="كل شيء مشمول">Tout inclus</span></li>
-          <li><i class="fas fa-check"></i> <span data-fr="Tente de réception" data-ar="خيمة استقبال">Tente de réception</span></li>
-          <li><i class="fas fa-check"></i> <span data-fr="Limousine décorée" data-ar="ليموزين مزينة">Limousine décorée</span></li>
-          <li><i class="fas fa-check"></i> <span data-fr="Photo & Vidéo HD" data-ar="تصوير وفيديو HD">Photo & Vidéo HD</span></li>
-          <li><i class="fas fa-check"></i> <span data-fr="Animateur live" data-ar="منشط حفلات">Animateur live</span></li>
-          <li><i class="fas fa-check"></i> <span data-fr="Invitations imprimées" data-ar="دعوات مطبوعة">Invitations imprimées</span></li>
-        </ul>
-        <a href="pages/packages.php" class="btn-pkg" data-fr="Choisir Platine" data-ar="اختر البلاتينية">Choisir Platine</a>
+        <p class="pkg-summary" data-fr="L'expérience tout inclus pour un événement d'exception." data-ar="تجربة شاملة لمناسبة استثنائية.">L'expérience tout inclus pour un événement d'exception.</p>
+        <a href="pages/packages.php" class="btn-pkg" data-fr="Voir les détails" data-ar="عرض التفاصيل">Voir les détails</a>
       </div>
     </div>
     <div class="packages-note" data-aos="fade-up">
@@ -380,6 +366,18 @@ require_once __DIR__ . '/includes/config.php';
         Découvrez nos plus belles réalisations en photos et vidéos.
       </p>
     </div>
+    <?php if (!empty($homeGalerie)): ?>
+    <div class="gallery-preview-grid">
+      <?php foreach ($homeGalerie as $g):
+        $src = UPLOAD_URL . '/' . $g['fichier'];
+        $alt = htmlspecialchars($g['alt_text'] ?: $g['titre'] ?: 'Réalisation Traiteur EL MOUSSAOUI');
+      ?>
+      <a href="pages/galerie.php" class="gallery-preview-item" data-aos="zoom-in">
+        <img src="<?= htmlspecialchars($src) ?>" alt="<?= $alt ?>" loading="lazy">
+      </a>
+      <?php endforeach; ?>
+    </div>
+    <?php endif; ?>
     <div class="text-center" data-aos="fade-up" data-aos-delay="150" style="margin-top:40px">
       <a href="pages/galerie.php" class="btn-primary large" data-fr="Voir toute la galerie" data-ar="عرض كل المعرض">
         <i class="fas fa-images"></i> Voir toute la galerie
@@ -399,56 +397,43 @@ require_once __DIR__ . '/includes/config.php';
     </div>
     <div class="testimonials-slider" id="testimonialsSlider">
       <div class="testimonial-track" id="testimonialTrack">
-        <div class="testimonial-card">
-          <div class="testi-stars">★★★★★</div>
-          <p data-fr="&quot;Un service exceptionnel pour notre mariage ! L'équipe d'EL MOUSSAOUI a tout géré avec professionnalisme. La décoration était magnifique et le buffet délicieux.&quot;" data-ar="&quot;خدمة استثنائية لحفل زفافنا! فريق المساوي تولى كل شيء بمهنية عالية. كان الديكور رائعاً والبوفيه شهياً.&quot;">"Un service exceptionnel pour notre mariage ! L'équipe d'EL MOUSSAOUI a tout géré avec professionnalisme. La décoration était magnifique et le buffet délicieux."</p>
-          <div class="testi-author">
-            <div class="testi-avatar">F</div>
-            <div>
-              <strong>Fatima Zahra B.</strong>
-              <span data-fr="Errachidia — Mariage" data-ar="الراشيدية - زفاف">Errachidia — Mariage</span>
+        <?php if (!empty($homeTemoignages)): ?>
+          <?php foreach ($homeTemoignages as $t):
+            $stars = str_repeat('★', (int)$t['note']) . str_repeat('☆', 5 - (int)$t['note']);
+            $initiale = strtoupper(mb_substr($t['nom_client'], 0, 1));
+            $lieu = trim(($t['ville'] ?: '') . ($t['type_evenement'] ? ' — ' . $t['type_evenement'] : ''));
+          ?>
+          <div class="testimonial-card">
+            <div class="testi-stars"><?= $stars ?></div>
+            <p><?= htmlspecialchars($t['contenu']) ?></p>
+            <div class="testi-author">
+              <div class="testi-avatar"><?= htmlspecialchars($initiale) ?></div>
+              <div>
+                <strong><?= htmlspecialchars($t['nom_client']) ?></strong>
+                <span><?= htmlspecialchars($lieu) ?></span>
+              </div>
             </div>
           </div>
-        </div>
-        <div class="testimonial-card">
-          <div class="testi-stars">★★★★★</div>
-          <p data-fr="&quot;Très satisfait de l'organisation de nos fiançailles. Équipe réactive, prix raisonnables et résultat au-delà de nos espérances. Je recommande vivement !&quot;" data-ar="&quot;راضون جداً عن تنظيم خطوبتنا. فريق سريع الاستجابة، أسعار معقولة، ونتيجة تجاوزت توقعاتنا. أنصح به بشدة!&quot;">"Très satisfait de l'organisation de nos fiançailles. Équipe réactive, prix raisonnables et résultat au-delà de nos espérances. Je recommande vivement !"</p>
-          <div class="testi-author">
-            <div class="testi-avatar">M</div>
-            <div>
-              <strong>Mohammed K.</strong>
-              <span data-fr="Errachidia — Fiançailles" data-ar="الراشيدية - خطوبة">Errachidia — Fiançailles</span>
+          <?php endforeach; ?>
+        <?php else: ?>
+          <div class="testimonial-card">
+            <div class="testi-stars">★★★★★</div>
+            <p data-fr="Vos avis apparaîtront bientôt ici. Merci pour votre confiance !" data-ar="ستظهر آراؤكم هنا قريباً. شكراً لثقتكم!">Vos avis apparaîtront bientôt ici. Merci pour votre confiance !</p>
+            <div class="testi-author">
+              <div class="testi-avatar">E</div>
+              <div><strong>Traiteur EL MOUSSAOUI</strong><span data-fr="Errachidia" data-ar="الراشيدية">Errachidia</span></div>
             </div>
           </div>
-        </div>
-        <div class="testimonial-card">
-          <div class="testi-stars">★★★★☆</div>
-          <p data-fr="&quot;Service de qualité pour notre buffet familial. Livraison à temps, plats chauds et savoureux. Je referai appel à Traiteur EL MOUSSAOUI sans hésitation.&quot;" data-ar="&quot;خدمة راقية لبوفيه عائلتنا. التوصيل في الوقت المحدد، أطباق ساخنة ولذيذة. سأتعامل مع المساوي مجدداً دون تردد.&quot;">"Service de qualité pour notre buffet familial. Livraison à temps, plats chauds et savoureux. Je referai appel à Traiteur EL MOUSSAOUI sans hésitation."</p>
-          <div class="testi-author">
-            <div class="testi-avatar">A</div>
-            <div>
-              <strong>Aicha M.</strong>
-              <span data-fr="Goulmima — Buffet" data-ar="كولميمة - بوفيه">Goulmima — Buffet</span>
-            </div>
-          </div>
-        </div>
-        <div class="testimonial-card">
-          <div class="testi-stars">★★★★★</div>
-          <p data-fr="&quot;Notre mariage était un vrai conte de fée grâce à leur travail. La tente, la décoration, la musique... tout était parfait. Bravo à toute l'équipe !&quot;" data-ar="&quot;كان زفافنا قصة خيالية حقيقية بفضل عملهم. الخيمة، الديكور، الموسيقى... كل شيء كان مثالياً. تحية لكل الفريق!&quot;">"Notre mariage était un vrai conte de fée grâce à leur travail. La tente, la décoration, la musique... tout était parfait. Bravo à toute l'équipe !"</p>
-          <div class="testi-author">
-            <div class="testi-avatar">H</div>
-            <div>
-              <strong>Hassan El A.</strong>
-              <span data-fr="Erfoud — Mariage" data-ar="أرفود - زفاف">Erfoud — Mariage</span>
-            </div>
-          </div>
-        </div>
+        <?php endif; ?>
       </div>
       <div class="testi-controls">
         <button class="testi-prev" id="testiPrev"><i class="fas fa-chevron-left"></i></button>
         <div class="testi-dots" id="testiDots"></div>
         <button class="testi-next" id="testiNext"><i class="fas fa-chevron-right"></i></button>
       </div>
+    </div>
+    <div class="text-center" data-aos="fade-up" style="margin-top:32px">
+      <a href="pages/apropos.php#temoignages" class="service-link" data-fr="Voir tous les avis" data-ar="عرض جميع الآراء" data-html>Voir tous les avis <i class="fas fa-arrow-right"></i></a>
     </div>
   </div>
 </section>
@@ -490,10 +475,9 @@ require_once __DIR__ . '/includes/config.php';
           </div>
           <p data-fr="Organisation des Évènements et des Fêtes à Errachidia. Votre bonheur est notre priorité." data-ar="تنظيم المناسبات والحفلات بالراشيدية. سعادتكم هي أولويتنا.">Organisation des Évènements et des Fêtes à Errachidia. Votre bonheur est notre priorité.</p>
           <div class="footer-social">
-            <a href="#" aria-label="Facebook"><i class="fab fa-facebook-f"></i></a>
-            <a href="#" aria-label="Instagram"><i class="fab fa-instagram"></i></a>
-            <a href="https://wa.me/212626986533" aria-label="WhatsApp"><i class="fab fa-whatsapp"></i></a>
-            <a href="#" aria-label="TikTok"><i class="fab fa-tiktok"></i></a>
+            <a href="https://www.facebook.com/profile.php?id=61565592029636" target="_blank" rel="noopener" aria-label="Facebook"><i class="fab fa-facebook-f"></i></a>
+            <a href="https://www.instagram.com/elmoussaoui_traiteur__officiel/" target="_blank" rel="noopener" aria-label="Instagram"><i class="fab fa-instagram"></i></a>
+            <a href="https://wa.me/212626986533" target="_blank" rel="noopener" aria-label="WhatsApp"><i class="fab fa-whatsapp"></i></a>
           </div>
         </div>
         <!-- Services -->
@@ -502,11 +486,9 @@ require_once __DIR__ . '/includes/config.php';
           <ul>
             <li><a href="pages/services.php#mariages" data-fr="Mariages" data-ar="حفلات الزفاف">Mariages</a></li>
             <li><a href="pages/services.php#fiancailles" data-fr="Fiançailles" data-ar="الخطوبة">Fiançailles</a></li>
-            <li><a href="pages/services.php#circoncision" data-fr="Circoncisions" data-ar="حفلات الختان">Circoncisions</a></li>
-            <li><a href="pages/services.php#anniversaires" data-fr="Anniversaires" data-ar="أعياد الميلاد">Anniversaires</a></li>
-            <li><a href="pages/services.php#entreprise" data-fr="Réceptions Pro" data-ar="المناسبات المهنية">Réceptions Pro</a></li>
-            <li><a href="pages/services.php#buffets" data-fr="Buffets & Banquets" data-ar="البوفيه والولائم">Buffets & Banquets</a></li>
-            <li><a href="pages/services.php#ceremonies" data-fr="Cérémonies religieuses" data-ar="المناسبات الدينية">Cérémonies religieuses</a></li>
+            <li><a href="pages/services.php#anniversaires" data-fr="Célébrations" data-ar="الاحتفالات">Célébrations</a></li>
+            <li><a href="pages/services.php#buffets" data-fr="Buffets & Réceptions" data-ar="البوفيه والاستقبالات">Buffets & Réceptions</a></li>
+            <li><a href="pages/services.php" data-fr="Voir tous les services" data-ar="جميع الخدمات">Voir tous les services →</a></li>
           </ul>
         </div>
         <!-- Liens -->
@@ -544,10 +526,23 @@ require_once __DIR__ . '/includes/config.php';
   </div>
 </footer>
 
-<!-- WhatsApp Float Button -->
+<!-- WhatsApp Float Button (desktop) -->
 <a href="https://wa.me/212626986533" class="whatsapp-float" target="_blank" title="Contactez-nous sur WhatsApp">
   <i class="fab fa-whatsapp"></i>
 </a>
+
+<!-- Barre d'actions flottante mobile -->
+<div class="mobile-action-bar">
+  <a href="https://wa.me/212626986533" target="_blank" rel="noopener" class="mab-item mab-whatsapp">
+    <i class="fab fa-whatsapp"></i><span data-fr="WhatsApp" data-ar="واتساب">WhatsApp</span>
+  </a>
+  <a href="https://www.instagram.com/elmoussaoui_traiteur__officiel/" target="_blank" rel="noopener" class="mab-item mab-instagram">
+    <i class="fab fa-instagram"></i><span>Instagram</span>
+  </a>
+  <a href="pages/reservation.php" class="mab-item mab-reserve">
+    <i class="fas fa-calendar-check"></i><span data-fr="Réserver" data-ar="احجز">Réserver</span>
+  </a>
+</div>
 
 <!-- Scroll To Top -->
 <button class="scroll-top" id="scrollTop" title="Retour en haut">
