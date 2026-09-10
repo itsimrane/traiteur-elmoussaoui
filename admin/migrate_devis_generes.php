@@ -99,21 +99,33 @@ foreach ($rows as $dg) {
 
         $dateEvenement = $dg['date_evenement'] ?: date('Y-m-d', strtotime('+30 days'));
 
-        // ── 3. Réservation ───────────────────────────────────────
+        // ── 3. Réservation : réutiliser si l'ancien save_devis.php ──
+        //     en avait déjà créé une (même schéma de référence), sinon créer.
         $refRes = 'RES-' . date('Y', strtotime($dg['created_at'])) . '-' . str_pad($dg['id'], 4, '0', STR_PAD_LEFT);
         $statutRes = $mapStatutReservation[$dg['statut'] ?? ''] ?? 'en_attente';
 
-        $pdo->prepare("
-            INSERT INTO reservations
-                (reference, client_id, type_evenement_id, date_evenement, nbr_invites,
-                 lieu, statut, notes_client, montant_total, created_at, updated_at)
-            VALUES (?,?,?,?,?,?,?,?,?,?,?)
-        ")->execute([
-            $refRes, $clientId, $typeId, $dateEvenement, $dg['nb_personnes'] ?: 100,
-            $dg['ville'] ?: null, $statutRes, $dg['notes'] ?: null, $dg['montant_total'] ?: 0,
-            $dg['created_at'], $dg['updated_at'] ?: $dg['created_at']
-        ]);
-        $reservationId = $pdo->lastInsertId();
+        $existingRes = $pdo->prepare("SELECT id FROM reservations WHERE reference = ?");
+        $existingRes->execute([$refRes]);
+        $foundRes = $existingRes->fetch();
+
+        if ($foundRes) {
+            $reservationId = $foundRes['id'];
+            // On met à jour le statut/montant au cas où ils étaient restés par défaut
+            $pdo->prepare("UPDATE reservations SET statut=?, montant_total=? WHERE id=? AND montant_total=0")
+                ->execute([$statutRes, $dg['montant_total'] ?: 0, $reservationId]);
+        } else {
+            $pdo->prepare("
+                INSERT INTO reservations
+                    (reference, client_id, type_evenement_id, date_evenement, nbr_invites,
+                     lieu, statut, notes_client, montant_total, created_at, updated_at)
+                VALUES (?,?,?,?,?,?,?,?,?,?,?)
+            ")->execute([
+                $refRes, $clientId, $typeId, $dateEvenement, $dg['nb_personnes'] ?: 100,
+                $dg['ville'] ?: null, $statutRes, $dg['notes'] ?: null, $dg['montant_total'] ?: 0,
+                $dg['created_at'], $dg['updated_at'] ?: $dg['created_at']
+            ]);
+            $reservationId = $pdo->lastInsertId();
+        }
 
         // ── 4. Devis (lié à la réservation) ──────────────────────
         // Pas de TVA inventée sur les anciens devis : on garde le montant
