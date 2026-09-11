@@ -156,6 +156,12 @@ $langueLabels = ['fr'=>'\ud83c\uddeb\ud83c\uddf7 Français','ar'=>'\ud83c\uddf2\
     .pw-toggle:hover{color:var(--gold)}
     .search-input{background:var(--dark-3);border:1px solid var(--border);border-radius:8px;padding:8px 14px;color:var(--white);font-size:.82rem;outline:none;width:220px}
     .search-input:focus{border-color:var(--gold)}
+    .roles-info-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:24px}
+    @media(max-width:900px){.roles-info-grid{grid-template-columns:repeat(2,1fr)}}
+    @media(max-width:480px){
+      .roles-info-grid{grid-template-columns:1fr}
+      .search-input{width:100%}
+    }
     .tfilter{padding:6px 14px;border-radius:20px;border:1px solid var(--border);background:none;color:#888;cursor:pointer;font-size:.75rem;transition:var(--transition);font-family:var(--ff-body)}
     .tfilter.active,.tfilter:hover{border-color:var(--gold);color:var(--gold)}
     .empty-state{text-align:center;padding:60px 20px;color:var(--text-muted)}
@@ -230,7 +236,7 @@ $langueLabels = ['fr'=>'\ud83c\uddeb\ud83c\uddf7 Français','ar'=>'\ud83c\uddf2\
       </div>
 
       <!-- Rôles info -->
-      <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:24px">
+      <div class="roles-info-grid">
         <?php foreach ($roles as $r):
           $rc = $roleColors[$r['nom']] ?? $roleColors['client'];
           $perms = json_decode($r['permissions'] ?? '[]', true) ?: [];
