@@ -164,7 +164,7 @@ $msgType = $_GET['type'] ?? 'success';
     .table-topbar{padding:16px 22px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--border);flex-wrap:wrap;gap:12px}
     .search-input{background:var(--dark-3);border:1px solid var(--border);border-radius:8px;padding:8px 14px;color:var(--white);font-size:.82rem;outline:none;width:220px}
     .search-input:focus{border-color:var(--gold)}
-    table{width:100%;min-width:1100px;border-collapse:collapse}
+    table{width:100%;border-collapse:collapse}
     thead th{padding:11px 16px;font-size:.7rem;color:var(--text-muted);font-weight:700;text-transform:uppercase;letter-spacing:.5px;border-bottom:1px solid var(--border);text-align:left;white-space:nowrap}
     tbody tr{border-bottom:1px solid rgba(255,255,255,.04);transition:var(--transition)}
     tbody tr:last-child{border-bottom:none}
@@ -177,9 +177,9 @@ $msgType = $_GET['type'] ?? 'success';
     .act-btn.danger:hover{border-color:rgba(239,68,68,.4);color:#EF5350}
     .empty-state{text-align:center;padding:60px 20px;color:var(--text-muted)}
     .empty-state i{font-size:2.5rem;opacity:.2;display:block;margin-bottom:12px}
-    .amount-col{font-family:var(--ff-display);font-size:.95rem;font-weight:700;color:var(--white);white-space:nowrap}
-    .reste-col{color:#FBB724;font-weight:600;white-space:nowrap}
-    .reste-zero{color:#25D366;white-space:nowrap}
+    .amount-col{font-family:var(--ff-display);font-size:.95rem;font-weight:700;color:var(--white)}
+    .reste-col{color:#FBB724;font-weight:600}
+    .reste-zero{color:#25D366}
 
     /* Modal */
     .modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:2000;align-items:center;justify-content:center;padding:20px}
@@ -285,11 +285,6 @@ $msgType = $_GET['type'] ?? 'success';
         <?php else: ?>
         <div style="overflow-x:auto">
         <table id="facTable">
-          <colgroup>
-            <col style="width:130px"><col style="width:170px"><col style="width:110px">
-            <col style="width:120px"><col style="width:110px"><col style="width:120px">
-            <col style="width:120px"><col style="width:100px"><col style="width:140px">
-          </colgroup>
           <thead>
             <tr>
               <th>N° Facture</th>
