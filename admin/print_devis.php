@@ -11,7 +11,14 @@ if ($id <= 0)
   die('ID invalide');
 
 try {
-  $stmt = $pdo->prepare("SELECT * FROM devis_generes WHERE id = ?");
+  $stmt = $pdo->prepare("
+    SELECT d.*, c.nom AS c_nom, c.prenom AS c_prenom, c.telephone AS c_tel,
+           c.email AS c_email, te.nom AS type_nom
+    FROM devis d
+    LEFT JOIN clients c ON c.id = d.client_id
+    LEFT JOIN types_evenements te ON te.id = d.type_evenement_id
+    WHERE d.id = ?
+  ");
   $stmt->execute([$id]);
   $d = $stmt->fetch();
 } catch (Exception $e) {
@@ -21,11 +28,19 @@ try {
 if (!$d)
   die('Devis introuvable');
 
-$nom = $d['nom_client'] ?: 'Client';
+$nom = trim(($d['c_prenom'] ?? '') . ' ' . ($d['c_nom'] ?? '')) ?: ($d['nom_prospect'] ?: 'Client');
+$telephone = $d['c_tel'] ?? $d['telephone_prospect'] ?? '';
+$email = $d['c_email'] ?? $d['email_prospect'] ?? '';
 $date = !empty($d['date_evenement']) ? date('d/m/Y', strtotime($d['date_evenement'])) : '—';
 $recu = date('d/m/Y', strtotime($d['created_at']));
-$refNum = $d['numero'] ?: ('DEV-' . date('Y') . '-' . str_pad($id, 4, '0', STR_PAD_LEFT));
-$services = json_decode($d['services_json'] ?? '[]', true) ?: [];
+$refNum = $d['reference'];
+
+$services = [];
+try {
+  $l = $pdo->prepare("SELECT designation, prix_unitaire FROM devis_lignes WHERE devis_id = ? ORDER BY ordre ASC");
+  $l->execute([$id]);
+  $services = $l->fetchAll();
+} catch (Exception $e) {}
 ?>
 <!DOCTYPE html>
 <html lang="fr">
@@ -352,10 +367,12 @@ $services = json_decode($d['services_json'] ?? '[]', true) ?: [];
         <div class="date">Valable 30 jours</div>
         <div class="statut">
           <?= match ($d['statut'] ?? '') {
-            'accepte' => '✅ CONFIRMÉ',
+            'accepte' => '✅ ACCEPTÉ',
             'refuse' => '❌ REFUSÉ',
-            'en_cours' => '🔄 EN COURS',
-            default => '⏳ EN ATTENTE'
+            'envoye' => '📤 ENVOYÉ',
+            'en_traitement' => '🔄 EN TRAITEMENT',
+            'expire' => '⌛ EXPIRÉ',
+            default => '⏳ REÇU'
           } ?>
         </div>
       </div>
@@ -366,11 +383,11 @@ $services = json_decode($d['services_json'] ?? '[]', true) ?: [];
       <div class="section-title">Informations client</div>
       <div class="grid-2">
         <div class="field"><label>Nom complet</label><span><?= htmlspecialchars($nom) ?></span></div>
-        <div class="field"><label>Téléphone</label><span><?= htmlspecialchars($d['telephone'] ?? '—') ?></span></div>
-        <div class="field"><label>Email</label><span><?= htmlspecialchars($d['email'] ?? '—') ?></span></div>
-        <div class="field"><label>Ville</label><span><?= htmlspecialchars($d['ville'] ?? '—') ?></span></div>
+        <div class="field"><label>Téléphone</label><span><?= htmlspecialchars($telephone ?: '—') ?></span></div>
+        <div class="field"><label>Email</label><span><?= htmlspecialchars($email ?: '—') ?></span></div>
+        <div class="field"><label>Ville</label><span><?= htmlspecialchars($d['lieu'] ?? '—') ?></span></div>
         <div class="field"><label>Nombre
-            d'invités</label><span><?= $d['nb_personnes'] ? $d['nb_personnes'] . ' personnes' : '—' ?></span></div>
+            d'invités</label><span><?= $d['nbr_invites'] ? $d['nbr_invites'] . ' personnes' : '—' ?></span></div>
       </div>
     </div>
 
@@ -379,7 +396,7 @@ $services = json_decode($d['services_json'] ?? '[]', true) ?: [];
       <div class="section-title">Détails de l'événement</div>
       <div class="grid-2">
         <div class="field"><label>Type
-            d'événement</label><span><?= ucfirst(str_replace('_', ' ', $d['type_evenement'] ?? '—')) ?></span></div>
+            d'événement</label><span><?= htmlspecialchars($d['type_nom'] ?? '—') ?></span></div>
         <div class="field"><label>Date souhaitée</label><span><?= $date ?></span></div>
       </div>
     </div>
@@ -392,9 +409,9 @@ $services = json_decode($d['services_json'] ?? '[]', true) ?: [];
           <ul class="package-items" style="grid-template-columns:1fr">
             <?php foreach ($services as $s): ?>
               <li style="justify-content:space-between">
-                <span><?= htmlspecialchars($s['nom'] ?? '') ?></span>
+                <span><?= htmlspecialchars($s['designation'] ?? '') ?></span>
                 <span style="margin-left:auto;color:#D4AF37;font-weight:700">
-                  <?= isset($s['prix']) && $s['prix'] > 0 ? number_format((float) $s['prix'], 0, ',', ' ') . ' MAD' : 'Sur devis' ?>
+                  <?= isset($s['prix_unitaire']) && $s['prix_unitaire'] > 0 ? number_format((float) $s['prix_unitaire'], 0, ',', ' ') . ' MAD' : 'Sur devis' ?>
                 </span>
               </li>
             <?php endforeach; ?>
@@ -405,24 +422,30 @@ $services = json_decode($d['services_json'] ?? '[]', true) ?: [];
 
     <!-- Total -->
     <div class="section">
+      <div style="display:flex;justify-content:flex-end;margin-bottom:14px">
+        <table style="font-size:.85rem;color:#555;border-collapse:collapse">
+          <tr><td style="padding:4px 20px 4px 0">Total HT</td><td style="text-align:right;padding:4px 0"><?= number_format((float)$d['montant_ht'], 0, ',', ' ') ?> MAD</td></tr>
+          <tr><td style="padding:4px 20px 4px 0">TVA (<?= number_format((float)$d['tva_pct'],0) ?>%)</td><td style="text-align:right;padding:4px 0"><?= number_format((float)$d['montant_tva'], 0, ',', ' ') ?> MAD</td></tr>
+        </table>
+      </div>
       <div class="total-box">
         <div>
-          <div class="total-label">Montant total estimé</div>
+          <div class="total-label">Montant total TTC</div>
           <div class="total-note">* Hors options supplémentaires</div>
         </div>
         <div style="text-align:right">
-          <div class="total-amount"><?= number_format((float) $d['montant_total'], 0, ',', ' ') ?> MAD</div>
+          <div class="total-amount"><?= number_format((float) $d['montant_ttc'], 0, ',', ' ') ?> MAD</div>
           <div style="font-size:.75rem;color:#AAA;margin-top:2px">Acompte 30% :
-            <?= number_format((float) $d['montant_total'] * 0.3, 0, ',', ' ') ?> MAD</div>
+            <?= number_format((float) $d['montant_ttc'] * 0.3, 0, ',', ' ') ?> MAD</div>
         </div>
       </div>
     </div>
 
     <!-- Message client -->
-    <?php if (!empty($d['notes'])): ?>
+    <?php if (!empty($d['message'])): ?>
       <div class="section">
         <div class="section-title">Demandes spéciales</div>
-        <div class="message-box"><?= nl2br(htmlspecialchars($d['notes'])) ?></div>
+        <div class="message-box"><?= nl2br(htmlspecialchars($d['message'])) ?></div>
       </div>
     <?php endif; ?>
 

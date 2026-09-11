@@ -2,826 +2,256 @@
 require_once __DIR__ . '/../includes/config.php';
 requireAdmin();
 
-// Lire depuis devis_generes (source réelle des données client)
-try {
-  $devis = $pdo->query("
-        SELECT *,
-               nom_client as client_nom,
-               type_evenement,
-               montant_total as montant,
-               notes as message
-        FROM devis_generes
-        ORDER BY created_at DESC
-    ")->fetchAll();
-} catch (Exception $e) {
-  $devis = [];
+// ── Actions ────────────────────────────────────────────────────
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    $action = $_POST['action'] ?? '';
+    $id     = (int)($_POST['id'] ?? 0);
+
+    if ($action === 'update_statut' && $id) {
+        $statut = sanitize($_POST['statut'] ?? '');
+        $allowed = ['recu','en_traitement','envoye','accepte','refuse','expire'];
+        if (in_array($statut, $allowed, true)) {
+            $pdo->prepare("UPDATE devis SET statut=?, updated_at=NOW() WHERE id=?")->execute([$statut, $id]);
+
+            // Si le devis est accepté, on confirme automatiquement la réservation liée
+            if ($statut === 'accepte') {
+                $d = $pdo->prepare("SELECT reservation_id FROM devis WHERE id=?");
+                $d->execute([$id]);
+                $resId = $d->fetchColumn();
+                if ($resId) {
+                    $pdo->prepare("UPDATE reservations SET statut='confirmee', updated_at=NOW() WHERE id=? AND statut='en_attente'")->execute([$resId]);
+                }
+            }
+        }
+        header('Location: devis.php?msg=Statut+mis+à+jour&type=success'); exit;
+    }
+
+    if ($action === 'delete' && $id) {
+        $pdo->prepare("DELETE FROM devis_lignes WHERE devis_id=?")->execute([$id]);
+        $pdo->prepare("DELETE FROM devis WHERE id=?")->execute([$id]);
+        header('Location: devis.php?msg=Devis+supprimé&type=success'); exit;
+    }
 }
 
-// Stats — valeurs réelles autorisées par devis_generes.statut :
-// nouveau, en_cours, accepte, refuse
-$total = count($devis);
-$enAttente = count(array_filter($devis, fn($d) => in_array(($d['statut'] ?? ''), ['', 'nouveau'], true)));
-$confirmes = count(array_filter($devis, fn($d) => ($d['statut'] ?? '') === 'accepte'));
-$refuses = count(array_filter($devis, fn($d) => ($d['statut'] ?? '') === 'refuse'));
+// ── Filtres ────────────────────────────────────────────────────
+$filtreStatut = $_GET['statut'] ?? '';
+$recherche    = trim($_GET['q'] ?? '');
 
-$statutColors = [
-  'nouveau' => ['bg' => 'rgba(251,191,36,.15)', 'color' => '#FBB724', 'label' => 'En attente'],
-  'accepte' => ['bg' => 'rgba(37,211,102,.15)', 'color' => '#25D366', 'label' => 'Confirmé'],
-  'refuse' => ['bg' => 'rgba(239,68,68,.15)', 'color' => '#EF5350', 'label' => 'Refusé'],
-  'en_cours' => ['bg' => 'rgba(59,130,246,.15)', 'color' => '#60A5FA', 'label' => 'En cours'],
-  '' => ['bg' => 'rgba(251,191,36,.15)', 'color' => '#FBB724', 'label' => 'Nouveau'],
+$where  = ['1=1'];
+$params = [];
+if ($filtreStatut && in_array($filtreStatut, ['recu','en_traitement','envoye','accepte','refuse','expire'], true)) {
+    $where[] = 'd.statut = ?';
+    $params[] = $filtreStatut;
+}
+if ($recherche !== '') {
+    $where[] = "(c.nom LIKE ? OR c.prenom LIKE ? OR c.telephone LIKE ? OR d.reference LIKE ?)";
+    $like = '%' . $recherche . '%';
+    array_push($params, $like, $like, $like, $like);
+}
+$whereSql = implode(' AND ', $where);
+
+// ── Liste ──────────────────────────────────────────────────────
+$devisListe = [];
+try {
+    $stmt = $pdo->prepare("
+        SELECT d.*, c.nom AS c_nom, c.prenom AS c_prenom, c.telephone AS c_tel,
+               te.nom AS type_nom, r.reference AS resa_ref,
+               f.montant_paye AS facture_paye, f.montant_ttc AS facture_ttc, f.id AS facture_id
+        FROM devis d
+        LEFT JOIN clients c ON c.id = d.client_id
+        LEFT JOIN types_evenements te ON te.id = d.type_evenement_id
+        LEFT JOIN reservations r ON r.id = d.reservation_id
+        LEFT JOIN factures f ON f.reservation_id = d.reservation_id
+        WHERE $whereSql
+        ORDER BY d.created_at DESC
+    ");
+    $stmt->execute($params);
+    $devisListe = $stmt->fetchAll();
+} catch (Exception $e) { $erreurBdd = $e->getMessage(); }
+
+// ── Compteurs ────────────────────────────────────────────────────
+$compteurs = ['total'=>0,'recu'=>0,'accepte'=>0,'refuse'=>0];
+try {
+    $c = $pdo->query("SELECT statut, COUNT(*) n FROM devis GROUP BY statut")->fetchAll();
+    foreach ($c as $row) {
+        $compteurs['total'] += $row['n'];
+        if (isset($compteurs[$row['statut']])) $compteurs[$row['statut']] = $row['n'];
+    }
+} catch (Exception $e) {}
+
+$statutConfig = [
+    'recu'          => ['label'=>'Reçu',         'color'=>'#FBB724','bg'=>'rgba(251,183,36,.15)'],
+    'en_traitement' => ['label'=>'En traitement', 'color'=>'#60A5FA','bg'=>'rgba(59,130,246,.15)'],
+    'envoye'        => ['label'=>'Envoyé',        'color'=>'#A78BFA','bg'=>'rgba(167,139,250,.15)'],
+    'accepte'       => ['label'=>'Accepté',       'color'=>'#25D366','bg'=>'rgba(37,211,102,.15)'],
+    'refuse'        => ['label'=>'Refusé',        'color'=>'#EF5350','bg'=>'rgba(239,68,68,.15)'],
+    'expire'        => ['label'=>'Expiré',        'color'=>'#888',   'bg'=>'rgba(136,136,136,.15)'],
 ];
 ?>
 <!DOCTYPE html>
 <html lang="fr">
-
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="icon" type="image/png" href="../assets/img/favicon-32.png">
+  <meta name="viewport" content="width=device-width,initial-scale=1.0">
   <title>Devis — Admin EL MOUSSAOUI</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link
-    href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@600;700&family=Jost:wght@300;400;500;600&display=swap"
-    rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@600;700&family=Jost:wght@300;400;500;600&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
   <link rel="stylesheet" href="../css/style.css">
   <style>
-    body {
-      overflow-x: hidden;
-    }
-
-    .sidebar-overlay {
-      display: none;
-      position: fixed;
-      inset: 0;
-      background: rgba(0, 0, 0, .6);
-      z-index: 999;
-    }
-
-    .sidebar-overlay.show {
-      display: block;
-    }
-
-    @media(max-width:768px) {
-      .sidebar {
-        position: fixed;
-        left: 0;
-        top: 0;
-        bottom: 0;
-        z-index: 1000;
-        transform: translateX(-100%);
-        transition: var(--transition);
-      }
-
-      .sidebar.open {
-        transform: translateX(0);
-      }
-    }
-
-    /* Table devis */
-    .devis-table-wrap {
-      background: var(--dark-card);
-      border: 1px solid var(--border);
-      border-radius: var(--radius);
-      overflow: hidden;
-    }
-
-    .devis-table-header {
-      padding: 18px 24px;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      border-bottom: 1px solid var(--border);
-      flex-wrap: wrap;
-      gap: 12px;
-    }
-
-    .devis-table-header h3 {
-      font-size: .9rem;
-      color: var(--white);
-      font-weight: 600;
-    }
-
-    .table-filters {
-      display: flex;
-      gap: 8px;
-      flex-wrap: wrap;
-    }
-
-    .tfilter {
-      padding: 5px 14px;
-      border-radius: 20px;
-      border: 1px solid var(--border);
-      background: none;
-      color: #888;
-      cursor: pointer;
-      font-size: .75rem;
-      transition: var(--transition);
-      font-family: var(--ff-body);
-    }
-
-    .tfilter.active,
-    .tfilter:hover {
-      border-color: var(--gold);
-      color: var(--gold);
-    }
-
-    .search-input {
-      background: var(--dark-3);
-      border: 1px solid var(--border);
-      border-radius: 8px;
-      padding: 7px 14px;
-      color: var(--white);
-      font-size: .82rem;
-      outline: none;
-      width: 220px;
-    }
-
-    .search-input:focus {
-      border-color: var(--gold);
-    }
-
-    table {
-      width: 100%;
-      border-collapse: collapse;
-    }
-
-    thead th {
-      padding: 12px 16px;
-      font-size: .72rem;
-      color: var(--text-muted);
-      font-weight: 600;
-      text-transform: uppercase;
-      letter-spacing: .5px;
-      border-bottom: 1px solid var(--border);
-      text-align: left;
-      white-space: nowrap;
-    }
-
-    tbody tr {
-      border-bottom: 1px solid rgba(255, 255, 255, .04);
-      transition: var(--transition);
-    }
-
-    tbody tr:last-child {
-      border-bottom: none;
-    }
-
-    tbody tr:hover {
-      background: rgba(212, 175, 55, .03);
-    }
-
-    td {
-      padding: 14px 16px;
-      font-size: .84rem;
-      color: var(--text-muted);
-      vertical-align: middle;
-    }
-
-    .td-client strong {
-      display: block;
-      color: var(--white);
-      font-size: .86rem;
-      margin-bottom: 2px;
-    }
-
-    .td-client span {
-      font-size: .75rem;
-    }
-
-    .statut-badge {
-      display: inline-flex;
-      align-items: center;
-      gap: 5px;
-      padding: 4px 10px;
-      border-radius: 20px;
-      font-size: .72rem;
-      font-weight: 600;
-    }
-
-    .event-type {
-      background: var(--dark-3);
-      padding: 3px 10px;
-      border-radius: 6px;
-      font-size: .75rem;
-      color: var(--text-muted);
-    }
-
-    .td-actions {
-      display: flex;
-      gap: 6px;
-    }
-
-    .act-btn {
-      width: 32px;
-      height: 32px;
-      border-radius: 8px;
-      border: 1px solid var(--border);
-      background: none;
-      cursor: pointer;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: .8rem;
-      transition: var(--transition);
-      color: var(--text-muted);
-      text-decoration: none;
-    }
-
-    .act-btn:hover {
-      border-color: var(--gold);
-      color: var(--gold);
-    }
-
-    .act-btn.confirm {
-      border-color: rgba(37, 211, 102, .3);
-      color: #25D366;
-    }
-
-    .act-btn.confirm:hover {
-      background: rgba(37, 211, 102, .1);
-    }
-
-    .act-btn.refuse {
-      border-color: rgba(239, 68, 68, .3);
-      color: #EF5350;
-    }
-
-    .act-btn.refuse:hover {
-      background: rgba(239, 68, 68, .1);
-    }
-
-    .empty-table {
-      text-align: center;
-      padding: 60px 20px;
-      color: var(--text-muted);
-    }
-
-    .empty-table i {
-      font-size: 2.5rem;
-      opacity: .2;
-      display: block;
-      margin-bottom: 12px;
-    }
-
-    /* Modal devis detail */
-    .modal-overlay {
-      display: none;
-      position: fixed;
-      inset: 0;
-      background: rgba(0, 0, 0, .75);
-      z-index: 2000;
-      align-items: center;
-      justify-content: center;
-      padding: 20px;
-    }
-
-    .modal-overlay.show {
-      display: flex;
-    }
-
-    .modal-box {
-      background: var(--dark-card);
-      border: 1px solid var(--border);
-      border-radius: 14px;
-      width: 100%;
-      max-width: 600px;
-      max-height: 90vh;
-      overflow-y: auto;
-    }
-
-    .modal-header {
-      padding: 20px 24px;
-      border-bottom: 1px solid var(--border);
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      position: sticky;
-      top: 0;
-      background: var(--dark-card);
-      z-index: 1;
-    }
-
-    .modal-header h3 {
-      color: var(--white);
-      font-size: 1rem;
-    }
-
-    .modal-close {
-      width: 32px;
-      height: 32px;
-      border-radius: 8px;
-      border: 1px solid var(--border);
-      background: none;
-      color: var(--text-muted);
-      cursor: pointer;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      transition: var(--transition);
-    }
-
-    .modal-close:hover {
-      border-color: var(--gold);
-      color: var(--gold);
-    }
-
-    .modal-body {
-      padding: 24px;
-    }
-
-    .detail-row {
-      display: flex;
-      gap: 16px;
-      margin-bottom: 16px;
-      flex-wrap: wrap;
-    }
-
-    .detail-field {
-      flex: 1;
-      min-width: 180px;
-    }
-
-    .detail-field label {
-      display: block;
-      font-size: .7rem;
-      color: var(--text-muted);
-      text-transform: uppercase;
-      letter-spacing: .5px;
-      margin-bottom: 4px;
-    }
-
-    .detail-field span {
-      color: var(--white);
-      font-size: .88rem;
-    }
-
-    .detail-msg {
-      background: var(--dark-3);
-      border-radius: 8px;
-      padding: 14px;
-      font-size: .84rem;
-      color: var(--text-muted);
-      line-height: 1.6;
-      margin-top: 4px;
-    }
-
-    .modal-footer {
-      padding: 16px 24px;
-      border-top: 1px solid var(--border);
-      display: flex;
-      gap: 10px;
-      justify-content: flex-end;
-    }
-
-    /* Nouveau devis form */
-    .nouveau-devis-card {
-      background: var(--dark-card);
-      border: 1px solid var(--border);
-      border-radius: var(--radius);
-      padding: 24px;
-      margin-bottom: 24px;
-      display: none;
-    }
-
-    .nouveau-devis-card.show {
-      display: block;
-    }
-
-    .form-grid-2 {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 14px;
-    }
-
-    .form-grid-3 {
-      display: grid;
-      grid-template-columns: 1fr 1fr 1fr;
-      gap: 14px;
-    }
-
-    .form-full {
-      grid-column: 1/-1;
-    }
+    body{overflow-x:hidden}
+    .sidebar-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:999}
+    .sidebar-overlay.show{display:block}
+    @media(max-width:768px){.sidebar{position:fixed;left:0;top:0;bottom:0;z-index:1000;transform:translateX(-100%);transition:var(--transition)}.sidebar.open{transform:translateX(0)}}
+    .filters-bar{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin-bottom:20px;background:var(--dark-card);border:1px solid var(--border);border-radius:var(--radius);padding:16px}
+    .filters-bar input{background:var(--dark-3);border:1px solid var(--border);border-radius:8px;padding:8px 12px;color:var(--white);font-size:.8rem;min-width:200px}
+    .filters-bar button{background:var(--gold);color:var(--dark);border:none;border-radius:8px;padding:8px 16px;font-weight:700;font-size:.78rem;cursor:pointer}
+    .tfilter{padding:7px 14px;border-radius:20px;border:1px solid var(--border);background:transparent;color:var(--text-muted);font-size:.75rem;cursor:pointer;text-decoration:none;display:inline-block}
+    .tfilter.active{background:rgba(212,175,55,.12);border-color:var(--gold);color:var(--gold)}
+    .devis-table{width:100%;border-collapse:collapse}
+    .devis-table th{text-align:left;padding:10px 14px;font-size:.66rem;text-transform:uppercase;letter-spacing:.5px;color:var(--text-muted);border-bottom:1px solid var(--border)}
+    .devis-table td{padding:12px 14px;font-size:.8rem;border-bottom:1px solid rgba(255,255,255,.04);vertical-align:top}
+    .devis-table tr:hover{background:rgba(212,175,55,.03)}
+    .badge-statut{padding:4px 12px;border-radius:20px;font-size:.68rem;font-weight:700;display:inline-block;white-space:nowrap}
+    .act-icons{display:flex;gap:6px;flex-wrap:wrap}
+    .act-icons a,.act-icons button{width:29px;height:29px;border-radius:8px;border:1px solid var(--border);background:transparent;color:var(--text-muted);display:flex;align-items:center;justify-content:center;cursor:pointer;text-decoration:none;font-size:.75rem}
+    .act-icons a:hover,.act-icons button:hover{border-color:var(--gold);color:var(--gold)}
+    .act-icons .ok:hover{border-color:#25D366;color:#25D366}
+    .act-icons .no:hover{border-color:#EF5350;color:#EF5350}
+    @media(max-width:1000px){.devis-table{display:block;overflow-x:auto;white-space:nowrap}}
   </style>
 </head>
-
 <body>
-  <div class="sidebar-overlay" id="sidebarOverlay"></div>
-  <div class="admin-layout">
-
-    <!-- SIDEBAR -->
-    <aside class="sidebar" id="sidebar">
-      <div class="sidebar-header">
-        <div class="logo-text" style="display:flex;flex-direction:column;align-items:center">
-          <span class="logo-traiteur"
-            style="font-size:.55rem;letter-spacing:4px;color:var(--text-muted)">TRAITEUR</span>
-          <span class="logo-name" style="font-size:1.1rem">EL MOUSSAOUI</span>
-          <span class="logo-sub" style="font-size:.65rem">Admin Panel v1.0</span>
-        </div>
-      </div>
-      <nav class="sidebar-nav">
-        <div class="sidebar-label">PRINCIPAL</div>
-        <a href="dashboard.php" class="sidebar-link"><i class="fas fa-tachometer-alt"></i> Tableau de bord</a>
-        <a href="reservations.php" class="sidebar-link"><i class="fas fa-calendar-check"></i> Réservations</a>
-        <a href="devis.php" class="sidebar-link active"><i class="fas fa-file-invoice"></i> Devis</a>
-        <a href="clients.php" class="sidebar-link"><i class="fas fa-users"></i> Clients</a>
-        <a href="factures.php" class="sidebar-link"><i class="fas fa-receipt"></i> Factures</a>
-        <a href="paiements.php" class="sidebar-link"><i class="fas fa-credit-card"></i> Paiements</a>
-        <div class="sidebar-label" style="margin-top:8px">CONTENU</div>
-        <a href="services-admin.php" class="sidebar-link"><i class="fas fa-concierge-bell"></i> Services</a>
-        <a href="packages-admin.php" class="sidebar-link"><i class="fas fa-box-open"></i> Packages</a>
-        <a href="../pages/galerie.php?edit=1" class="sidebar-link"><i class="fas fa-images"></i> Galerie</a>
-        <a href="blog-admin.php" class="sidebar-link"><i class="fas fa-pen-nib"></i> Blog</a>
-        <a href="temoignages-admin.php" class="sidebar-link"><i class="fas fa-star"></i> Témoignages</a>
-        <div class="sidebar-label" style="margin-top:8px">COMMUNICATION</div>
-        <a href="messages.php" class="sidebar-link"><i class="fas fa-envelope"></i> Messages</a>
-        <a href="notifications.php" class="sidebar-link"><i class="fas fa-bell"></i> Notifications</a>
-        <div class="sidebar-label" style="margin-top:8px">SYSTÈME</div>
-        <a href="utilisateurs.php" class="sidebar-link"><i class="fas fa-user-shield"></i> Utilisateurs</a>
-        <a href="parametres.php" class="sidebar-link"><i class="fas fa-cog"></i> Paramètres</a>
-        <a href="logs.php" class="sidebar-link"><i class="fas fa-history"></i> Journaux</a>
-      </nav>
-      <div class="sidebar-footer">
-        <div style="display:flex;align-items:center;gap:10px;padding:8px;border-radius:10px;background:var(--dark-3)">
-          <div class="admin-avatar" style="width:34px;height:34px;border-radius:8px">A</div>
-          <div style="flex:1;min-width:0">
-            <div style="font-size:.82rem;color:var(--white);font-weight:500">Admin ELM</div>
-            <div
-              style="font-size:.7rem;color:var(--text-muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">
-              admin@traiteur-elmoussaoui.ma</div>
-          </div>
-          <a href="logout.php" title="Déconnexion"
-            style="color:var(--text-muted);font-size:.85rem;padding:4px;border-radius:6px;transition:var(--transition)"
-            onmouseover="this.style.color='var(--gold)'" onmouseout="this.style.color='var(--text-muted)'">
-            <i class="fas fa-sign-out-alt"></i>
-          </a>
-        </div>
-      </div>
-    </aside>
-
-    <!-- MAIN -->
-    <main class="admin-main">
-      <div class="admin-topbar">
-        <div style="display:flex;align-items:center;gap:12px">
-          <button id="sidebarToggle" class="topbar-btn"><i class="fas fa-bars"></i></button>
-          <div class="topbar-title">
-            <h2>Gestion Devis</h2>
-            <p>Demandes de devis et estimations tarifaires</p>
-          </div>
-        </div>
-        <div class="topbar-actions">
-          <button class="topbar-btn" onclick="location.reload()"><i class="fas fa-sync-alt"></i></button>
-          <button class="btn-primary" style="padding:8px 18px;font-size:.82rem" onclick="toggleNewForm()">
-            <i class="fas fa-plus"></i> Nouveau devis
-          </button>
-          <div class="admin-avatar">A</div>
-        </div>
-      </div>
-
-      <div class="admin-content">
-
-        <!-- Stats -->
-        <div class="stats-grid" style="margin-bottom:24px">
-          <div class="stat-card">
-            <div class="stat-card-header">
-              <div class="stat-card-icon gold"><i class="fas fa-file-invoice"></i></div>
-            </div>
-            <div class="stat-card-value"><?= $total ?></div>
-            <div class="stat-card-label">Total devis</div>
-          </div>
-          <div class="stat-card">
-            <div class="stat-card-header">
-              <div class="stat-card-icon" style="background:rgba(251,191,36,.1);color:#FBB724"><i
-                  class="fas fa-clock"></i></div>
-            </div>
-            <div class="stat-card-value"><?= $enAttente ?></div>
-            <div class="stat-card-label">En attente</div>
-          </div>
-          <div class="stat-card">
-            <div class="stat-card-header">
-              <div class="stat-card-icon" style="background:rgba(37,211,102,.1);color:#25D366"><i
-                  class="fas fa-check-circle"></i></div>
-            </div>
-            <div class="stat-card-value"><?= $confirmes ?></div>
-            <div class="stat-card-label">Confirmés</div>
-          </div>
-          <div class="stat-card">
-            <div class="stat-card-header">
-              <div class="stat-card-icon" style="background:rgba(239,68,68,.1);color:#EF5350"><i
-                  class="fas fa-times-circle"></i></div>
-            </div>
-            <div class="stat-card-value"><?= $refuses ?></div>
-            <div class="stat-card-label">Refusés</div>
-          </div>
-        </div>
-
-        <!-- Formulaire nouveau devis -->
-        <div class="nouveau-devis-card" id="newDevisForm">
-          <h3 style="color:var(--white);margin-bottom:20px;font-size:.95rem">
-            <i class="fas fa-plus-circle" style="color:var(--gold);margin-right:8px"></i>Créer un nouveau devis
-          </h3>
-          <form method="POST" action="api/save_devis.php">
-            <div class="form-grid-2" style="margin-bottom:14px">
-              <div class="form-group">
-                <label class="form-label">Prénom *</label>
-                <input type="text" name="prenom" class="form-control" placeholder="Prénom du client" required>
-              </div>
-              <div class="form-group">
-                <label class="form-label">Nom *</label>
-                <input type="text" name="nom" class="form-control" placeholder="Nom du client" required>
-              </div>
-              <div class="form-group">
-                <label class="form-label">Téléphone *</label>
-                <input type="tel" name="telephone" class="form-control" placeholder="06XXXXXXXX" required>
-              </div>
-              <div class="form-group">
-                <label class="form-label">Email</label>
-                <input type="email" name="email" class="form-control" placeholder="email@exemple.com">
-              </div>
-              <div class="form-group">
-                <label class="form-label">Type d'événement</label>
-                <select name="type_evenement" class="form-control">
-                  <option value="mariage">Mariage</option>
-                  <option value="fiancailles">Fiançailles</option>
-                  <option value="circoncision">Circoncision</option>
-                  <option value="anniversaire">Anniversaire</option>
-                  <option value="reception_pro">Réception Pro</option>
-                  <option value="buffet">Buffet</option>
-                  <option value="autre">Autre</option>
-                </select>
-              </div>
-              <div class="form-group">
-                <label class="form-label">Package souhaité</label>
-                <select name="package_id" class="form-control">
-                  <option value="">Sans package</option>
-                  <?php
-                  $pkgs = $pdo->query("SELECT id, nom, prix FROM packages WHERE actif=1 ORDER BY ordre")->fetchAll();
-                  foreach ($pkgs as $p):
-                    ?>
-                    <option value="<?= $p['id'] ?>"><?= htmlspecialchars($p['nom']) ?> —
-                      <?= number_format($p['prix'], 0, ',', ' ') ?> MAD</option>
-                  <?php endforeach; ?>
-                </select>
-              </div>
-              <div class="form-group">
-                <label class="form-label">Date de l'événement</label>
-                <input type="date" name="date_evenement" class="form-control">
-              </div>
-              <div class="form-group">
-                <label class="form-label">Nombre d'invités</label>
-                <input type="number" name="nb_personnes" class="form-control" placeholder="100" min="1">
-              </div>
-            </div>
-            <div class="form-group" style="margin-bottom:16px">
-              <label class="form-label">Message / Demandes spéciales</label>
-              <textarea name="message" class="form-control" rows="3"
-                placeholder="Détails supplémentaires..."></textarea>
-            </div>
-            <div style="display:flex;gap:10px;justify-content:flex-end">
-              <button type="button" class="btn-secondary" onclick="toggleNewForm()">Annuler</button>
-              <button type="submit" class="btn-primary"><i class="fas fa-save"></i> Enregistrer le devis</button>
-            </div>
-          </form>
-        </div>
-
-        <!-- Table devis -->
-        <div class="devis-table-wrap">
-          <div class="devis-table-header">
-            <h3><i class="fas fa-list" style="color:var(--gold);margin-right:8px"></i>Liste des devis (<?= $total ?>)
-            </h3>
-            <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
-              <input type="text" class="search-input" id="searchDevis" placeholder="\ud83d\udd0d Rechercher..."
-                oninput="filterDevis()">
-              <div class="table-filters">
-                <button class="tfilter active" onclick="filterStatut('all',this)">Tous</button>
-                <button class="tfilter" onclick="filterStatut('nouveau',this)">En attente</button>
-                <button class="tfilter" onclick="filterStatut('accepte',this)">Confirmés</button>
-                <button class="tfilter" onclick="filterStatut('refuse',this)">Refusés</button>
-              </div>
-            </div>
-          </div>
-
-          <?php if (empty($devis)): ?>
-            <div class="empty-table">
-              <i class="fas fa-file-invoice"></i>
-              <p>Aucun devis pour l'instant.</p>
-              <button class="btn-primary" style="margin-top:16px" onclick="toggleNewForm()">
-                <i class="fas fa-plus"></i> Créer le premier devis
-              </button>
-            </div>
-          <?php else: ?>
-            <div style="overflow-x:auto">
-              <table id="devisTable">
-                <thead>
-                  <tr>
-                    <th>#</th>
-                    <th>Client</th>
-                    <th>Événement</th>
-                    <th>Date</th>
-                    <th>Invités</th>
-                    <th>Package</th>
-                    <th>Statut</th>
-                    <th>Reçu le</th>
-                    <th>Actions</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  <?php foreach ($devis as $d):
-                    $statut = $d['statut'] ?: 'nouveau';
-                    $sc = $statutColors[$statut] ?? $statutColors['nouveau'];
-                    $nom = htmlspecialchars($d['nom_client'] ?: 'Client #' . $d['id']);
-                    $date = !empty($d['date_evenement']) ? date('d/m/Y', strtotime($d['date_evenement'])) : '—';
-                    $recu = date('d/m/Y', strtotime($d['created_at']));
-                    $type = ucfirst(str_replace('_', ' ', $d['type_evenement'] ?? '—'));
-                    $servicesArr = json_decode($d['services_json'] ?? '[]', true) ?: [];
-                    $servicesLabel = count($servicesArr)
-                      ? (count($servicesArr) === 1 ? $servicesArr[0]['nom'] : count($servicesArr) . ' services')
-                      : '—';
-                    ?>
-                    <tr data-statut="<?= $statut ?>"
-                      data-search="<?= strtolower($nom . ' ' . $type . ' ' . ($d['email'] ?? '') . ' ' . ($d['telephone'] ?? '')) ?>">
-                      <td style="color:#555;font-size:.78rem">#<?= $d['id'] ?></td>
-                      <td class="td-client">
-                        <strong><?= $nom ?></strong>
-                        <span><?= htmlspecialchars($d['telephone'] ?? '') ?></span>
-                      </td>
-                      <td><span class="event-type"><?= $type ?></span></td>
-                      <td><?= $date ?></td>
-                      <td><?= $d['nb_personnes'] ? $d['nb_personnes'] . ' pers.' : '—' ?></td>
-                      <td style="font-size:.78rem"><?= htmlspecialchars($servicesLabel) ?></td>
-                      <td>
-                        <span class="statut-badge" style="background:<?= $sc['bg'] ?>;color:<?= $sc['color'] ?>">
-                          <span
-                            style="width:6px;height:6px;border-radius:50%;background:currentColor;display:inline-block"></span>
-                          <?= $sc['label'] ?>
-                        </span>
-                      </td>
-                      <td style="font-size:.78rem;color:#555"><?= $recu ?></td>
-                      <td>
-                        <div class="td-actions">
-                          <button class="act-btn" onclick='openDetail(<?= json_encode($d) ?>)' title="Voir le détail">
-                            <i class="fas fa-eye"></i>
-                          </button>
-                          <button class="act-btn confirm" onclick="changeStatut(<?= $d['id'] ?>,'accepte')"
-                            title="Confirmer">
-                            <i class="fas fa-check"></i>
-                          </button>
-                          <button class="act-btn refuse" onclick="changeStatut(<?= $d['id'] ?>,'refuse')" title="Refuser">
-                            <i class="fas fa-times"></i>
-                          </button>
-                          <button class="act-btn" onclick="printDevis(<?= $d['id'] ?>)" title="Imprimer"
-                            style="color:#60A5FA;border-color:rgba(59,130,246,.3)">
-                            <i class="fas fa-print"></i>
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  <?php endforeach; ?>
-                </tbody>
-              </table>
-            </div>
-          <?php endif; ?>
-        </div>
-
-      </div>
-    </main>
-  </div>
-
-  <!-- Modal détail devis -->
-  <div class="modal-overlay" id="detailModal">
-    <div class="modal-box">
-      <div class="modal-header">
-        <h3><i class="fas fa-file-invoice" style="color:var(--gold);margin-right:8px"></i>Détail du devis</h3>
-        <button class="modal-close" onclick="closeDetail()"><i class="fas fa-times"></i></button>
-      </div>
-      <div class="modal-body" id="detailContent"></div>
-      <div class="modal-footer">
-        <button class="btn-secondary" onclick="closeDetail()">Fermer</button>
-        <button class="btn-primary" id="confirmBtn" onclick="confirmFromModal()">
-          <i class="fas fa-check"></i> Confirmer ce devis
-        </button>
+<div class="sidebar-overlay" id="sidebarOverlay"></div>
+<div class="admin-layout">
+  <?php $activePage = 'devis'; include_once __DIR__ . '/../includes/admin-sidebar.php'; ?>
+  <main class="admin-main">
+    <div class="admin-topbar">
+      <div style="display:flex;align-items:center;gap:12px">
+        <button id="sidebarToggle" class="topbar-btn"><i class="fas fa-bars"></i></button>
+        <div class="topbar-title"><h2>Devis</h2><p>Propositions financières liées aux réservations</p></div>
       </div>
     </div>
-  </div>
 
-  <script>
-    // Sidebar toggle
-    document.getElementById('sidebarToggle').addEventListener('click', () => {
-      document.getElementById('sidebar').classList.toggle('open');
-      document.getElementById('sidebarOverlay').classList.toggle('show');
-    });
-    document.getElementById('sidebarOverlay').addEventListener('click', () => {
-      document.getElementById('sidebar').classList.remove('open');
-      document.getElementById('sidebarOverlay').classList.remove('show');
-    });
-
-    // Nouveau devis toggle
-    function toggleNewForm() {
-      const f = document.getElementById('newDevisForm');
-      f.classList.toggle('show');
-      if (f.classList.contains('show')) f.scrollIntoView({ behavior: 'smooth', block: 'start' });
-    }
-
-    // Filtres
-    let currentStatut = 'all';
-    function filterStatut(s, btn) {
-      currentStatut = s;
-      document.querySelectorAll('.tfilter').forEach(b => b.classList.remove('active'));
-      btn.classList.add('active');
-      applyFilters();
-    }
-    function filterDevis() { applyFilters(); }
-    function applyFilters() {
-      const q = document.getElementById('searchDevis')?.value.toLowerCase() || '';
-      document.querySelectorAll('#devisTable tbody tr').forEach(row => {
-        const matchS = currentStatut === 'all' || row.dataset.statut === currentStatut;
-        const matchQ = !q || row.dataset.search.includes(q);
-        row.style.display = (matchS && matchQ) ? '' : 'none';
-      });
-    }
-
-    // Détail modal
-    let currentDevisId = null;
-    function openDetail(d) {
-      currentDevisId = d.id;
-      const statutColors = {
-        'nouveau': '#FBB724', 'accepte': '#25D366',
-        'refuse': '#EF5350', 'en_cours': '#60A5FA', '': '#FBB724'
-      };
-      const statutLabels = {
-        'nouveau': 'En attente', 'accepte': 'Confirmé',
-        'refuse': 'Refusé', 'en_cours': 'En cours', '': 'Nouveau'
-      };
-      const statut = d.statut || '';
-      const color = statutColors[statut] || '#FBB724';
-      const label = statutLabels[statut] || 'Nouveau';
-      const nom = d.nom_client || ('Client #' + d.id);
-      const date = d.date_evenement ? new Date(d.date_evenement).toLocaleDateString('fr-FR') : '—';
-      const recu = new Date(d.created_at).toLocaleDateString('fr-FR');
-      let services = [];
-      try { services = JSON.parse(d.services_json || '[]'); } catch (e) { services = []; }
-      const servicesHtml = services.length
-        ? services.map(s => `${s.nom}${s.prix > 0 ? ' — ' + Number(s.prix).toLocaleString('fr-FR') + ' MAD' : ' — Sur devis'}`).join('<br>')
-        : 'Aucun';
-
-      document.getElementById('detailContent').innerHTML = `
-    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;padding-bottom:16px;border-bottom:1px solid var(--border)">
-      <div>
-        <div style="font-size:1.1rem;font-weight:700;color:var(--white)">${nom}</div>
-        <div style="font-size:.78rem;color:var(--text-muted)">Reçu le ${recu}</div>
+    <div class="admin-content">
+      <?php if (!empty($_GET['msg'])): ?>
+      <div class="alert alert-<?= ($_GET['type'] ?? '') === 'success' ? 'success' : 'error' ?>" style="margin-bottom:20px">
+        <i class="fas fa-check-circle"></i> <?= htmlspecialchars($_GET['msg']) ?>
       </div>
-      <span style="background:${color}22;color:${color};padding:5px 14px;border-radius:20px;font-size:.78rem;font-weight:700">${label}</span>
-    </div>
-    <div class="detail-row">
-      <div class="detail-field"><label>Téléphone</label><span>${d.telephone || '—'}</span></div>
-      <div class="detail-field"><label>Email</label><span>${d.email || '—'}</span></div>
-    </div>
-    <div class="detail-row">
-      <div class="detail-field"><label>Type d'événement</label><span>${(d.type_evenement || '—').replace('_', ' ')}</span></div>
-      <div class="detail-field"><label>Date souhaitée</label><span>${date}</span></div>
-    </div>
-    <div class="detail-row">
-      <div class="detail-field"><label>Nombre d'invités</label><span>${d.nb_personnes || '—'}</span></div>
-      <div class="detail-field"><label>Montant total</label><span>${d.montant_total ? Number(d.montant_total).toLocaleString('fr-FR') + ' MAD' : '—'}</span></div>
-    </div>
-    <div class="form-group" style="margin-top:4px"><label class="form-label">Services</label><div class="detail-msg">${servicesHtml}</div></div>
-    ${d.notes ? `<div class="form-group" style="margin-top:4px"><label class="form-label">Message</label><div class="detail-msg">${d.notes}</div></div>` : ''}
-  `;
-      document.getElementById('detailModal').classList.add('show');
-    }
-    function closeDetail() {
-      document.getElementById('detailModal').classList.remove('show');
-      currentDevisId = null;
-    }
-    function confirmFromModal() {
-      if (currentDevisId) changeStatut(currentDevisId, 'accepte');
-      closeDetail();
-    }
+      <?php endif; ?>
 
-    // Changer statut
-    function changeStatut(id, statut) {
-      if (!confirm(`Passer ce devis en "${statut}" ?`)) return;
-      fetch('<?= SITE_URL ?>/api/update_statut.php', {
-        method: 'POST',
-        body: new URLSearchParams({ id, statut, table: 'devis_generes' })
-      })
-        .then(r => r.json())
-        .then(res => {
-          if (res.success) location.reload();
-          else alert('Erreur : ' + res.message);
-        })
-        .catch(() => {
-          // API pas encore créée — reload pour l'instant
-          location.reload();
-        });
-    }
+      <div class="stats-grid" style="margin-bottom:20px">
+        <div class="stat-card"><div class="stat-card-value"><?= $compteurs['total'] ?></div><div class="stat-card-label">Total devis</div></div>
+        <div class="stat-card"><div class="stat-card-value" style="color:#FBB724"><?= $compteurs['recu'] ?></div><div class="stat-card-label">Reçus</div></div>
+        <div class="stat-card"><div class="stat-card-value" style="color:#25D366"><?= $compteurs['accepte'] ?></div><div class="stat-card-label">Acceptés</div></div>
+        <div class="stat-card"><div class="stat-card-value" style="color:#EF5350"><?= $compteurs['refuse'] ?></div><div class="stat-card-label">Refusés</div></div>
+      </div>
 
-    // Imprimer
-    function printDevis(id) {
-      window.open('print_devis.php?id=' + id, '_blank');
-    }
-  </script>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px">
+        <a href="?statut=" class="tfilter <?= $filtreStatut==='' ? 'active':'' ?>">Tous</a>
+        <a href="?statut=recu" class="tfilter <?= $filtreStatut==='recu' ? 'active':'' ?>">Reçus</a>
+        <a href="?statut=en_traitement" class="tfilter <?= $filtreStatut==='en_traitement' ? 'active':'' ?>">En traitement</a>
+        <a href="?statut=envoye" class="tfilter <?= $filtreStatut==='envoye' ? 'active':'' ?>">Envoyés</a>
+        <a href="?statut=accepte" class="tfilter <?= $filtreStatut==='accepte' ? 'active':'' ?>">Acceptés</a>
+        <a href="?statut=refuse" class="tfilter <?= $filtreStatut==='refuse' ? 'active':'' ?>">Refusés</a>
+        <a href="?statut=expire" class="tfilter <?= $filtreStatut==='expire' ? 'active':'' ?>">Expirés</a>
+      </div>
+
+      <div class="filters-bar">
+        <form method="GET" style="display:contents">
+          <input type="hidden" name="statut" value="<?= htmlspecialchars($filtreStatut) ?>">
+          <input type="search" name="q" placeholder="🔍 Client, téléphone, référence..." value="<?= htmlspecialchars($recherche) ?>">
+          <button type="submit"><i class="fas fa-filter"></i> Filtrer</button>
+        </form>
+      </div>
+
+      <div class="dash-card">
+        <?php if (empty($devisListe)): ?>
+        <div style="padding:60px 20px;text-align:center;color:#555">
+          <i class="fas fa-file-invoice" style="font-size:2.5rem;opacity:.2;display:block;margin-bottom:14px"></i>
+          Aucun devis ne correspond à ces critères.
+        </div>
+        <?php else: ?>
+        <table class="devis-table">
+          <thead>
+            <tr>
+              <th>N° Devis</th><th>Client</th><th>Réservation</th><th>Événement</th><th>Date</th>
+              <th>HT</th><th>TVA</th><th>TTC</th><th>Acompte / Reste</th><th>Expire le</th><th>Statut</th><th>Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            <?php foreach ($devisListe as $d):
+              $sc = $statutConfig[$d['statut']] ?? $statutConfig['recu'];
+              $nomClient = trim(($d['c_prenom'] ?? '').' '.($d['c_nom'] ?? '')) ?: ($d['nom_prospect'] ?: '—');
+            ?>
+            <tr>
+              <td><strong style="color:var(--gold)"><?= htmlspecialchars($d['reference']) ?></strong></td>
+              <td>
+                <strong style="color:var(--white);display:block"><?= htmlspecialchars($nomClient) ?></strong>
+                <span style="font-size:.72rem;color:#666"><?= htmlspecialchars($d['c_tel'] ?? $d['telephone_prospect'] ?? '—') ?></span>
+              </td>
+              <td><?= $d['resa_ref'] ? htmlspecialchars($d['resa_ref']) : '<span style="color:#555">—</span>' ?></td>
+              <td><?= htmlspecialchars($d['type_nom'] ?: '—') ?></td>
+              <td><?= $d['date_evenement'] ? date('d/m/Y', strtotime($d['date_evenement'])) : '—' ?></td>
+              <td><?= number_format($d['montant_ht'],0,',',' ') ?> MAD</td>
+              <td><?= number_format($d['montant_tva'],0,',',' ') ?> MAD</td>
+              <td><strong style="color:var(--gold)"><?= number_format($d['montant_ttc'],0,',',' ') ?> MAD</strong></td>
+              <td>
+                <?php if ($d['facture_id']): ?>
+                  <span style="color:#25D366"><?= number_format($d['facture_paye'],0,',',' ') ?></span> /
+                  <span style="color:#EF5350"><?= number_format($d['facture_ttc'] - $d['facture_paye'],0,',',' ') ?></span>
+                <?php else: ?>
+                  <span style="color:#555">Pas encore facturé</span>
+                <?php endif; ?>
+              </td>
+              <td><?= $d['date_expiration'] ? date('d/m/Y', strtotime($d['date_expiration'])) : '—' ?></td>
+              <td><span class="badge-statut" style="background:<?= $sc['bg'] ?>;color:<?= $sc['color'] ?>"><?= $sc['label'] ?></span></td>
+              <td>
+                <div class="act-icons">
+                  <a href="print_devis.php?id=<?= $d['id'] ?>" target="_blank" title="Voir / Imprimer PDF"><i class="fas fa-eye"></i></a>
+                  <?php if ($d['c_tel']): ?>
+                  <a href="https://wa.me/212<?= ltrim(preg_replace('/[^0-9]/','',$d['c_tel']), '0') ?>?text=<?= urlencode("Bonjour, voici votre devis {$d['reference']} de Traiteur EL MOUSSAOUI : ") ?>"
+                     target="_blank" class="ok" title="Envoyer au client (WhatsApp)"><i class="fab fa-whatsapp"></i></a>
+                  <?php endif; ?>
+                  <form method="POST" style="display:contents">
+                    <input type="hidden" name="action" value="update_statut">
+                    <input type="hidden" name="id" value="<?= $d['id'] ?>">
+                    <input type="hidden" name="statut" value="accepte">
+                    <button type="submit" class="ok" title="Accepter"><i class="fas fa-check"></i></button>
+                  </form>
+                  <form method="POST" style="display:contents">
+                    <input type="hidden" name="action" value="update_statut">
+                    <input type="hidden" name="id" value="<?= $d['id'] ?>">
+                    <input type="hidden" name="statut" value="refuse">
+                    <button type="submit" class="no" title="Refuser"><i class="fas fa-times"></i></button>
+                  </form>
+                  <form method="POST" style="display:contents" onsubmit="return confirm('Supprimer ce devis ? Cette action est irréversible.')">
+                    <input type="hidden" name="action" value="delete">
+                    <input type="hidden" name="id" value="<?= $d['id'] ?>">
+                    <button type="submit" class="no" title="Supprimer"><i class="fas fa-trash"></i></button>
+                  </form>
+                </div>
+              </td>
+            </tr>
+            <?php endforeach; ?>
+          </tbody>
+        </table>
+        <?php endif; ?>
+      </div>
+
+    </div>
+  </main>
+</div>
+<script>
+document.getElementById('sidebarToggle').addEventListener('click',()=>{
+  document.getElementById('sidebar').classList.toggle('open');
+  document.getElementById('sidebarOverlay').classList.toggle('show');
+});
+document.getElementById('sidebarOverlay').addEventListener('click',()=>{
+  document.getElementById('sidebar').classList.remove('open');
+  document.getElementById('sidebarOverlay').classList.remove('show');
+});
+</script>
 </body>
-
 </html>
