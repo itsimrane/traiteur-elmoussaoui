@@ -167,6 +167,11 @@ $statutConfig = [
       </div>
 
       <div class="dash-card">
+        <?php if (!empty($erreurBdd)): ?>
+        <div class="alert alert-error" style="margin-bottom:20px">
+          <i class="fas fa-exclamation-circle"></i> Erreur base de données : <?= htmlspecialchars($erreurBdd) ?>
+        </div>
+        <?php endif; ?>
         <?php if (empty($devisListe)): ?>
         <div style="padding:60px 20px;text-align:center;color:#555">
           <i class="fas fa-file-invoice" style="font-size:2.5rem;opacity:.2;display:block;margin-bottom:14px"></i>
