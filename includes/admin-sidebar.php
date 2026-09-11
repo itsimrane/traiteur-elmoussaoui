@@ -70,7 +70,7 @@ $adminEmail = $_SESSION['admin_email'] ?? 'admin@traiteur-elmoussaoui.ma';
       <i class="fas fa-box-open"></i>
       <span data-fr="Packages" data-ar="الباقات">Packages</span>
     </a>
-    <a href="../pages/galerie.php?edit=1" class="sidebar-link <?= $activePage==='galerie'?'active':'' ?>">
+    <a href="galerie.php" class="sidebar-link <?= $activePage==='galerie'?'active':'' ?>">
       <i class="fas fa-images"></i>
       <span data-fr="Galerie" data-ar="معرض الصور">Galerie</span>
     </a>
