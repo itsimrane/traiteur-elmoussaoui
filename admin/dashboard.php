@@ -2,50 +2,105 @@
 require_once __DIR__ . '/../includes/config.php';
 requireAdmin();
 
-// ── Variables initialisées à 0 par sécurité ──────────────
-$statsDevis        = 0;
-$statsDevisAttente = 0;
-$statsDevisConf    = 0;
-$statsClients      = 0;
-$totalClients      = 0;
-$statsMessages     = 0;
-$statsReservations = 0;
-$statsCA           = 0;
-$statsFactures     = 0;
-$recentDevis       = [];
-$recentMessages    = [];
-
+// ── Réservations ────────────────────────────────────────────────
+$statsResaTotal = $statsResaAttente = $statsResaConf = $statsResaRefuse = 0;
 try {
-    $statsDevis        = (int)$pdo->query("SELECT COUNT(*) FROM devis_generes")->fetchColumn();
-    $statsDevisAttente = (int)$pdo->query("SELECT COUNT(*) FROM devis_generes WHERE statut='en_attente'")->fetchColumn();
-    $statsDevisConf    = (int)$pdo->query("SELECT COUNT(*) FROM devis_generes WHERE statut='confirme'")->fetchColumn();
-    $statsMessages     = (int)$pdo->query("SELECT COUNT(*) FROM contacts WHERE statut='nouveau'")->fetchColumn();
-    $statsReservations = $statsDevisAttente;
+    $r = $pdo->query("SELECT statut, COUNT(*) n FROM reservations WHERE deleted_at IS NULL GROUP BY statut")->fetchAll();
+    foreach ($r as $row) {
+        $statsResaTotal += $row['n'];
+        if ($row['statut'] === 'en_attente') $statsResaAttente = $row['n'];
+        if ($row['statut'] === 'confirmee')  $statsResaConf = $row['n'];
+        if ($row['statut'] === 'annulee')    $statsResaRefuse = $row['n'];
+    }
+} catch (Exception $e) {}
 
-    try { $statsClients = (int)$pdo->query("SELECT COUNT(*) FROM clients")->fetchColumn(); } catch(Exception $e2){}
-    try { $statsFactures = (float)$pdo->query("SELECT COALESCE(SUM(montant_ttc),0) FROM factures")->fetchColumn(); } catch(Exception $e2){}
-    try {
-        $statsCA = (float)$pdo->query("SELECT COALESCE(SUM(montant_total),0) FROM devis_generes WHERE statut='confirme'")->fetchColumn();
-    } catch(Exception $e2){}
-    try {
-        $extra = (int)$pdo->query("SELECT COUNT(DISTINCT telephone) FROM devis_generes WHERE telephone IS NOT NULL AND telephone NOT IN (SELECT telephone FROM clients WHERE telephone IS NOT NULL)")->fetchColumn();
-        $totalClients = $statsClients + $extra;
-    } catch(Exception $e2){ $totalClients = $statsClients; }
+// ── Devis en attente ────────────────────────────────────────────
+$statsDevisAttente = 0;
+try { $statsDevisAttente = (int)$pdo->query("SELECT COUNT(*) FROM devis WHERE statut IN ('recu','en_traitement','envoye')")->fetchColumn(); } catch (Exception $e) {}
 
-    $recentDevis = $pdo->query("
-        SELECT id, numero, nom_client, telephone, email,
-               type_evenement, date_evenement, montant_total, statut, created_at
-        FROM devis_generes ORDER BY created_at DESC LIMIT 6
+// ── Messages non lus ────────────────────────────────────────────
+$statsMessages = 0;
+try { $statsMessages = (int)$pdo->query("SELECT COUNT(*) FROM contacts WHERE statut='nouveau'")->fetchColumn(); } catch (Exception $e) {}
+
+// ── Chiffre d'affaires / encaissé / reste ────────────────────────
+$statsCA = $statsEncaisse = $statsReste = 0;
+try { $statsCA = (float)$pdo->query("SELECT COALESCE(SUM(montant_ttc),0) FROM factures WHERE statut != 'annulee'")->fetchColumn(); } catch (Exception $e) {}
+try { $statsEncaisse = (float)$pdo->query("SELECT COALESCE(SUM(montant),0) FROM paiements WHERE statut != 'annule'")->fetchColumn(); } catch (Exception $e) {}
+$statsReste = max(0, $statsCA - $statsEncaisse);
+
+// ── Clients ─────────────────────────────────────────────────────
+$totalClients = 0;
+try { $totalClients = (int)$pdo->query("SELECT COUNT(*) FROM clients WHERE deleted_at IS NULL")->fetchColumn(); } catch (Exception $e) {}
+
+// ── Prochains événements (réservations confirmées à venir) ──────
+$prochainsEvenements = [];
+try {
+    $pe = $pdo->query("
+        SELECT r.id, r.date_evenement, r.heure_debut, r.nbr_invites, r.statut,
+               c.prenom, c.nom, te.nom AS type_nom
+        FROM reservations r
+        LEFT JOIN clients c ON c.id = r.client_id
+        LEFT JOIN types_evenements te ON te.id = r.type_evenement_id
+        WHERE r.statut = 'confirmee' AND r.date_evenement >= CURDATE() AND r.deleted_at IS NULL
+        ORDER BY r.date_evenement ASC LIMIT 6
+    ");
+    $prochainsEvenements = $pe->fetchAll();
+} catch (Exception $e) {}
+
+// ── Activité récente (agrégée depuis les vraies tables) ─────────
+$activites = [];
+try {
+    $rs = $pdo->query("
+        SELECT r.id, r.statut, r.created_at, c.prenom, c.nom, te.nom AS type_nom
+        FROM reservations r LEFT JOIN clients c ON c.id=r.client_id
+        LEFT JOIN types_evenements te ON te.id=r.type_evenement_id
+        ORDER BY r.created_at DESC LIMIT 8
     ")->fetchAll();
+    foreach ($rs as $r) {
+        $nom = trim(($r['prenom']??'').' '.($r['nom']??''));
+        $libelle = match($r['statut']) {
+            'confirmee' => 'Réservation confirmée',
+            'annulee'   => 'Réservation refusée/annulée',
+            default     => 'Nouvelle réservation',
+        };
+        $activites[] = ['icon'=>'fa-calendar-check','color'=>'#FBB724','titre'=>$libelle,'desc'=>$nom.' — '.($r['type_nom']??''),'time'=>$r['created_at'],'lien'=>'reservation_details.php?id='.$r['id']];
+    }
+} catch (Exception $e) {}
+try {
+    $ds = $pdo->query("SELECT id, reference, created_at, client_id FROM devis ORDER BY created_at DESC LIMIT 5")->fetchAll();
+    foreach ($ds as $d) {
+        $activites[] = ['icon'=>'fa-file-invoice','color'=>'#60A5FA','titre'=>'Nouveau devis','desc'=>$d['reference'],'time'=>$d['created_at'],'lien'=>'devis.php'];
+    }
+} catch (Exception $e) {}
+try {
+    $ps = $pdo->query("SELECT montant, date_paiement, created_at FROM paiements ORDER BY created_at DESC LIMIT 5")->fetchAll();
+    foreach ($ps as $p) {
+        $activites[] = ['icon'=>'fa-credit-card','color'=>'#25D366','titre'=>'Paiement enregistré','desc'=>number_format($p['montant'],0,',',' ').' MAD','time'=>$p['created_at'],'lien'=>'paiements.php'];
+    }
+} catch (Exception $e) {}
+try {
+    $ms = $pdo->query("SELECT id, prenom, nom, created_at FROM contacts ORDER BY created_at DESC LIMIT 5")->fetchAll();
+    foreach ($ms as $m) {
+        $nom = trim(($m['prenom']??'').' '.($m['nom']??''));
+        $activites[] = ['icon'=>'fa-envelope','color'=>'#EF5350','titre'=>'Nouveau message','desc'=>$nom,'time'=>$m['created_at'],'lien'=>'messages.php?id='.$m['id']];
+    }
+} catch (Exception $e) {}
+try {
+    $ts = $pdo->query("SELECT id, nom_client, created_at FROM temoignages WHERE statut='en_attente' ORDER BY created_at DESC LIMIT 3")->fetchAll();
+    foreach ($ts as $t) {
+        $activites[] = ['icon'=>'fa-star','color'=>'#D4AF37','titre'=>'Nouveau témoignage','desc'=>$t['nom_client'],'time'=>$t['created_at'],'lien'=>'temoignages-admin.php'];
+    }
+} catch (Exception $e) {}
+usort($activites, fn($a,$b) => strtotime($b['time']) - strtotime($a['time']));
+$activites = array_slice($activites, 0, 8);
 
-    $recentMessages = $pdo->query("
-        SELECT id, CONCAT(COALESCE(prenom,''),' ',nom) as nom_client,
-               email, telephone, sujet, message, statut, created_at
-        FROM contacts ORDER BY created_at DESC LIMIT 5
-    ")->fetchAll();
-
-} catch(Exception $e) {
-    error_log('Dashboard error: ' . $e->getMessage());
+function dashTimeAgo(string $time): string {
+    $diff = time() - strtotime($time);
+    if ($diff < 60) return "À l'instant";
+    if ($diff < 3600) return floor($diff/60) . ' min';
+    if ($diff < 86400) return floor($diff/3600) . 'h';
+    if ($diff < 604800) return floor($diff/86400) . 'j';
+    return date('d/m/Y', strtotime($time));
 }
 ?>
 <!DOCTYPE html>
@@ -105,30 +160,60 @@ try {
       <!-- Stats -->
       <div class="stats-grid" style="margin-bottom:24px">
         <div class="stat-card">
-          <div class="stat-card-header"><div class="stat-card-icon gold"><i class="fas fa-file-invoice"></i></div></div>
-          <div class="stat-card-value" dir="ltr"><?= $statsDevis ?></div>
-          <div class="stat-card-label">Devis générés</div>
+          <div class="stat-card-header"><div class="stat-card-icon gold"><i class="fas fa-calendar-check"></i></div></div>
+          <div class="stat-card-value"><?= $statsResaTotal ?></div>
+          <div class="stat-card-label">Total réservations</div>
         </div>
         <div class="stat-card">
-          <div class="stat-card-header"><div class="stat-card-icon" style="background:rgba(37,211,102,.1);color:#25D366"><i class="fas fa-calendar-check"></i></div></div>
+          <div class="stat-card-header"><div class="stat-card-icon" style="background:rgba(251,183,36,.1);color:#FBB724"><i class="fas fa-hourglass-half"></i></div></div>
+          <div class="stat-card-value"><?= $statsResaAttente ?></div>
+          <div class="stat-card-label">En attente</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-card-header"><div class="stat-card-icon" style="background:rgba(37,211,102,.1);color:#25D366"><i class="fas fa-check-circle"></i></div></div>
+          <div class="stat-card-value"><?= $statsResaConf ?></div>
+          <div class="stat-card-label">Confirmées</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-card-header"><div class="stat-card-icon" style="background:rgba(239,68,68,.1);color:#EF5350"><i class="fas fa-times-circle"></i></div></div>
+          <div class="stat-card-value"><?= $statsResaRefuse ?></div>
+          <div class="stat-card-label">Refusées</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-card-header"><div class="stat-card-icon" style="background:rgba(167,139,250,.1);color:#A78BFA"><i class="fas fa-file-invoice"></i></div></div>
           <div class="stat-card-value"><?= $statsDevisAttente ?></div>
-          <div class="stat-card-label">Réservations</div>
-        </div>
-        <div class="stat-card">
-          <div class="stat-card-header"><div class="stat-card-icon" style="background:rgba(59,130,246,.1);color:#60A5FA"><i class="fas fa-users"></i></div></div>
-          <div class="stat-card-value"><?= $totalClients ?? $statsClients ?></div>
-          <div class="stat-card-label">Clients</div>
+          <div class="stat-card-label">Devis en attente</div>
         </div>
         <div class="stat-card">
           <div class="stat-card-header"><div class="stat-card-icon" style="background:rgba(239,68,68,.1);color:#EF5350"><i class="fas fa-envelope"></i></div></div>
           <div class="stat-card-value"><?= $statsMessages ?></div>
           <div class="stat-card-label">Messages non lus</div>
         </div>
+        <div class="stat-card">
+          <div class="stat-card-header"><div class="stat-card-icon" style="background:rgba(212,175,55,.1);color:var(--gold)"><i class="fas fa-chart-line"></i></div></div>
+          <div class="stat-card-value" style="font-size:1.15rem" dir="ltr"><?= number_format($statsCA,0,',',' ') ?></div>
+          <div class="stat-card-label">CA Total (MAD)</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-card-header"><div class="stat-card-icon" style="background:rgba(37,211,102,.1);color:#25D366"><i class="fas fa-coins"></i></div></div>
+          <div class="stat-card-value" style="font-size:1.15rem" dir="ltr"><?= number_format($statsEncaisse,0,',',' ') ?></div>
+          <div class="stat-card-label">Encaissé (MAD)</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-card-header"><div class="stat-card-icon" style="background:rgba(251,183,36,.1);color:#FBB724"><i class="fas fa-hand-holding-usd"></i></div></div>
+          <div class="stat-card-value" style="font-size:1.15rem" dir="ltr"><?= number_format($statsReste,0,',',' ') ?></div>
+          <div class="stat-card-label">Reste à payer (MAD)</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-card-header"><div class="stat-card-icon" style="background:rgba(59,130,246,.1);color:#60A5FA"><i class="fas fa-users"></i></div></div>
+          <div class="stat-card-value"><?= $totalClients ?></div>
+          <div class="stat-card-label">Clients</div>
+        </div>
       </div>
 
       <!-- Actions rapides -->
       <div class="quick-actions">
-        <a href="../pages/galerie.php?edit=1" class="quick-btn">
+        <a href="galerie.php" class="quick-btn">
           <i class="fas fa-images"></i><span>Galerie</span>
         </a>
         <a href="services-admin.php" class="quick-btn">
@@ -142,47 +227,43 @@ try {
         </a>
       </div>
 
-      <!-- Derniers devis + messages -->
+      <!-- Prochains événements + Activité récente -->
       <div class="dashboard-grid">
         <div class="dash-card">
           <div class="dash-card-header">
-            <h3><i class="fas fa-file-invoice" style="color:var(--gold);margin-right:6px"></i>Derniers devis</h3>
-            <a href="devis.php" style="font-size:.75rem;color:var(--gold);text-decoration:none">Voir tout →</a>
+            <h3><i class="fas fa-calendar-star" style="color:var(--gold);margin-right:6px"></i>Prochains événements</h3>
+            <a href="reservations.php" style="font-size:.75rem;color:var(--gold);text-decoration:none">Voir tout →</a>
           </div>
-          <?php if (empty($recentDevis)): ?>
-          <div style="padding:30px;text-align:center;color:#555;font-size:.82rem">Aucun devis pour l'instant</div>
-          <?php else: foreach ($recentDevis as $d): ?>
-          <div class="dash-item">
+          <?php if (empty($prochainsEvenements)): ?>
+          <div style="padding:30px;text-align:center;color:#555;font-size:.82rem">Aucun événement confirmé à venir</div>
+          <?php else: foreach ($prochainsEvenements as $e):
+            $nom = trim(($e['prenom']??'').' '.($e['nom']??''));
+          ?>
+          <a href="reservation_details.php?id=<?= $e['id'] ?>" class="dash-item" style="text-decoration:none;cursor:pointer">
             <div class="dash-item-left">
-              <strong><?= htmlspecialchars($d['nom_client']) ?></strong>
-              <span><?= htmlspecialchars($d['type_evenement']??'') ?> · <?= date('d/m/Y',strtotime($d['created_at'])) ?></span>
+              <strong><?= date('d/m/Y', strtotime($e['date_evenement'])) ?> — <?= htmlspecialchars($e['type_nom'] ?: 'Événement') ?></strong>
+              <span><?= htmlspecialchars($nom) ?> · <?= (int)$e['nbr_invites'] ?> invités · <?= substr($e['heure_debut'],0,5) ?></span>
             </div>
-            <span style="color:var(--gold);font-weight:700;font-size:.85rem" dir="ltr">
-              <?= number_format($d['montant_total'],0,',',' ') ?> MAD
-            </span>
-          </div>
+            <span class="badge-small" style="background:rgba(37,211,102,.15);color:#25D366">Confirmé</span>
+          </a>
           <?php endforeach; endif; ?>
         </div>
 
         <div class="dash-card">
           <div class="dash-card-header">
-            <h3><i class="fas fa-envelope" style="color:var(--gold);margin-right:6px"></i>Derniers messages</h3>
-            <a href="messages.php" style="font-size:.75rem;color:var(--gold);text-decoration:none">Voir tout →</a>
+            <h3><i class="fas fa-history" style="color:var(--gold);margin-right:6px"></i>Activité récente</h3>
+            <a href="logs.php" style="font-size:.75rem;color:var(--gold);text-decoration:none">Voir tout →</a>
           </div>
-          <?php if (empty($recentMessages)): ?>
-          <div style="padding:30px;text-align:center;color:#555;font-size:.82rem">Aucun message pour l'instant</div>
-          <?php else: foreach ($recentMessages as $m):
-            $nom = trim(($m['prenom']??'').' '.($m['nom']??''));
-          ?>
-          <div class="dash-item">
+          <?php if (empty($activites)): ?>
+          <div style="padding:30px;text-align:center;color:#555;font-size:.82rem">Aucune activité récente</div>
+          <?php else: foreach ($activites as $a): ?>
+          <a href="<?= htmlspecialchars($a['lien']) ?>" class="dash-item" style="text-decoration:none;cursor:pointer">
             <div class="dash-item-left">
-              <strong><?= htmlspecialchars($nom) ?></strong>
-              <span><?= htmlspecialchars(mb_substr($m['message']??'',0,50)) ?>...</span>
+              <strong><i class="fas <?= $a['icon'] ?>" style="color:<?= $a['color'] ?>;margin-right:6px;font-size:.75rem"></i><?= htmlspecialchars($a['titre']) ?></strong>
+              <span><?= htmlspecialchars($a['desc']) ?></span>
             </div>
-            <?php if ($m['statut']==='nouveau'): ?>
-            <span class="badge-small" style="background:rgba(239,68,68,.15);color:#EF5350">Nouveau</span>
-            <?php endif; ?>
-          </div>
+            <span style="font-size:.68rem;color:#555"><?= dashTimeAgo($a['time']) ?></span>
+          </a>
           <?php endforeach; endif; ?>
         </div>
       </div>
