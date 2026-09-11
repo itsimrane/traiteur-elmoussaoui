@@ -177,9 +177,11 @@ $msgType = $_GET['type'] ?? 'success';
     .act-btn.danger:hover{border-color:rgba(239,68,68,.4);color:#EF5350}
     .empty-state{text-align:center;padding:60px 20px;color:var(--text-muted)}
     .empty-state i{font-size:2.5rem;opacity:.2;display:block;margin-bottom:12px}
-    .amount-col{font-family:var(--ff-display);font-size:.95rem;font-weight:700;color:var(--white)}
-    .reste-col{color:#FBB724;font-weight:600}
-    .reste-zero{color:#25D366}
+    .amount-col{font-family:var(--ff-display);font-size:.95rem;font-weight:700;color:var(--white);white-space:nowrap}
+    .reste-col{color:#FBB724;font-weight:600;white-space:nowrap}
+    .reste-zero{color:#25D366;white-space:nowrap}
+    td{white-space:nowrap}
+    td.td-client-cell,.td-actions{white-space:normal}
 
     /* Modal */
     .modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:2000;align-items:center;justify-content:center;padding:20px}
