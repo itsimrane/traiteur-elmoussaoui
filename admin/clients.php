@@ -4,16 +4,16 @@ requireAdmin();
 header('Cache-Control: no-store, no-cache, must-revalidate');
 header('Pragma: no-cache');
 
-// Récupérer les clients avec leur nombre de réservations
+// Récupérer les clients avec leur nombre de réservations et paiements
 try {
   $clients = $pdo->query("
         SELECT
             c.id, c.civilite, c.prenom, c.nom, c.email, c.telephone, c.ville,
             c.cin, c.actif, c.source, c.created_at,
-            COUNT(DISTINCT d.id) AS nb_reservations
+            COUNT(DISTINCT r.id) AS nb_reservations,
+            (SELECT COUNT(*) FROM paiements p LEFT JOIN factures f ON f.id = p.facture_id WHERE f.client_id = c.id) AS nb_paiements
         FROM clients c
-        LEFT JOIN devis_generes d
-            ON d.telephone COLLATE utf8mb4_unicode_ci = c.telephone COLLATE utf8mb4_unicode_ci
+        LEFT JOIN reservations r ON r.client_id = c.id AND r.deleted_at IS NULL
         WHERE c.deleted_at IS NULL
         GROUP BY c.id
         ORDER BY c.created_at DESC
@@ -22,9 +22,10 @@ try {
   $clients = [];
 }
 
-$total = count($clients);
-$actifs = count(array_filter($clients, fn($c) => $c['actif'] == 1));
-$avec_resa = count(array_filter($clients, fn($c) => $c['nb_reservations'] > 0));
+$total       = count($clients);
+$avec_resa   = count(array_filter($clients, fn($c) => $c['nb_reservations'] > 0));
+$avec_paiement = count(array_filter($clients, fn($c) => $c['nb_paiements'] > 0));
+$fideles     = count(array_filter($clients, fn($c) => $c['nb_reservations'] >= 2));
 
 $sourceLabels = [
   'site_web' => ['label' => 'Site web', 'icon' => 'fa-globe', 'color' => '#60A5FA'],
@@ -467,53 +468,7 @@ if (isset($_GET['msg'])) {
   <div class="sidebar-overlay" id="sidebarOverlay"></div>
   <div class="admin-layout">
 
-    <aside class="sidebar" id="sidebar">
-      <div class="sidebar-header">
-        <div class="logo-text" style="display:flex;flex-direction:column;align-items:center">
-          <span class="logo-traiteur"
-            style="font-size:.55rem;letter-spacing:4px;color:var(--text-muted)">TRAITEUR</span>
-          <span class="logo-name" style="font-size:1.1rem">EL MOUSSAOUI</span>
-          <span class="logo-sub" style="font-size:.65rem">Admin Panel v1.0</span>
-        </div>
-      </div>
-      <nav class="sidebar-nav">
-        <div class="sidebar-label">PRINCIPAL</div>
-        <a href="dashboard.php" class="sidebar-link"><i class="fas fa-tachometer-alt"></i> Tableau de bord</a>
-        <a href="reservations.php" class="sidebar-link"><i class="fas fa-calendar-check"></i> Réservations</a>
-        <a href="devis.php" class="sidebar-link"><i class="fas fa-file-invoice"></i> Devis</a>
-        <a href="clients.php" class="sidebar-link active"><i class="fas fa-users"></i> Clients</a>
-        <a href="factures.php" class="sidebar-link"><i class="fas fa-receipt"></i> Factures</a>
-        <a href="paiements.php" class="sidebar-link"><i class="fas fa-credit-card"></i> Paiements</a>
-        <div class="sidebar-label" style="margin-top:8px">CONTENU</div>
-        <a href="services-admin.php" class="sidebar-link"><i class="fas fa-concierge-bell"></i> Services</a>
-        <a href="packages-admin.php" class="sidebar-link"><i class="fas fa-box-open"></i> Packages</a>
-        <a href="../pages/galerie.php?edit=1" class="sidebar-link"><i class="fas fa-images"></i> Galerie</a>
-        <a href="blog-admin.php" class="sidebar-link"><i class="fas fa-pen-nib"></i> Blog</a>
-        <a href="temoignages-admin.php" class="sidebar-link"><i class="fas fa-star"></i> Témoignages</a>
-        <div class="sidebar-label" style="margin-top:8px">COMMUNICATION</div>
-        <a href="messages.php" class="sidebar-link"><i class="fas fa-envelope"></i> Messages</a>
-        <a href="notifications.php" class="sidebar-link"><i class="fas fa-bell"></i> Notifications</a>
-        <div class="sidebar-label" style="margin-top:8px">SYSTÈME</div>
-        <a href="utilisateurs.php" class="sidebar-link"><i class="fas fa-user-shield"></i> Utilisateurs</a>
-        <a href="parametres.php" class="sidebar-link"><i class="fas fa-cog"></i> Paramètres</a>
-        <a href="logs.php" class="sidebar-link"><i class="fas fa-history"></i> Journaux</a>
-      </nav>
-      <div class="sidebar-footer">
-        <div style="display:flex;align-items:center;gap:10px;padding:8px;border-radius:10px;background:var(--dark-3)">
-          <div class="admin-avatar" style="width:34px;height:34px;border-radius:8px">A</div>
-          <div style="flex:1;min-width:0">
-            <div style="font-size:.82rem;color:var(--white);font-weight:500">Admin ELM</div>
-            <div
-              style="font-size:.7rem;color:var(--text-muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">
-              admin@traiteur-elmoussaoui.ma</div>
-          </div>
-          <a href="logout.php" title="Déconnexion" style="color:var(--text-muted);font-size:.85rem"
-            onmouseover="this.style.color='var(--gold)'" onmouseout="this.style.color='var(--text-muted)'">
-            <i class="fas fa-sign-out-alt"></i>
-          </a>
-        </div>
-      </div>
-    </aside>
+    <?php $activePage = 'clients'; include_once __DIR__ . '/../includes/admin-sidebar.php'; ?>
 
     <main class="admin-main">
       <div class="admin-topbar">
@@ -553,14 +508,6 @@ if (isset($_GET['msg'])) {
           </div>
           <div class="stat-card">
             <div class="stat-card-header">
-              <div class="stat-card-icon" style="background:rgba(37,211,102,.1);color:#25D366"><i
-                  class="fas fa-user-check"></i></div>
-            </div>
-            <div class="stat-card-value"><?= $actifs ?></div>
-            <div class="stat-card-label">Clients actifs</div>
-          </div>
-          <div class="stat-card">
-            <div class="stat-card-header">
               <div class="stat-card-icon" style="background:rgba(59,130,246,.1);color:#60A5FA"><i
                   class="fas fa-calendar-check"></i></div>
             </div>
@@ -569,11 +516,19 @@ if (isset($_GET['msg'])) {
           </div>
           <div class="stat-card">
             <div class="stat-card-header">
-              <div class="stat-card-icon" style="background:rgba(168,85,247,.1);color:#C084FC"><i
-                  class="fas fa-city"></i></div>
+              <div class="stat-card-icon" style="background:rgba(37,211,102,.1);color:#25D366"><i
+                  class="fas fa-credit-card"></i></div>
             </div>
-            <div class="stat-card-value"><?= count(array_unique(array_column($clients, 'ville'))) ?></div>
-            <div class="stat-card-label">Villes différentes</div>
+            <div class="stat-card-value"><?= $avec_paiement ?></div>
+            <div class="stat-card-label">Avec paiement</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-card-header">
+              <div class="stat-card-icon" style="background:rgba(212,175,55,.1);color:var(--gold)"><i
+                  class="fas fa-crown"></i></div>
+            </div>
+            <div class="stat-card-value"><?= $fideles ?></div>
+            <div class="stat-card-label">Clients fidèles</div>
           </div>
         </div>
 
@@ -658,9 +613,9 @@ if (isset($_GET['msg'])) {
                       <td style="font-size:.75rem;color:#555"><?= $dateInscrit ?></td>
                       <td>
                         <div class="td-actions">
-                          <button class="act-btn" onclick='openFiche(<?= json_encode($c) ?>)' title="Voir la fiche">
+                          <a class="act-btn" href="client_details.php?id=<?= $c['id'] ?>" title="Voir la fiche complète">
                             <i class="fas fa-eye"></i>
-                          </button>
+                          </a>
                           <button class="act-btn" onclick='openEditModal(<?= json_encode($c) ?>)' title="Modifier">
                             <i class="fas fa-edit"></i>
                           </button>
@@ -765,18 +720,6 @@ if (isset($_GET['msg'])) {
     </div>
   </div>
 
-  <!-- Modal Fiche client -->
-  <div class="modal-overlay" id="ficheModal">
-    <div class="modal-box">
-      <div class="modal-header">
-        <h3><i class="fas fa-id-card" style="color:var(--gold);margin-right:8px"></i>Fiche client</h3>
-        <button class="modal-close" onclick="closeFiche()"><i class="fas fa-times"></i></button>
-      </div>
-      <div id="ficheContent"></div>
-      <div class="modal-footer">
-        <button class="btn-secondary" onclick="closeFiche()">Fermer</button>
-      </div>
-    </div>
   </div>
 
   <script>
@@ -834,48 +777,6 @@ if (isset($_GET['msg'])) {
     }
 
     function closeModal() { document.getElementById('clientModal').classList.remove('show'); }
-
-    // Fiche client
-    const sourceLabels = <?= json_encode($sourceLabels) ?>;
-    function openFiche(c) {
-      const src = sourceLabels[c.source || 'autre'] || sourceLabels['autre'];
-      const init = ((c.prenom || '')[0] || '').toUpperCase() + ((c.nom || '')[0] || '').toUpperCase();
-      const date = c.created_at ? new Date(c.created_at).toLocaleDateString('fr-FR') : '—';
-      const dernEv = c.dernier_evenement ? new Date(c.dernier_evenement).toLocaleDateString('fr-FR') : '—';
-
-      document.getElementById('ficheContent').innerHTML = `
-    <div class="fiche-header">
-      <div class="fiche-avatar">${init}</div>
-      <div>
-        <div class="fiche-name">${c.civilite} ${c.prenom} ${c.nom}</div>
-        <div class="fiche-sub">${c.email}</div>
-        <div class="fiche-sub" style="margin-top:4px">
-          <span class="source-badge" style="color:${src.color};background:var(--dark-3);padding:3px 10px;border-radius:20px;font-size:.7rem">
-            <i class="fas ${src.icon}"></i> ${src.label}
-          </span>
-        </div>
-      </div>
-    </div>
-    <div class="modal-body">
-      <div class="section-label">Coordonnées</div>
-      <div class="detail-grid" style="margin-bottom:16px">
-        <div class="detail-field"><label>Téléphone</label><span>${c.telephone || '—'}</span></div>
-        <div class="detail-field"><label>Téléphone 2</label><span>${c.telephone2 || '—'}</span></div>
-        <div class="detail-field"><label>Adresse</label><span>${c.adresse || '—'}</span></div>
-        <div class="detail-field"><label>Ville</label><span>${c.ville || 'Errachidia'}</span></div>
-        <div class="detail-field"><label>CIN</label><span>${c.cin || '—'}</span></div>
-        <div class="detail-field"><label>Client depuis</label><span>${date}</span></div>
-      </div>
-      <div class="section-label">Historique</div>
-      <div class="detail-grid" style="margin-bottom:16px">
-        <div class="detail-field"><label>Nb événements</label><span style="color:var(--gold);font-weight:700">${c.nb_reservations || 0}</span></div>
-        <div class="detail-field"><label>Dernier événement</label><span>${dernEv}</span></div>
-      </div>
-      ${c.notes_internes ? `<div class="section-label">Notes internes</div><div class="notes-box">${c.notes_internes}</div>` : ''}
-    </div>`;
-      document.getElementById('ficheModal').classList.add('show');
-    }
-    function closeFiche() { document.getElementById('ficheModal').classList.remove('show'); }
   </script>
 </body>
 
