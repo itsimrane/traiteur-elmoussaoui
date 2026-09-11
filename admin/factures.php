@@ -49,13 +49,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $numero = 'FAC-' . date('Y') . '-' . str_pad($lastId, 4, '0', STR_PAD_LEFT);
 
         $pdo->prepare("
-            INSERT INTO factures (numero, nom_client, email_client, telephone_client,
+            INSERT INTO factures (numero, client_id, reservation_id, nom_client, email_client, telephone_client,
                 type_evenement, date_evenement, nb_personnes, package_nom,
                 montant_ht, tva, montant_tva, montant_ttc, acompte, reste_a_payer,
                 statut, notes, date_echeance)
-            VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
+            VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
         ")->execute([
             $numero,
+            (int)($_POST['client_id'] ?? 0) ?: null,
+            (int)($_POST['reservation_id'] ?? 0) ?: null,
             sanitize($_POST['nom_client'] ?? ''),
             sanitize($_POST['email_client'] ?? ''),
             sanitize($_POST['telephone_client'] ?? ''),
@@ -90,8 +92,37 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 }
 
+// Pré-remplissage depuis un devis accepté (bouton "Facturer" dans devis.php)
+$prefillDevis = null;
+if (!empty($_GET['from_devis'])) {
+    try {
+        $pd = $pdo->prepare("
+            SELECT d.*, c.nom AS c_nom, c.prenom AS c_prenom, c.telephone AS c_tel, c.email AS c_email,
+                   te.nom AS type_nom
+            FROM devis d
+            LEFT JOIN clients c ON c.id = d.client_id
+            LEFT JOIN types_evenements te ON te.id = d.type_evenement_id
+            WHERE d.id = ?
+        ");
+        $pd->execute([(int)$_GET['from_devis']]);
+        $prefillDevis = $pd->fetch();
+    } catch (Exception $e) {}
+}
+$pfNom   = $prefillDevis ? trim(($prefillDevis['c_prenom']??'').' '.($prefillDevis['c_nom']??'')) : '';
+$pfTel   = $prefillDevis['c_tel'] ?? '';
+$pfEmail = $prefillDevis['c_email'] ?? '';
+$pfDate  = $prefillDevis['date_evenement'] ?? '';
+$pfNb    = $prefillDevis['nbr_invites'] ?? '';
+$pfHT    = $prefillDevis['montant_ht'] ?? '';
+$pfTva   = $prefillDevis['tva_pct'] ?? 20;
+
 // Récupérer toutes les factures
-$factures = $pdo->query("SELECT * FROM factures ORDER BY created_at DESC")->fetchAll();
+$factures = $pdo->query("
+    SELECT f.*, r.reference AS resa_ref
+    FROM factures f
+    LEFT JOIN reservations r ON r.id = f.reservation_id
+    ORDER BY f.created_at DESC
+")->fetchAll();
 $packages = $pdo->query("SELECT nom FROM packages WHERE actif=1 ORDER BY ordre")->fetchAll(PDO::FETCH_COLUMN);
 
 // Stats
@@ -281,6 +312,9 @@ $msgType = $_GET['type'] ?? 'success';
               <td>
                 <div style="color:var(--white);font-size:.84rem;font-weight:600"><?= htmlspecialchars($f['nom_client']) ?></div>
                 <div style="font-size:.73rem;color:#555"><?= htmlspecialchars($f['telephone_client'] ?? '') ?></div>
+                <?php if (!empty($f['resa_ref'])): ?>
+                <div style="font-size:.68rem;color:var(--gold);margin-top:2px"><i class="fas fa-link"></i> <?= htmlspecialchars($f['resa_ref']) ?></div>
+                <?php endif; ?>
               </td>
               <td>
                 <span style="background:var(--dark-3);padding:3px 10px;border-radius:6px;font-size:.75rem">
@@ -333,19 +367,28 @@ $msgType = $_GET['type'] ?? 'success';
     </div>
     <form method="POST">
       <input type="hidden" name="action" value="add">
+      <input type="hidden" name="client_id" id="prefillClientId" value="<?= $prefillDevis ? (int)$prefillDevis['client_id'] : '' ?>">
+      <input type="hidden" name="reservation_id" id="prefillReservationId" value="<?= $prefillDevis ? (int)$prefillDevis['reservation_id'] : '' ?>">
+      <?php if ($prefillDevis): ?>
+      <div class="modal-body" style="padding-bottom:0">
+        <div style="background:rgba(212,175,55,.08);border:1px solid rgba(212,175,55,.25);border-radius:8px;padding:10px 14px;font-size:.78rem;color:var(--gold);margin-bottom:4px">
+          <i class="fas fa-link"></i> Facture générée depuis le devis <?= htmlspecialchars($prefillDevis['reference']) ?>
+        </div>
+      </div>
+      <?php endif; ?>
       <div class="modal-body">
         <div class="form-grid" style="margin-bottom:12px">
           <div class="form-group form-full">
             <label class="form-label" data-fr="Nom du client *" data-ar="اسم العميل *">Nom du client *</label>
-            <input type="text" name="nom_client" class="form-control" placeholder="Prénom Nom" data-fr-placeholder="Prénom Nom" data-ar-placeholder="الاسم الكامل" required>
+            <input type="text" name="nom_client" class="form-control" placeholder="Prénom Nom" data-fr-placeholder="Prénom Nom" data-ar-placeholder="الاسم الكامل" value="<?= htmlspecialchars($pfNom) ?>" required>
           </div>
           <div class="form-group">
             <label class="form-label" data-fr="Téléphone" data-ar="الهاتف">Téléphone</label>
-            <input type="tel" name="telephone_client" class="form-control" placeholder="06XXXXXXXX" data-fr-placeholder="06XXXXXXXX" data-ar-placeholder="06XXXXXXXX">
+            <input type="tel" name="telephone_client" class="form-control" placeholder="06XXXXXXXX" data-fr-placeholder="06XXXXXXXX" data-ar-placeholder="06XXXXXXXX" value="<?= htmlspecialchars($pfTel) ?>">
           </div>
           <div class="form-group">
             <label class="form-label" data-fr="Email" data-ar="البريد الإلكتروني">Email</label>
-            <input type="email" name="email_client" class="form-control">
+            <input type="email" name="email_client" class="form-control" value="<?= htmlspecialchars($pfEmail) ?>">
           </div>
           <div class="form-group">
             <label class="form-label" data-fr="Type d'événement" data-ar="نوع المناسبة">Type d'événement</label>
@@ -361,11 +404,11 @@ $msgType = $_GET['type'] ?? 'success';
           </div>
           <div class="form-group">
             <label class="form-label" data-fr="Date événement" data-ar="تاريخ المناسبة">Date événement</label>
-            <input type="date" name="date_evenement" class="form-control">
+            <input type="date" name="date_evenement" class="form-control" value="<?= htmlspecialchars($pfDate) ?>">
           </div>
           <div class="form-group">
             <label class="form-label">Nombre d'invités</label>
-            <input type="number" name="nb_personnes" class="form-control" placeholder="100" min="1">
+            <input type="number" name="nb_personnes" class="form-control" placeholder="100" min="1" value="<?= htmlspecialchars($pfNb) ?>">
           </div>
           <div class="form-group">
             <label class="form-label" data-fr="Package" data-ar="الباقة">Package</label>
@@ -382,11 +425,11 @@ $msgType = $_GET['type'] ?? 'success';
           </div>
           <div class="form-group">
             <label class="form-label">Montant HT (MAD) *</label>
-            <input type="number" name="montant_ht" id="montantHT" class="form-control" placeholder="18000" min="0" step="100" oninput="calcTotal()" required>
+            <input type="number" name="montant_ht" id="montantHT" class="form-control" placeholder="18000" min="0" step="100" oninput="calcTotal()" value="<?= htmlspecialchars($pfHT) ?>" required>
           </div>
           <div class="form-group">
             <label class="form-label" data-fr="TVA (%)" data-ar="الضريبة (%)">TVA (%)</label>
-            <input type="number" name="tva" id="tvaInput" class="form-control" value="0" min="0" max="100" step="0.5" oninput="calcTotal()">
+            <input type="number" name="tva" id="tvaInput" class="form-control" value="<?= htmlspecialchars($pfTva) ?>" min="0" max="100" step="0.5" oninput="calcTotal()">
           </div>
           <div class="form-group">
             <label class="form-label">Acompte reçu (MAD)</label>
@@ -499,6 +542,9 @@ function calcTotal() {
 // Modals
 function openAddModal() { document.getElementById('addModal').classList.add('show'); }
 function closeAdd()     { document.getElementById('addModal').classList.remove('show'); }
+<?php if ($prefillDevis): ?>
+document.addEventListener('DOMContentLoaded', () => { openAddModal(); calcTotal(); });
+<?php endif; ?>
 
 const sc = <?= json_encode($statutConfig) ?>;
 function openDetail(f) {

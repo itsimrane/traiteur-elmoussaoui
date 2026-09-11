@@ -214,6 +214,9 @@ $statutConfig = [
                   <a href="https://wa.me/212<?= ltrim(preg_replace('/[^0-9]/','',$d['c_tel']), '0') ?>?text=<?= urlencode("Bonjour, voici votre devis {$d['reference']} de Traiteur EL MOUSSAOUI : ") ?>"
                      target="_blank" class="ok" title="Envoyer au client (WhatsApp)"><i class="fab fa-whatsapp"></i></a>
                   <?php endif; ?>
+                  <?php if ($d['statut'] === 'accepte' && !$d['facture_id']): ?>
+                  <a href="factures.php?from_devis=<?= $d['id'] ?>" class="ok" title="Générer la facture"><i class="fas fa-file-invoice-dollar"></i></a>
+                  <?php endif; ?>
                   <form method="POST" style="display:contents">
                     <input type="hidden" name="action" value="update_statut">
                     <input type="hidden" name="id" value="<?= $d['id'] ?>">
