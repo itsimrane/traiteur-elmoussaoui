@@ -254,6 +254,12 @@ function timeAgo(string $time): string
       margin-bottom: 24px
     }
 
+    @media(max-width:600px) {
+      .today-stats {
+        grid-template-columns: 1fr
+      }
+    }
+
     .info-card {
       background: var(--dark-card);
       border: 1px solid var(--border);

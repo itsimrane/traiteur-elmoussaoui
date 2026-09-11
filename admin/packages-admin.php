@@ -59,6 +59,7 @@ $packages = $pdo->query("SELECT * FROM packages WHERE actif = 1 ORDER BY ordre A
     .section-hd { font-size:.7rem; color:var(--text-muted); font-weight:700; text-transform:uppercase; letter-spacing:.6px; margin-bottom:10px; display:flex; align-items:center; gap:6px; }
     .section-hd i { color:var(--gold); }
     .form-row-2 { display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-bottom:14px; }
+    @media(max-width:480px){.form-row-2{grid-template-columns:1fr}}
     .price-wrap { position:relative; }
     .price-wrap input { padding-right:56px !important; }
     .price-wrap .cur { position:absolute; right:12px; top:50%; transform:translateY(-50%); font-size:.75rem; color:#555; font-weight:700; }

@@ -151,6 +151,8 @@ $icones = [
     .icon-opt{display:flex;flex-direction:column;align-items:center;gap:4px;padding:8px;border-radius:8px;border:1px solid var(--border);cursor:pointer;transition:var(--transition);font-size:.65rem;color:var(--text-muted)}
     .icon-opt:hover,.icon-opt.selected{border-color:var(--gold);background:rgba(212,175,55,.08);color:var(--gold)}
     .icon-opt i{font-size:1.1rem}
+    @media(max-width:600px){.icon-grid{grid-template-columns:repeat(4,1fr)}}
+    @media(max-width:480px){.form-grid{grid-template-columns:1fr}}
 
     /* Empty */
     .empty-state{text-align:center;padding:60px 20px;color:var(--text-muted)}

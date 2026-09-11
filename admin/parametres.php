@@ -150,6 +150,8 @@ $ongletActif = $_GET['tab'] ?? 'general';
     .save-bar{position:sticky;bottom:0;background:var(--dark-card);border-top:1px solid var(--border);padding:14px 20px;display:flex;align-items:center;justify-content:space-between;margin-top:20px;border-radius:0 0 var(--radius) var(--radius)}
     .save-hint{font-size:.78rem;color:var(--text-muted)}
     @media(max-width:900px){.param-row{grid-template-columns:1fr}}
+    .theme-colors-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}
+    @media(max-width:600px){.theme-colors-grid{grid-template-columns:repeat(2,1fr)}}
   </style>
 </head>
 <body>
@@ -279,7 +281,7 @@ $ongletActif = $_GET['tab'] ?? 'general';
                   <h3>Aperçu du thème</h3>
                 </div>
                 <div class="params-card-body">
-                  <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px">
+                  <div class="theme-colors-grid">
                     <?php
                     $couleurs = [
                       'Principale (Or)' => $grouped['apparence'][0]['valeur'] ?? '#D4AF37',

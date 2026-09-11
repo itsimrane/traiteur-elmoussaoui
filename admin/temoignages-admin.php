@@ -116,6 +116,7 @@ $msgType = $_GET['type'] ?? 'success';
     .modal-body{padding:22px}
     .modal-footer{padding:14px 22px;border-top:1px solid var(--border);display:flex;gap:10px;justify-content:flex-end}
     .form-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+    @media(max-width:480px){.form-grid{grid-template-columns:1fr}}
     .form-full{grid-column:1/-1}
 
     /* Star rating input */
