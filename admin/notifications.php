@@ -2,6 +2,41 @@
 require_once __DIR__ . '/../includes/config.php';
 requireAdmin();
 
+// ── Suivi des notifications masquées ("lues") ──────────────────
+// Comme les alertes sont recalculées en direct (jamais périmées),
+// on garde juste une petite table listant celles que l'admin a
+// déjà vues, pour ne plus les afficher.
+try {
+    $pdo->exec("CREATE TABLE IF NOT EXISTS `notifications_masquees` (
+        `notif_id` VARCHAR(50) NOT NULL,
+        `masque_le` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        PRIMARY KEY (`notif_id`)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
+} catch (Exception $e) {}
+
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    $action = $_POST['action'] ?? '';
+
+    if ($action === 'mark_lu' && !empty($_POST['notif_id'])) {
+        $pdo->prepare("INSERT IGNORE INTO notifications_masquees (notif_id) VALUES (?)")
+            ->execute([sanitize($_POST['notif_id'])]);
+        header('Location: notifications.php'); exit;
+    }
+
+    if ($action === 'mark_all_lu') {
+        // On masque toutes les alertes actuellement affichées
+        $ids = json_decode($_POST['all_ids'] ?? '[]', true) ?: [];
+        $stmt = $pdo->prepare("INSERT IGNORE INTO notifications_masquees (notif_id) VALUES (?)");
+        foreach ($ids as $nid) { $stmt->execute([$nid]); }
+        header('Location: notifications.php?msg=Toutes+les+notifications+marquées+comme+lues&type=success'); exit;
+    }
+}
+
+$masquees = [];
+try {
+    $masquees = $pdo->query("SELECT notif_id FROM notifications_masquees")->fetchAll(PDO::FETCH_COLUMN);
+} catch (Exception $e) {}
+
 // Créer des notifications auto depuis les vraies tables
 function genNotifications(PDO $pdo): array
 {
@@ -107,6 +142,8 @@ function genNotifications(PDO $pdo): array
 }
 
 $notifs = genNotifications($pdo);
+// On retire celles déjà marquées comme lues
+$notifs = array_values(array_filter($notifs, fn($n) => !in_array($n['id'], $masquees, true)));
 $total = count($notifs);
 $nonLues = count(array_filter($notifs, fn($n) => !$n['lu']));
 
@@ -430,6 +467,15 @@ function timeAgo(string $time): string
           </div>
         </div>
         <div class="topbar-actions">
+          <?php if ($total > 0): ?>
+          <form method="POST" style="display:inline">
+            <input type="hidden" name="action" value="mark_all_lu">
+            <input type="hidden" name="all_ids" value='<?= htmlspecialchars(json_encode(array_column($notifs, "id"))) ?>'>
+            <button type="submit" class="topbar-btn" style="width:auto;padding:0 14px;font-size:.78rem" title="Tout marquer comme lu">
+              <i class="fas fa-check-double"></i> Tout marquer lu
+            </button>
+          </form>
+          <?php endif; ?>
           <button class="topbar-btn" onclick="location.reload()" title="Actualiser"><i
               class="fas fa-sync-alt"></i></button>
           <div class="admin-avatar">A</div>
@@ -437,6 +483,12 @@ function timeAgo(string $time): string
       </div>
 
       <div class="admin-content">
+
+        <?php if (!empty($_GET['msg'])): ?>
+        <div class="alert alert-<?= ($_GET['type'] ?? '') === 'success' ? 'success' : 'error' ?>" style="margin-bottom:20px">
+          <i class="fas fa-check-circle"></i> <?= htmlspecialchars($_GET['msg']) ?>
+        </div>
+        <?php endif; ?>
 
         <!-- Stats -->
         <div class="stats-grid" style="margin-bottom:24px">
@@ -542,23 +594,33 @@ function timeAgo(string $time): string
                   <div class="notif-date-sep" data-type="<?= $n['type'] ?>"><?= $dateLbl ?></div>
                 <?php endif; ?>
 
-                <a href="<?= htmlspecialchars($n['lien']) ?>" class="notif-item unread" data-type="<?= $n['type'] ?>">
-                  <div class="notif-icon-wrap" style="background:<?= $n['bg'] ?>;color:<?= $n['color'] ?>">
-                    <i class="fas <?= $n['icon'] ?>"></i>
-                  </div>
-                  <div class="notif-body">
-                    <div class="notif-title"><?= htmlspecialchars($n['titre']) ?></div>
-                    <div class="notif-desc"><?= htmlspecialchars($n['desc']) ?></div>
-                    <div class="notif-time">
-                      <i class="fas fa-clock"></i>
-                      <?= timeAgo($n['time']) ?>
-                      <span class="type-badge" style="background:<?= $n['bg'] ?>;color:<?= $n['color'] ?>;margin-left:6px">
-                        <?= $typeStats[$n['type']]['label'] ?? $n['type'] ?>
-                      </span>
+                <div class="notif-item unread" data-type="<?= $n['type'] ?>" style="display:flex;align-items:center">
+                  <a href="<?= htmlspecialchars($n['lien']) ?>" style="display:flex;align-items:center;flex:1;text-decoration:none;color:inherit;gap:14px">
+                    <div class="notif-icon-wrap" style="background:<?= $n['bg'] ?>;color:<?= $n['color'] ?>">
+                      <i class="fas <?= $n['icon'] ?>"></i>
                     </div>
-                  </div>
+                    <div class="notif-body">
+                      <div class="notif-title"><?= htmlspecialchars($n['titre']) ?></div>
+                      <div class="notif-desc"><?= htmlspecialchars($n['desc']) ?></div>
+                      <div class="notif-time">
+                        <i class="fas fa-clock"></i>
+                        <?= timeAgo($n['time']) ?>
+                        <span class="type-badge" style="background:<?= $n['bg'] ?>;color:<?= $n['color'] ?>;margin-left:6px">
+                          <?= $typeStats[$n['type']]['label'] ?? $n['type'] ?>
+                        </span>
+                      </div>
+                    </div>
+                  </a>
+                  <form method="POST" style="flex-shrink:0;margin-right:6px">
+                    <input type="hidden" name="action" value="mark_lu">
+                    <input type="hidden" name="notif_id" value="<?= htmlspecialchars($n['id']) ?>">
+                    <button type="submit" title="Marquer comme lu"
+                      style="width:30px;height:30px;border-radius:8px;border:1px solid var(--border);background:none;color:var(--text-muted);cursor:pointer">
+                      <i class="fas fa-check"></i>
+                    </button>
+                  </form>
                   <span class="notif-action"><i class="fas fa-chevron-right"></i></span>
-                </a>
+                </div>
               <?php endforeach; ?>
             </div>
           </div>

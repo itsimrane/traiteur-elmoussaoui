@@ -164,7 +164,16 @@ $msgType = $_GET['type'] ?? 'success';
     .table-topbar{padding:16px 22px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--border);flex-wrap:wrap;gap:12px}
     .search-input{background:var(--dark-3);border:1px solid var(--border);border-radius:8px;padding:8px 14px;color:var(--white);font-size:.82rem;outline:none;width:220px}
     .search-input:focus{border-color:var(--gold)}
-    table{width:100%;border-collapse:collapse}
+    table{width:100%;border-collapse:collapse;table-layout:fixed}
+    #facTable th:nth-child(1),#facTable td:nth-child(1){width:11%}
+    #facTable th:nth-child(2),#facTable td:nth-child(2){width:16%}
+    #facTable th:nth-child(3),#facTable td:nth-child(3){width:10%}
+    #facTable th:nth-child(4),#facTable td:nth-child(4){width:12%}
+    #facTable th:nth-child(5),#facTable td:nth-child(5){width:11%}
+    #facTable th:nth-child(6),#facTable td:nth-child(6){width:12%}
+    #facTable th:nth-child(7),#facTable td:nth-child(7){width:11%}
+    #facTable th:nth-child(8),#facTable td:nth-child(8){width:9%}
+    #facTable th:nth-child(9),#facTable td:nth-child(9){width:8%}
     thead th{padding:11px 16px;font-size:.7rem;color:var(--text-muted);font-weight:700;text-transform:uppercase;letter-spacing:.5px;border-bottom:1px solid var(--border);text-align:left;white-space:nowrap}
     tbody tr{border-bottom:1px solid rgba(255,255,255,.04);transition:var(--transition)}
     tbody tr:last-child{border-bottom:none}
@@ -180,8 +189,6 @@ $msgType = $_GET['type'] ?? 'success';
     .amount-col{font-family:var(--ff-display);font-size:.95rem;font-weight:700;color:var(--white);white-space:nowrap}
     .reste-col{color:#FBB724;font-weight:600;white-space:nowrap}
     .reste-zero{color:#25D366;white-space:nowrap}
-    td{white-space:nowrap}
-    td.td-client-cell,.td-actions{white-space:normal}
 
     /* Modal */
     .modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:2000;align-items:center;justify-content:center;padding:20px}
