@@ -56,7 +56,7 @@ try {
     $stmt = $pdo->prepare("
         SELECT d.*, c.nom AS c_nom, c.prenom AS c_prenom, c.telephone AS c_tel,
                te.nom AS type_nom, r.reference AS resa_ref,
-               f.montant_paye AS facture_paye, f.montant_ttc AS facture_ttc, f.id AS facture_id
+               f.acompte AS facture_paye, f.montant_ttc AS facture_ttc, f.id AS facture_id
         FROM devis d
         LEFT JOIN clients c ON c.id = d.client_id
         LEFT JOIN types_evenements te ON te.id = d.type_evenement_id
