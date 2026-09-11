@@ -1,5 +1,6 @@
 <?php
 require_once __DIR__ . '/../includes/config.php';
+require_once __DIR__ . '/../includes/pricing.php';
 header('Content-Type: application/json; charset=utf-8');
 
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
@@ -19,10 +20,22 @@ $date      = !empty($data['date']) ? $data['date'] : date('Y-m-d', strtotime('+3
 $ville     = sanitize($data['ville']     ?? '');
 $nb        = (int)($data['nb'] ?? 0) ?: 100;
 $message   = sanitize($data['message']  ?? '');
-$total     = (float)($data['total']     ?? 0);
 $services  = $data['services'] ?? [];
 
 if (!$telephone) jsonResponse(['success'=>false,'message'=>'Téléphone requis']);
+if ($nb <= 0) jsonResponse(['success'=>false,'message'=>'Le nombre d\'invités doit être supérieur à 0']);
+if (strtotime($date) < strtotime('today')) jsonResponse(['success'=>false,'message'=>'La date de l\'événement ne peut pas être dans le passé']);
+
+// ── Recalcul serveur du prix — SOURCE DE VÉRITÉ ─────────────────
+// On ignore complètement les prix envoyés par le navigateur : on ne
+// garde que les IDs des services choisis, et on recalcule tout
+// depuis la base de données (protection contre la manipulation
+// des prix côté client).
+$serviceIds = array_map(fn($s) => (int)($s['id'] ?? 0), $services);
+$serviceIds = array_filter($serviceIds);
+$calcul = recalculerDevis($serviceIds, $nb, $pdo);
+$lignesCalculees = $calcul['lignes'];
+$total = $calcul['total'];
 
 $pdo->beginTransaction();
 try {
@@ -73,15 +86,13 @@ try {
     ")->execute([$numero, $clientId, $typeId, $date, $nb, $ville, $message, $total, $reservationId]);
     $devisId = $pdo->lastInsertId();
 
-    // ── 5. Lignes de devis (services choisis) ─────────────────────
+    // ── 5. Lignes de devis (quantité × prix unitaire réellement calculés) ─
     $ordre = 0;
-    foreach ($services as $s) {
-        $nomService = sanitize($s['nom'] ?? 'Service');
-        $prix = isset($s['prix']) ? (float)$s['prix'] : 0;
+    foreach ($lignesCalculees as $l) {
         $pdo->prepare("
             INSERT INTO devis_lignes (devis_id, designation, quantite, prix_unitaire, ordre)
-            VALUES (?,?,1,?,?)
-        ")->execute([$devisId, $nomService, $prix, $ordre++]);
+            VALUES (?,?,?,?,?)
+        ")->execute([$devisId, $l['nom'], $l['quantite'] ?: 1, $l['prix_unitaire'], $ordre++]);
     }
 
     // ── 6. Notification admin (best-effort, ne bloque pas l'envoi) ─
@@ -105,6 +116,8 @@ try {
         'numero'         => $numero,
         'reservation_id' => $reservationId,
         'devis_id'       => $devisId,
+        'total'          => $total,
+        'lignes'         => $lignesCalculees,
     ]);
 
 } catch (Exception $e) {
