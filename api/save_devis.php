@@ -63,28 +63,36 @@ try {
     }
 
     // ── 3. Réservation ────────────────────────────────────────────
-    $lastResId = (int)$pdo->query("SELECT COALESCE(MAX(id),0)+1 FROM reservations")->fetchColumn();
-    $refRes = 'RES-' . date('Y') . '-' . str_pad($lastResId, 4, '0', STR_PAD_LEFT);
+    // On insère d'abord avec une référence temporaire unique (basée sur
+    // le temps), puis on la remplace par la référence finale calculée à
+    // partir du VRAI id attribué — jamais une estimation, pour éviter
+    // toute collision si d'anciens enregistrements ont été supprimés.
+    $tempRefRes = 'TMP-' . uniqid();
 
     $pdo->prepare("
         INSERT INTO reservations
             (reference, client_id, type_evenement_id, date_evenement, nbr_invites,
              lieu, statut, notes_client, montant_total, created_at)
         VALUES (?,?,?,?,?,?,'en_attente',?,?,NOW())
-    ")->execute([$refRes, $clientId, $typeId, $date, $nb, $ville, $message, $total]);
+    ")->execute([$tempRefRes, $clientId, $typeId, $date, $nb, $ville, $message, $total]);
     $reservationId = $pdo->lastInsertId();
 
+    $refRes = 'RES-' . date('Y') . '-' . str_pad($reservationId, 4, '0', STR_PAD_LEFT);
+    $pdo->prepare("UPDATE reservations SET reference=? WHERE id=?")->execute([$refRes, $reservationId]);
+
     // ── 4. Devis lié à la réservation ────────────────────────────
-    $lastDevisId = (int)$pdo->query("SELECT COALESCE(MAX(id),0)+1 FROM devis")->fetchColumn();
-    $numero = 'DEV-' . date('Y') . '-' . str_pad($lastDevisId, 4, '0', STR_PAD_LEFT);
+    $tempNumero = 'TMP-' . uniqid();
 
     $pdo->prepare("
         INSERT INTO devis
             (reference, client_id, type_evenement_id, date_evenement, nbr_invites, lieu,
              message, statut, montant_ht, tva_pct, reservation_id, date_expiration, created_at)
         VALUES (?,?,?,?,?,?,?,'recu',?,20,?, DATE_ADD(NOW(), INTERVAL 30 DAY), NOW())
-    ")->execute([$numero, $clientId, $typeId, $date, $nb, $ville, $message, $total, $reservationId]);
+    ")->execute([$tempNumero, $clientId, $typeId, $date, $nb, $ville, $message, $total, $reservationId]);
     $devisId = $pdo->lastInsertId();
+
+    $numero = 'DEV-' . date('Y') . '-' . str_pad($devisId, 4, '0', STR_PAD_LEFT);
+    $pdo->prepare("UPDATE devis SET reference=? WHERE id=?")->execute([$numero, $devisId]);
 
     // ── 5. Lignes de devis (quantité × prix unitaire réellement calculés) ─
     $ordre = 0;
