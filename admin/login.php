@@ -1,7 +1,8 @@
 <?php
 /**
  * Page : admin/login.php
- * Traiteur EL MOUSSAOUI — Authentification réelle via session PHP
+ * Traiteur EL MOUSSAOUI — Authentification réelle via base de données
+ * (users + roles), mots de passe hashés (bcrypt), sessions sécurisées.
  */
 require_once __DIR__ . '/../includes/config.php';
 
@@ -18,25 +19,58 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $email = trim($_POST['email'] ?? '');
     $pw    = $_POST['password'] ?? '';
 
-    // Identifiants valides (en production : vérifier en BDD avec password_verify)
-    $valid_email = 'admin@traiteur-elmoussaoui.ma';
-    $valid_pw    = 'Admin@2025';
-
-    if ($email === $valid_email && $pw === $valid_pw) {
-        // Créer la session admin
-        $_SESSION['admin_id']    = 1;
-        $_SESSION['admin_email'] = $email;
-        $_SESSION['admin_nom']   = 'Administrateur';
-        $_SESSION['user_role']   = 'admin';
-        $_SESSION['login_time']  = time();
-
-        // Régénérer l'ID de session pour sécurité
-        session_regenerate_id(true);
-
-        header('Location: dashboard.php');
-        exit;
+    if ($email === '' || $pw === '') {
+        $error = 'Merci de renseigner votre email et votre mot de passe.';
     } else {
-        $error = 'Email ou mot de passe incorrect.';
+        try {
+            $stmt = $pdo->prepare("
+                SELECT u.id, u.nom, u.prenom, u.email, u.password, u.actif,
+                       r.nom AS role_nom, r.label AS role_label
+                FROM users u
+                JOIN roles r ON r.id = u.role_id
+                WHERE u.email = ? AND u.deleted_at IS NULL
+                LIMIT 1
+            ");
+            $stmt->execute([$email]);
+            $user = $stmt->fetch();
+
+            // On vérifie le mot de passe même si l'utilisateur n'existe pas
+            // (avec un hash factice) pour ne jamais révéler par le temps de
+            // réponse si un email existe ou non dans la base.
+            $hashToCheck = $user['password'] ?? '$2y$12$invalidinvalidinvalidinvalidinvalidinvalidinvalidinva';
+            $motDePasseValide = password_verify($pw, $hashToCheck);
+
+            if (!$user || !$motDePasseValide) {
+                $error = 'Email ou mot de passe incorrect.';
+            } elseif (!$user['actif']) {
+                $error = 'Ce compte est désactivé. Contactez un administrateur.';
+            } elseif (!in_array($user['role_nom'], ['super_admin', 'admin', 'gestionnaire'], true)) {
+                // Compte existant mais rôle client (ou autre) → pas d'accès admin
+                $error = 'Accès non autorisé pour ce compte.';
+            } else {
+                // ── Connexion réussie ────────────────────────────
+                $_SESSION['admin_id']    = $user['id'];
+                $_SESSION['admin_email'] = $user['email'];
+                $_SESSION['admin_nom']   = trim($user['prenom'] . ' ' . $user['nom']);
+                $_SESSION['user_role']   = $user['role_nom'];
+                $_SESSION['role_label']  = $user['role_label'];
+                $_SESSION['login_time']  = time();
+
+                // Régénérer l'ID de session pour éviter la fixation de session
+                session_regenerate_id(true);
+
+                // Mettre à jour la dernière connexion (best-effort)
+                try {
+                    $pdo->prepare("UPDATE users SET derniere_connexion = NOW() WHERE id = ?")
+                        ->execute([$user['id']]);
+                } catch (Exception $e) {}
+
+                header('Location: dashboard.php');
+                exit;
+            }
+        } catch (Exception $e) {
+            $error = 'Erreur de connexion. Merci de réessayer.';
+        }
     }
 }
 ?>
@@ -77,8 +111,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     .remember-row label { display:flex; align-items:center; gap:8px; font-size:0.82rem; color:var(--text-muted); cursor:pointer; }
     .remember-row input[type="checkbox"] { accent-color:var(--gold); }
     .btn-login { width:100%; padding:14px; font-size:0.95rem; font-weight:600; letter-spacing:0.5px; }
-    .demo-hint { margin-top:16px; padding:12px 16px; background:rgba(212,175,55,0.06); border:1px dashed var(--border); border-radius:10px; font-size:0.78rem; color:var(--text-muted); }
-    .demo-hint strong { color:var(--gold); }
     .login-error { background:rgba(239,68,68,0.1); border:1px solid rgba(239,68,68,0.3); border-radius:10px; padding:12px 16px; margin-bottom:16px; font-size:0.84rem; color:#F87171; display:flex; align-items:center; gap:8px; }
     .glow-orb { position:fixed; width:400px; height:400px; border-radius:50%; background:radial-gradient(circle, rgba(212,175,55,0.06) 0%, transparent 70%); pointer-events:none; }
     .glow-orb.top { top:-100px; right:-100px; }
@@ -116,7 +148,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         <div class="input-icon">
           <i class="fas fa-envelope"></i>
           <input type="email" name="email" class="form-control" id="loginEmail"
-                 placeholder="admin@traiteur-elmoussaoui.ma"
+                 placeholder="votre@email.ma"
                  value="<?= htmlspecialchars($_POST['email'] ?? '') ?>"
                  required autofocus>
         </div>
@@ -142,11 +174,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         <i class="fas fa-sign-in-alt"></i> Se connecter
       </button>
     </form>
-
-    <div class="demo-hint">
-      <i class="fas fa-info-circle" style="color:var(--gold);margin-right:6px"></i>
-      <span>Email : <strong>admin@traiteur-elmoussaoui.ma</strong> · MDP : <strong>Admin@2025</strong></span>
-    </div>
 
     <div class="login-footer" style="margin-top:20px;text-align:center">
       <a href="../index.php" style="color:var(--text-muted);font-size:.82rem">
