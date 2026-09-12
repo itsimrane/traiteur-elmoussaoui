@@ -156,6 +156,9 @@ $statutConfig = [
         <i class="fas fa-exclamation-circle"></i> Erreur base de données : <?= htmlspecialchars($erreurBdd) ?>
       </div>
       <?php endif; ?>
+      <div style="background:#222;border:1px dashed orange;padding:12px;margin-bottom:20px;font-size:.75rem;color:#ccc;font-family:monospace">
+        DEBUG TEMPORAIRE — WHERE: <?= htmlspecialchars($whereSql) ?> | PARAMS: <?= htmlspecialchars(json_encode($params)) ?> | LIGNES TROUVÉES: <?= count($reservations) ?>
+      </div>
 
       <!-- Compteurs -->
       <div class="stats-grid" style="margin-bottom:20px">
