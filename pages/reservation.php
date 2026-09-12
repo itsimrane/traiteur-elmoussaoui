@@ -554,6 +554,13 @@ $typesEvenements = [
       margin: 0 auto
     }
 
+    .event-details-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 16px;
+      margin-top: 24px
+    }
+
     @media(max-width:768px) {
       .event-types-grid {
         grid-template-columns: repeat(2, 1fr)
@@ -572,6 +579,10 @@ $typesEvenements = [
       .selected-services-list {
         max-width: 100%;
         justify-content: center
+      }
+
+      .event-details-grid {
+        grid-template-columns: 1fr
       }
     }
 
@@ -660,7 +671,7 @@ $typesEvenements = [
             <?php endforeach; ?>
           </div>
 
-          <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px;margin-top:24px">
+          <div class="event-details-grid">
             <div class="form-group">
               <label class="form-label" data-fr="Date de l'événement *" data-ar="تاريخ المناسبة *">Date de l'événement
                 *</label>
