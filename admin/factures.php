@@ -44,7 +44,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $acompte    = (float)($_POST['acompte'] ?? 0);
         $reste      = round($montantTTC - $acompte, 2);
 
-        // Générer numéro auto
         $lastId = $pdo->query("SELECT MAX(id) FROM factures")->fetchColumn() + 1;
         $numero = 'FAC-' . date('Y') . '-' . str_pad($lastId, 4, '0', STR_PAD_LEFT);
 
@@ -128,21 +127,24 @@ $packages = $pdo->query("SELECT nom FROM packages WHERE actif=1 ORDER BY ordre")
 // Stats
 $total       = count($factures);
 $totalHT     = array_sum(array_column($factures, 'montant_ttc'));
-$payees      = array_filter($factures, fn($f) => $f['statut'] === 'payee');
-$enAttente   = array_filter($factures, fn($f) => in_array($f['statut'], ['envoyee','partiellement_payee']));
 $totalEncaisse = array_sum(array_column($factures, 'acompte'));
 $totalReste    = array_sum(array_column($factures, 'reste_a_payer'));
 
 $statutConfig = [
-    'brouillon'           => ['label' => 'Brouillon',       'color' => '#888',    'bg' => 'rgba(136,136,136,.12)'],
-    'envoyee'             => ['label' => 'Envoyée',          'color' => '#60A5FA', 'bg' => 'rgba(59,130,246,.12)'],
-    'payee'               => ['label' => 'Payée ✓',          'color' => '#25D366', 'bg' => 'rgba(37,211,102,.12)'],
-    'partiellement_payee' => ['label' => 'Partiel',          'color' => '#FBB724', 'bg' => 'rgba(251,183,36,.12)'],
-    'annulee'             => ['label' => 'Annulée',          'color' => '#EF5350', 'bg' => 'rgba(239,68,68,.12)'],
+    'brouillon'           => ['label' => 'Brouillon',  'color' => '#888',    'bg' => 'rgba(136,136,136,.12)'],
+    'envoyee'             => ['label' => 'Envoyée',    'color' => '#60A5FA', 'bg' => 'rgba(59,130,246,.12)'],
+    'payee'               => ['label' => 'Payée ✓',    'color' => '#25D366', 'bg' => 'rgba(37,211,102,.12)'],
+    'partiellement_payee' => ['label' => 'Partiel',    'color' => '#FBB724', 'bg' => 'rgba(251,183,36,.12)'],
+    'annulee'             => ['label' => 'Annulée',    'color' => '#EF5350', 'bg' => 'rgba(239,68,68,.12)'],
 ];
 
 $msg     = $_GET['msg']  ?? '';
 $msgType = $_GET['type'] ?? 'success';
+
+// Encodage JSON sûr pour les attributs HTML en double guillemets
+function jsAttr($data): string {
+    return htmlspecialchars(json_encode($data, JSON_UNESCAPED_UNICODE), ENT_QUOTES, 'UTF-8');
+}
 ?>
 <!DOCTYPE html>
 <html lang="fr">
@@ -165,7 +167,7 @@ $msgType = $_GET['type'] ?? 'success';
     .search-input{background:var(--dark-3);border:1px solid var(--border);border-radius:8px;padding:8px 14px;color:var(--white);font-size:.82rem;outline:none;width:220px}
     .search-input:focus{border-color:var(--gold)}
     table{width:100%;border-collapse:collapse}
-    thead th{padding:11px 16px;font-size:.7rem;color:var(--text-muted);font-weight:700;text-transform:uppercase;letter-spacing:.5px;border-bottom:1px solid var(--border);text-align:left;white-space:nowrap}
+    thead th{padding:11px 16px;font-size:.7rem;color:var(--text-muted);font-weight:700;text-transform:uppercase;letter-spacing:.5px;border-bottom:1px solid var(--border);text-align:left}
     tbody tr{border-bottom:1px solid rgba(255,255,255,.04);transition:var(--transition)}
     tbody tr:last-child{border-bottom:none}
     tbody tr:hover{background:rgba(212,175,55,.03)}
@@ -192,6 +194,7 @@ $msgType = $_GET['type'] ?? 'success';
     .modal-body{padding:22px}
     .modal-footer{padding:14px 22px;border-top:1px solid var(--border);display:flex;gap:10px;justify-content:flex-end}
     .form-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+    @media(max-width:480px){.form-grid{grid-template-columns:1fr}}
     .form-full{grid-column:1/-1}
     .calc-preview{background:var(--dark-3);border-radius:10px;padding:14px 18px;margin-top:12px}
     .calc-row{display:flex;justify-content:space-between;padding:4px 0;font-size:.82rem}
@@ -301,11 +304,12 @@ $msgType = $_GET['type'] ?? 'success';
           <tbody>
             <?php foreach ($factures as $f):
               $sc   = $statutConfig[$f['statut']] ?? $statutConfig['brouillon'];
-              $date = !empty($f['date_echeance']) ? date('d/m/Y', strtotime($f['date_echeance'])) : '—';
+              $dateEch = !empty($f['date_echeance']) ? date('d/m/Y', strtotime($f['date_echeance'])) : '—';
               $isLate = !empty($f['date_echeance']) && $f['date_echeance'] < date('Y-m-d') && $f['statut'] !== 'payee';
+              $resteVal = (float)$f['reste_a_payer'];
+              $searchBlob = strtolower($f['numero'] . ' ' . $f['nom_client'] . ' ' . ($f['email_client'] ?? ''));
             ?>
-            <tr data-statut="<?= $f['statut'] ?>"
-                data-search="<?= strtolower($f['numero'] . ' ' . $f['nom_client'] . ' ' . ($f['email_client'] ?? '')) ?>">
+            <tr data-statut="<?= htmlspecialchars($f['statut']) ?>" data-search="<?= htmlspecialchars($searchBlob) ?>">
               <td>
                 <span style="font-family:var(--ff-display);color:var(--gold);font-size:.85rem;font-weight:700"><?= htmlspecialchars($f['numero']) ?></span>
               </td>
@@ -318,31 +322,31 @@ $msgType = $_GET['type'] ?? 'success';
               </td>
               <td>
                 <span style="background:var(--dark-3);padding:3px 10px;border-radius:6px;font-size:.75rem">
-                  <?= ucfirst(str_replace('_',' ', $f['type_evenement'] ?? '—')) ?>
+                  <?= htmlspecialchars(ucfirst(str_replace('_',' ', $f['type_evenement'] ?? '—'))) ?>
                 </span>
               </td>
-              <td class="amount-col" dir="ltr"><?= number_format($f['montant_ttc'], 0, ',', ' ') ?> MAD</td>
-              <td style="font-size:.82rem;color:#25D366" dir="ltr"><?= number_format($f['acompte'], 0, ',', ' ') ?> MAD</td>
-              <td class="<?= $f['reste_a_payer'] <= 0 ? 'reste-zero' : 'reste-col' ?>" dir="ltr">
-                <?= $f['reste_a_payer'] <= 0 ? '✓ Soldé' : number_format($f['reste_a_payer'], 0, ',', ' ') . ' MAD' ?>
+              <td class="amount-col" dir="ltr"><?= number_format((float)$f['montant_ttc'], 0, ',', ' ') ?> MAD</td>
+              <td style="font-size:.82rem;color:#25D366" dir="ltr"><?= number_format((float)$f['acompte'], 0, ',', ' ') ?> MAD</td>
+              <td class="<?= $resteVal <= 0 ? 'reste-zero' : 'reste-col' ?>" dir="ltr">
+                <?= $resteVal <= 0 ? '✓ Soldé' : number_format($resteVal, 0, ',', ' ') . ' MAD' ?>
               </td>
               <td>
                 <span class="statut-badge" style="background:<?= $sc['bg'] ?>;color:<?= $sc['color'] ?>">
                   <span style="width:6px;height:6px;border-radius:50%;background:currentColor;display:inline-block"></span>
-                  <?= $sc['label'] ?>
+                  <?= htmlspecialchars($sc['label']) ?>
                 </span>
               </td>
               <td style="font-size:.78rem;<?= $isLate ? 'color:#EF5350;font-weight:700' : 'color:#555' ?>">
-                <?= $date ?><?= $isLate ? ' ⚠️' : '' ?>
+                <?= $dateEch ?><?= $isLate ? ' ⚠️' : '' ?>
               </td>
               <td>
                 <div class="td-actions">
-                  <button class="act-btn" onclick='openDetail(<?= json_encode($f) ?>)' title="Voir"><i class="fas fa-eye"></i></button>
-                  <a href="print_facture.php?id=<?= $f['id'] ?>" target="_blank" class="act-btn" title="Imprimer" style="color:#60A5FA;border-color:rgba(59,130,246,.3)"><i class="fas fa-print"></i></a>
-                  <button class="act-btn" onclick='openStatutModal(<?= $f['id'] ?>, "<?= $f['statut'] ?>")' title="Changer statut"><i class="fas fa-exchange-alt"></i></button>
+                  <button class="act-btn" onclick="openDetail(<?= jsAttr($f) ?>)" title="Voir"><i class="fas fa-eye"></i></button>
+                  <a href="print_facture.php?id=<?= (int)$f['id'] ?>" target="_blank" class="act-btn" title="Imprimer" style="color:#60A5FA;border-color:rgba(59,130,246,.3)"><i class="fas fa-print"></i></a>
+                  <button class="act-btn" onclick="openStatutModal(<?= (int)$f['id'] ?>, <?= jsAttr($f['statut']) ?>)" title="Changer statut"><i class="fas fa-exchange-alt"></i></button>
                   <form method="POST" style="display:inline" onsubmit="return confirm('Supprimer cette facture ?')">
                     <input type="hidden" name="action" value="delete">
-                    <input type="hidden" name="id" value="<?= $f['id'] ?>">
+                    <input type="hidden" name="id" value="<?= (int)$f['id'] ?>">
                     <button type="submit" class="act-btn danger" title="Supprimer"><i class="fas fa-trash"></i></button>
                   </form>
                 </div>
@@ -358,17 +362,17 @@ $msgType = $_GET['type'] ?? 'success';
   </main>
 </div>
 
-<!-- Modal nouvelle facture -->
+<!-- Modal Nouvelle facture -->
 <div class="modal-overlay" id="addModal">
   <div class="modal-box">
     <div class="modal-header">
-      <h3><i class="fas fa-plus-circle" style="color:var(--gold);margin-right:8px"></i><span data-fr="Nouvelle facture" data-ar="فاتورة جديدة">Nouvelle facture</span></h3>
+      <h3><i class="fas fa-file-invoice" style="color:var(--gold);margin-right:8px"></i>Nouvelle facture</h3>
       <button class="modal-close" onclick="closeAdd()"><i class="fas fa-times"></i></button>
     </div>
     <form method="POST">
       <input type="hidden" name="action" value="add">
-      <input type="hidden" name="client_id" id="prefillClientId" value="<?= $prefillDevis ? (int)$prefillDevis['client_id'] : '' ?>">
-      <input type="hidden" name="reservation_id" id="prefillReservationId" value="<?= $prefillDevis ? (int)$prefillDevis['reservation_id'] : '' ?>">
+      <input type="hidden" name="client_id" value="<?= $prefillDevis ? (int)$prefillDevis['client_id'] : '' ?>">
+      <input type="hidden" name="reservation_id" value="<?= $prefillDevis ? (int)$prefillDevis['reservation_id'] : '' ?>">
       <?php if ($prefillDevis): ?>
       <div class="modal-body" style="padding-bottom:0">
         <div style="background:rgba(212,175,55,.08);border:1px solid rgba(212,175,55,.25);border-radius:8px;padding:10px 14px;font-size:.78rem;color:var(--gold);margin-bottom:4px">
@@ -377,14 +381,14 @@ $msgType = $_GET['type'] ?? 'success';
       </div>
       <?php endif; ?>
       <div class="modal-body">
-        <div class="form-grid" style="margin-bottom:12px">
+        <div class="form-grid">
           <div class="form-group form-full">
-            <label class="form-label" data-fr="Nom du client *" data-ar="اسم العميل *">Nom du client *</label>
-            <input type="text" name="nom_client" class="form-control" placeholder="Prénom Nom" data-fr-placeholder="Prénom Nom" data-ar-placeholder="الاسم الكامل" value="<?= htmlspecialchars($pfNom) ?>" required>
+            <label class="form-label" data-fr="Nom du client" data-ar="اسم العميل">Nom du client</label>
+            <input type="text" name="nom_client" class="form-control" placeholder="Prénom Nom" value="<?= htmlspecialchars($pfNom) ?>" required>
           </div>
           <div class="form-group">
             <label class="form-label" data-fr="Téléphone" data-ar="الهاتف">Téléphone</label>
-            <input type="tel" name="telephone_client" class="form-control" placeholder="06XXXXXXXX" data-fr-placeholder="06XXXXXXXX" data-ar-placeholder="06XXXXXXXX" value="<?= htmlspecialchars($pfTel) ?>">
+            <input type="tel" name="telephone_client" class="form-control" placeholder="06XXXXXXXX" value="<?= htmlspecialchars($pfTel) ?>">
           </div>
           <div class="form-group">
             <label class="form-label" data-fr="Email" data-ar="البريد الإلكتروني">Email</label>
@@ -392,18 +396,10 @@ $msgType = $_GET['type'] ?? 'success';
           </div>
           <div class="form-group">
             <label class="form-label" data-fr="Type d'événement" data-ar="نوع المناسبة">Type d'événement</label>
-            <select name="type_evenement" class="form-control">
-              <option value="mariage">Mariage</option>
-              <option value="fiancailles">Fiançailles</option>
-              <option value="circoncision">Circoncision</option>
-              <option value="anniversaire">Anniversaire</option>
-              <option value="reception_pro">Réception Pro</option>
-              <option value="buffet">Buffet</option>
-              <option value="autre">Autre</option>
-            </select>
+            <input type="text" name="type_evenement" class="form-control" placeholder="Mariage, Fiançailles...">
           </div>
           <div class="form-group">
-            <label class="form-label" data-fr="Date événement" data-ar="تاريخ المناسبة">Date événement</label>
+            <label class="form-label" data-fr="Date de l'événement" data-ar="تاريخ المناسبة">Date de l'événement</label>
             <input type="date" name="date_evenement" class="form-control" value="<?= htmlspecialchars($pfDate) ?>">
           </div>
           <div class="form-group">
@@ -411,20 +407,16 @@ $msgType = $_GET['type'] ?? 'success';
             <input type="number" name="nb_personnes" class="form-control" placeholder="100" min="1" value="<?= htmlspecialchars($pfNb) ?>">
           </div>
           <div class="form-group">
-            <label class="form-label" data-fr="Package" data-ar="الباقة">Package</label>
+            <label class="form-label">Package</label>
             <select name="package_nom" class="form-control">
-              <option value="">Sans package</option>
+              <option value="">— Aucun —</option>
               <?php foreach ($packages as $p): ?>
               <option value="<?= htmlspecialchars($p) ?>"><?= htmlspecialchars($p) ?></option>
               <?php endforeach; ?>
             </select>
           </div>
           <div class="form-group">
-            <label class="form-label" data-fr="Date d'échéance" data-ar="تاريخ الاستحقاق">Date d'échéance</label>
-            <input type="date" name="date_echeance" class="form-control">
-          </div>
-          <div class="form-group">
-            <label class="form-label">Montant HT (MAD) *</label>
+            <label class="form-label">Montant HT (MAD)</label>
             <input type="number" name="montant_ht" id="montantHT" class="form-control" placeholder="18000" min="0" step="100" oninput="calcTotal()" value="<?= htmlspecialchars($pfHT) ?>" required>
           </div>
           <div class="form-group">
@@ -432,32 +424,34 @@ $msgType = $_GET['type'] ?? 'success';
             <input type="number" name="tva" id="tvaInput" class="form-control" value="<?= htmlspecialchars($pfTva) ?>" min="0" max="100" step="0.5" oninput="calcTotal()">
           </div>
           <div class="form-group">
-            <label class="form-label">Acompte reçu (MAD)</label>
+            <label class="form-label">Acompte déjà reçu (MAD)</label>
             <input type="number" name="acompte" id="acompteInput" class="form-control" value="0" min="0" step="100" oninput="calcTotal()">
           </div>
           <div class="form-group">
-            <label class="form-label" data-fr="Statut" data-ar="الحالة">Statut</label>
+            <label class="form-label">Échéance</label>
+            <input type="date" name="date_echeance" class="form-control">
+          </div>
+          <div class="form-group form-full">
+            <label class="form-label">Statut</label>
             <select name="statut" class="form-control">
-              <option value="brouillon" data-fr="Brouillon" data-ar="مسودة">Brouillon</option>
-              <option value="envoyee" data-fr="Envoyée" data-ar="مُرسلة">Envoyée</option>
-              <option value="partiellement_payee" data-fr="Partiellement payée" data-ar="مدفوعة جزئياً">Partiellement payée</option>
-              <option value="payee" data-fr="Payée" data-ar="مدفوعة">Payée</option>
+              <option value="brouillon">Brouillon</option>
+              <option value="envoyee">Envoyée</option>
+              <option value="partiellement_payee">Partiellement payée</option>
+              <option value="payee">Payée</option>
             </select>
+          </div>
+          <div class="form-group form-full">
+            <label class="form-label">Notes (optionnel)</label>
+            <textarea name="notes" class="form-control" rows="2"></textarea>
           </div>
         </div>
 
-        <!-- Aperçu calcul -->
         <div class="calc-preview">
           <div class="calc-row"><span>Montant HT</span><span id="prevHT" dir="ltr">0 MAD</span></div>
           <div class="calc-row"><span>TVA</span><span id="prevTVA" dir="ltr">0 MAD</span></div>
           <div class="calc-row total"><span>Total TTC</span><span id="prevTTC" dir="ltr">0 MAD</span></div>
-          <div class="calc-row acompte"><span>Acompte reçu</span><span id="prevAcompte" dir="ltr">0 MAD</span></div>
-          <div class="calc-row reste"><span data-fr="Reste à payer" data-ar="المتبقي للدفع">Reste à payer</span><span id="prevReste" dir="ltr">0 MAD</span></div>
-        </div>
-
-        <div class="form-group" style="margin-top:14px">
-          <label class="form-label" data-fr="Notes" data-ar="ملاحظات">Notes</label>
-          <textarea name="notes" class="form-control" rows="2" placeholder="Remarques internes..." data-fr-placeholder="Remarques internes..." data-ar-placeholder="ملاحظات داخلية..."></textarea>
+          <div class="calc-row acompte"><span>Acompte</span><span id="prevAcompte" dir="ltr">0 MAD</span></div>
+          <div class="calc-row reste"><span>Reste à payer</span><span id="prevReste" dir="ltr">0 MAD</span></div>
         </div>
       </div>
       <div class="modal-footer">
@@ -477,7 +471,7 @@ $msgType = $_GET['type'] ?? 'success';
     </div>
     <div id="detailContent"></div>
     <div class="modal-footer">
-      <button class="btn-secondary" onclick="closeDetail()" data-fr="Fermer" data-ar="إغلاق" data-fr="Fermer" data-ar="إغلاق">Fermer</button>
+      <button class="btn-secondary" onclick="closeDetail()" data-fr="Fermer" data-ar="إغلاق">Fermer</button>
       <a id="printBtn" href="#" target="_blank" class="btn-primary"><i class="fas fa-print"></i> Imprimer</a>
     </div>
   </div>
@@ -523,7 +517,6 @@ document.getElementById('sidebarOverlay').addEventListener('click', () => {
   document.getElementById('sidebarOverlay').classList.remove('show');
 });
 
-// Calcul auto
 function calcTotal() {
   const ht      = parseFloat(document.getElementById('montantHT').value)    || 0;
   const tva     = parseFloat(document.getElementById('tvaInput').value)      || 0;
@@ -539,14 +532,13 @@ function calcTotal() {
   document.getElementById('prevReste').textContent   = fmt(reste);
 }
 
-// Modals
 function openAddModal() { document.getElementById('addModal').classList.add('show'); }
 function closeAdd()     { document.getElementById('addModal').classList.remove('show'); }
 <?php if ($prefillDevis): ?>
 document.addEventListener('DOMContentLoaded', () => { openAddModal(); calcTotal(); });
 <?php endif; ?>
 
-const sc = <?= json_encode($statutConfig) ?>;
+const sc = <?= json_encode($statutConfig, JSON_UNESCAPED_UNICODE) ?>;
 function openDetail(f) {
   const s  = sc[f.statut] || sc['brouillon'];
   const fmt = n => parseFloat(n||0).toLocaleString('fr-FR') + ' MAD';
@@ -592,7 +584,6 @@ function openStatutModal(id, statut) {
 }
 function closeStatut() { document.getElementById('statutModal').classList.remove('show'); }
 
-// Filtres
 let currentFilter = 'all';
 function setFilter(f, btn) {
   currentFilter = f;
