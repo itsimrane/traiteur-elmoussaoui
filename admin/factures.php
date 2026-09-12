@@ -235,6 +235,7 @@ body { overflow-x: hidden; }
 }
 #facTable tbody tr:last-child { border-bottom: none !important; }
 #facTable tbody tr:hover { background: rgba(212,175,55,.03); }
+#facTable tbody tr.row-hidden { display: none !important; }
 #facTable tbody td {
     display: table-cell !important; box-sizing: border-box !important; padding: 13px 12px !important;
     font-size: .83rem; color: var(--text-muted); vertical-align: middle !important;
@@ -542,7 +543,7 @@ function filterFac() {
     document.querySelectorAll('#facTable tbody tr').forEach(row => {
         const matchF = currentFilter === 'all' || row.dataset.statut === currentFilter;
         const matchQ = !q || (row.dataset.search || '').includes(q);
-        row.style.display = (matchF && matchQ) ? 'table-row' : 'none';
+        row.classList.toggle('row-hidden', !(matchF && matchQ));
     });
 }
 document.addEventListener('click', function(e) { if (e.target.classList.contains('modal-overlay')) e.target.classList.remove('show'); });
