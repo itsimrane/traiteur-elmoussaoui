@@ -28,7 +28,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 $filtreStatut = $_GET['statut'] ?? '';
 $recherche    = trim($_GET['q'] ?? '');
 $filtreDate   = $_GET['date'] ?? '';
-$filtreType   = $_GET['type'] ?? '';
+$filtreType   = $_GET['evt_type'] ?? '';
 
 $where  = ['r.deleted_at IS NULL'];
 $params = [];
@@ -156,9 +156,6 @@ $statutConfig = [
         <i class="fas fa-exclamation-circle"></i> Erreur base de données : <?= htmlspecialchars($erreurBdd) ?>
       </div>
       <?php endif; ?>
-      <div style="background:#222;border:1px dashed orange;padding:12px;margin-bottom:20px;font-size:.75rem;color:#ccc;font-family:monospace">
-        DEBUG TEMPORAIRE — WHERE: <?= htmlspecialchars($whereSql) ?> | PARAMS: <?= htmlspecialchars(json_encode($params)) ?> | LIGNES TROUVÉES: <?= count($reservations) ?>
-      </div>
 
       <!-- Compteurs -->
       <div class="stats-grid" style="margin-bottom:20px">
@@ -184,7 +181,7 @@ $statutConfig = [
           <input type="hidden" name="statut" value="<?= htmlspecialchars($filtreStatut) ?>">
           <input type="search" name="q" placeholder="🔍 Nom ou téléphone..." value="<?= htmlspecialchars($recherche) ?>">
           <input type="date" name="date" value="<?= htmlspecialchars($filtreDate) ?>">
-          <select name="type">
+          <select name="evt_type">
             <option value="">Tous types d'événement</option>
             <?php foreach ($typesEvenements as $t): ?>
             <option value="<?= $t['id'] ?>" <?= $filtreType == $t['id'] ? 'selected':'' ?>><?= htmlspecialchars($t['nom']) ?></option>
