@@ -310,36 +310,36 @@ function jsAttr($data): string {
               $searchBlob = strtolower($f['numero'] . ' ' . $f['nom_client'] . ' ' . ($f['email_client'] ?? ''));
             ?>
             <tr data-statut="<?= htmlspecialchars($f['statut']) ?>" data-search="<?= htmlspecialchars($searchBlob) ?>">
-              <td>
+              <td style="outline:2px solid red">[1]
                 <span style="font-family:var(--ff-display);color:var(--gold);font-size:.85rem;font-weight:700"><?= htmlspecialchars($f['numero']) ?></span>
               </td>
-              <td>
+              <td style="outline:2px solid orange">[2]
                 <div style="color:var(--white);font-size:.84rem;font-weight:600"><?= htmlspecialchars($f['nom_client']) ?></div>
                 <div style="font-size:.73rem;color:#555"><?= htmlspecialchars($f['telephone_client'] ?? '') ?></div>
                 <?php if (!empty($f['resa_ref'])): ?>
                 <div style="font-size:.68rem;color:var(--gold);margin-top:2px"><i class="fas fa-link"></i> <?= htmlspecialchars($f['resa_ref']) ?></div>
                 <?php endif; ?>
               </td>
-              <td>
+              <td style="outline:2px solid yellow">[3]
                 <span style="background:var(--dark-3);padding:3px 10px;border-radius:6px;font-size:.75rem">
                   <?= htmlspecialchars(ucfirst(str_replace('_',' ', $f['type_evenement'] ?? '—'))) ?>
                 </span>
               </td>
-              <td class="amount-col" dir="ltr"><?= number_format((float)$f['montant_ttc'], 0, ',', ' ') ?> MAD</td>
-              <td style="font-size:.82rem;color:#25D366" dir="ltr"><?= number_format((float)$f['acompte'], 0, ',', ' ') ?> MAD</td>
-              <td class="<?= $resteVal <= 0 ? 'reste-zero' : 'reste-col' ?>" dir="ltr">
-                <?= $resteVal <= 0 ? '✓ Soldé' : number_format($resteVal, 0, ',', ' ') . ' MAD' ?>
+              <td style="outline:2px solid green" class="amount-col" dir="ltr">[4] <?= number_format((float)$f['montant_ttc'], 0, ',', ' ') ?> MAD</td>
+              <td style="outline:2px solid blue;font-size:.82rem;color:#25D366" dir="ltr">[5] <?= number_format((float)$f['acompte'], 0, ',', ' ') ?> MAD</td>
+              <td style="outline:2px solid purple" class="<?= $resteVal <= 0 ? 'reste-zero' : 'reste-col' ?>" dir="ltr">
+                [6] <?= $resteVal <= 0 ? '✓ Soldé' : number_format($resteVal, 0, ',', ' ') . ' MAD' ?>
               </td>
-              <td>
+              <td style="outline:2px solid pink">[7]
                 <span class="statut-badge" style="background:<?= $sc['bg'] ?>;color:<?= $sc['color'] ?>">
                   <span style="width:6px;height:6px;border-radius:50%;background:currentColor;display:inline-block"></span>
                   <?= htmlspecialchars($sc['label']) ?>
                 </span>
               </td>
-              <td style="font-size:.78rem;<?= $isLate ? 'color:#EF5350;font-weight:700' : 'color:#555' ?>">
-                <?= $dateEch ?><?= $isLate ? ' ⚠️' : '' ?>
+              <td style="outline:2px solid cyan;font-size:.78rem;<?= $isLate ? 'color:#EF5350;font-weight:700' : 'color:#555' ?>">
+                [8] <?= $dateEch ?><?= $isLate ? ' ⚠️' : '' ?>
               </td>
-              <td>
+              <td style="outline:2px solid white">[9]
                 <div class="td-actions">
                   <button class="act-btn" onclick="openDetail(<?= jsAttr($f) ?>)" title="Voir"><i class="fas fa-eye"></i></button>
                   <a href="print_facture.php?id=<?= (int)$f['id'] ?>" target="_blank" class="act-btn" title="Imprimer" style="color:#60A5FA;border-color:rgba(59,130,246,.3)"><i class="fas fa-print"></i></a>
