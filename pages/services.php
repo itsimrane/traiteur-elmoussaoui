@@ -83,14 +83,32 @@ if (empty($typesEvenements)) {
 <section class="section">
   <div class="container">
 
+<?php
+// Photo réelle correspondant à chaque type d'événement
+$photosParSlug = [
+  'mariage'        => '../assets/img/mariage.jpg',
+  'fiancailles'    => '../assets/img/fiancailles.jpg',
+  'circoncision'   => '../assets/img/circoncision.jpg',
+  'anniversaire'   => '../assets/img/anniversaire.jpg',
+  'reception-pro'  => '../assets/img/entreprise.jpg',
+  'buffet-banquet' => '../assets/img/buffet.jpg',
+  'ceremonie-reli' => '../assets/img/ceremonie-religieuse.jpg',
+];
+?>
     <!-- Grille : types d'événements → vers la réservation -->
     <div class="services-grid-full">
-      <?php foreach ($typesEvenements as $idx => $s): ?>
+      <?php foreach ($typesEvenements as $idx => $s):
+        $photo = $photosParSlug[$s['slug']] ?? null;
+      ?>
       <a href="reservation.php?type=<?= htmlspecialchars($s['slug']) ?>" class="service-card-full" id="<?= htmlspecialchars($s['slug'] ?? 'evt-'.$s['id']) ?>"
          style="text-decoration:none;color:inherit;display:flex;flex-direction:column"
          data-aos="fade-up" data-aos-delay="<?= ($idx % 3) * 80 ?>">
         <div class="svc-img-zone">
+          <?php if ($photo): ?>
+          <img src="<?= htmlspecialchars($photo) ?>" alt="<?= htmlspecialchars($s['nom']) ?>" loading="lazy">
+          <?php else: ?>
           <div class="svc-icon-big"><i class="fas <?= htmlspecialchars($s['icone'] ?? 'fa-star') ?>"></i></div>
+          <?php endif; ?>
           <div class="svc-img-overlay"></div>
         </div>
         <div class="svc-body">
