@@ -1003,6 +1003,7 @@ try {
           <p id="waAutoNote" style="text-align:center;color:var(--gold);font-size:.88rem;font-weight:600;margin-bottom:16px;min-height:20px"></p>
           <div style="display:flex;gap:12px;justify-content:center;margin-top:20px;flex-wrap:wrap">
             <a href="#" target="_blank" class="btn-whatsapp" id="btnWhatsappDevis"
+              onclick="return verifierAvantWhatsapp(event)"
               style="padding:16px 34px;font-size:1rem;font-weight:700;text-decoration:none;display:inline-flex;align-items:center;gap:10px;order:-1">
               <i class="fab fa-whatsapp" style="font-size:1.3rem"></i>
               <span data-fr="Envoyer par WhatsApp" data-ar="إرسال عبر واتساب">Envoyer par WhatsApp</span>
@@ -1057,6 +1058,20 @@ try {
 
     const maxInvitesParType = <?= json_encode($maxInvitesParType) ?>;
     const eventTypesLabels = <?= json_encode(array_combine(array_keys($typesEvenements), array_column($typesEvenements, 'label'))) ?>;
+
+    function verifierAvantWhatsapp(e) {
+      const btn = document.getElementById('btnWhatsappDevis');
+      const pasEncoreEnregistre = !btn.href || btn.href.endsWith('#');
+      if (pasEncoreEnregistre) {
+        e.preventDefault();
+        const isAr = document.documentElement.lang === 'ar' || document.body.classList.contains('rtl-mode');
+        showAlert(isAr
+          ? 'يرجى أولاً الضغط على "حفظ طلبي"، ثم الضغط على "الإرسال عبر واتساب".'
+          : 'Veuillez d\'abord cliquer sur « Enregistrer ma demande », puis sur « Envoyer par WhatsApp ».');
+        return false;
+      }
+      return true;
+    }
 
     function goStep2() {
       if (!selectedType) { showAlert('Veuillez choisir un type d\'événement.'); return; }
