@@ -1000,7 +1000,7 @@ try {
               <i class="fas fa-download"></i>
               <span data-fr="Télécharger le devis PDF" data-ar="تحميل عرض الأسعار PDF">Télécharger le devis PDF</span>
             </button>
-            <a href="https://wa.me/212626986533" target="_blank" class="btn-whatsapp"
+            <a href="#" target="_blank" class="btn-whatsapp" id="btnWhatsappDevis"
               style="padding:13px 28px;font-size:.9rem;text-decoration:none;display:inline-flex;align-items:center;gap:8px">
               <i class="fab fa-whatsapp"></i>
               <span data-fr="Envoyer par WhatsApp" data-ar="إرسال عبر واتساب">Envoyer par WhatsApp</span>
@@ -1050,6 +1050,7 @@ try {
     }
 
     const maxInvitesParType = <?= json_encode($maxInvitesParType) ?>;
+    const eventTypesLabels = <?= json_encode(array_combine(array_keys($typesEvenements), array_column($typesEvenements, 'label'))) ?>;
 
     function goStep2() {
       if (!selectedType) { showAlert('Veuillez choisir un type d\'événement.'); return; }
@@ -1234,6 +1235,41 @@ try {
             const ref = res.numero || devisData.numero || '';
             document.getElementById('confirmRef').textContent =
               (isAr ? 'رقم المرجع : ' : 'Référence de votre demande : ') + ref;
+
+            // ── Construction du message WhatsApp complet et pré-rempli ──
+            const servicesTexte = (devisData.services || [])
+              .map(s => '- ' + s.nom + (s.prix ? ' (' + Number(s.prix).toLocaleString('fr-FR') + ' MAD)' : ' (sur devis)'))
+              .join('\n');
+            const totalAffiche = (res.total !== undefined ? res.total : devisData.total) || 0;
+            const typeLabel = eventTypesLabels[devisData.type] || devisData.type || '';
+            const dateAffichee = devisData.date ? new Date(devisData.date).toLocaleDateString('fr-FR') : '';
+
+            const messageWa =
+`🍽️ *DEMANDE DE RÉSERVATION — EL MOUSSAOUI*
+
+👤 Nom : ${devisData.prenom} ${devisData.nom}
+📱 Téléphone : ${devisData.telephone}
+📧 Email : ${devisData.email || '—'}
+🎉 Type d'événement : ${typeLabel}
+📅 Date : ${dateAffichee}
+📍 Ville : ${devisData.ville || '—'}
+👥 Nombre d'invités : ${devisData.nb}
+
+📦 Services demandés :
+${servicesTexte || '—'}
+
+💰 Estimation : ${Number(totalAffiche).toLocaleString('fr-FR')} MAD (montant estimatif, à confirmer)
+
+📝 Informations supplémentaires :
+${devisData.message || '—'}
+
+🔖 Référence de demande : ${ref}
+
+Je souhaite recevoir la confirmation de ma demande après vérification. Merci.`;
+
+            const btnWa = document.getElementById('btnWhatsappDevis');
+            if (btnWa) btnWa.href = 'https://wa.me/212626986533?text=' + encodeURIComponent(messageWa);
+
             // Re-appliquer traduction
             if (window.applyLang) applyLang(lang);
           } else {

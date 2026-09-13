@@ -142,6 +142,7 @@ try {
     } catch (Exception $e) { /* notifications optionnelles */ }
 
     $pdo->commit();
+
     jsonResponse([
         'success'        => true,
         'numero'         => $numero,
