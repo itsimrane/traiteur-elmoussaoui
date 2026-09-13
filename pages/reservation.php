@@ -648,6 +648,11 @@ try {
       .cal-legend{gap:8px;font-size:.68rem}
       .cal-title{font-size:1rem}
     }
+    @keyframes waPulse {
+      0%, 100% { box-shadow: 0 0 0 0 rgba(37,211,102,.5); }
+      50% { box-shadow: 0 0 0 14px rgba(37,211,102,0); }
+    }
+    .wa-pulse { animation: waPulse 1.4s ease-out infinite; }
   </style>
 </head>
 
@@ -995,17 +1000,18 @@ try {
           </div>
 
           <!-- Actions secondaires -->
+          <p id="waAutoNote" style="text-align:center;color:var(--gold);font-size:.88rem;font-weight:600;margin-bottom:16px;min-height:20px"></p>
           <div style="display:flex;gap:12px;justify-content:center;margin-top:20px;flex-wrap:wrap">
-            <button onclick="downloadPDF()" class="btn-primary" style="padding:13px 28px;font-size:.9rem">
+            <a href="#" target="_blank" class="btn-whatsapp" id="btnWhatsappDevis"
+              style="padding:16px 34px;font-size:1rem;font-weight:700;text-decoration:none;display:inline-flex;align-items:center;gap:10px;order:-1">
+              <i class="fab fa-whatsapp" style="font-size:1.3rem"></i>
+              <span data-fr="Envoyer par WhatsApp" data-ar="إرسال عبر واتساب">Envoyer par WhatsApp</span>
+            </a>
+            <button onclick="downloadPDF()" class="btn-secondary" style="padding:13px 28px;font-size:.85rem">
               <i class="fas fa-download"></i>
               <span data-fr="Télécharger le devis PDF" data-ar="تحميل عرض الأسعار PDF">Télécharger le devis PDF</span>
             </button>
-            <a href="#" target="_blank" class="btn-whatsapp" id="btnWhatsappDevis"
-              style="padding:13px 28px;font-size:.9rem;text-decoration:none;display:inline-flex;align-items:center;gap:8px">
-              <i class="fab fa-whatsapp"></i>
-              <span data-fr="Envoyer par WhatsApp" data-ar="إرسال عبر واتساب">Envoyer par WhatsApp</span>
-            </a>
-            <button onclick="resetForm()" class="btn-secondary" style="padding:13px 24px;font-size:.9rem">
+            <button onclick="resetForm()" class="btn-secondary" style="padding:13px 24px;font-size:.85rem">
               <i class="fas fa-redo"></i>
               <span data-fr="Nouveau devis" data-ar="عرض جديد">Nouveau devis</span>
             </button>
@@ -1268,7 +1274,24 @@ ${devisData.message || '—'}
 Je souhaite recevoir la confirmation de ma demande après vérification. Merci.`;
 
             const btnWa = document.getElementById('btnWhatsappDevis');
-            if (btnWa) btnWa.href = 'https://wa.me/212626986533?text=' + encodeURIComponent(messageWa);
+            const waUrl = 'https://wa.me/212626986533?text=' + encodeURIComponent(messageWa);
+            if (btnWa) btnWa.href = waUrl;
+
+            // On tente d'ouvrir WhatsApp automatiquement — si le navigateur
+            // bloque l'ouverture automatique, le bouton reste bien visible
+            // et mis en avant pour que le client clique lui-même.
+            const fenetreOuverte = window.open(waUrl, '_blank');
+            const noteWa = document.getElementById('waAutoNote');
+            if (fenetreOuverte) {
+              if (noteWa) noteWa.textContent = isAr
+                ? 'تم فتح واتساب في نافذة جديدة. إن لم يظهر، اضغط على الزر أدناه.'
+                : 'WhatsApp vient de s\'ouvrir dans un nouvel onglet. S\'il n\'apparaît pas, cliquez sur le bouton ci-dessous.';
+            } else {
+              if (btnWa) btnWa.classList.add('wa-pulse');
+              if (noteWa) noteWa.textContent = isAr
+                ? '👇 اضغط على الزر أدناه لإرسال طلبك عبر واتساب'
+                : '👇 Cliquez sur le bouton ci-dessous pour envoyer votre demande sur WhatsApp';
+            }
 
             // Re-appliquer traduction
             if (window.applyLang) applyLang(lang);
