@@ -24,7 +24,12 @@ $services  = $data['services'] ?? [];
 
 if (!$telephone) jsonResponse(['success'=>false,'message'=>'Téléphone requis']);
 if ($nb <= 0) jsonResponse(['success'=>false,'message'=>'Le nombre d\'invités doit être supérieur à 0']);
-if (strtotime($date) < strtotime('today')) jsonResponse(['success'=>false,'message'=>'La date de l\'événement ne peut pas être dans le passé']);
+$dateMin = strtotime('+7 days', strtotime('today'));
+$dateMax = strtotime('+2 months', strtotime('today'));
+$dateChoisie = strtotime($date);
+if ($dateChoisie === false) jsonResponse(['success'=>false,'message'=>'Date invalide']);
+if ($dateChoisie < $dateMin) jsonResponse(['success'=>false,'message'=>"La date de l'événement doit être au moins 7 jours à l'avance"]);
+if ($dateChoisie > $dateMax) jsonResponse(['success'=>false,'message'=>"La date de l'événement ne peut pas dépasser 2 mois à l'avance"]);
 
 // ── Recalcul serveur du prix — SOURCE DE VÉRITÉ ─────────────────
 // On ignore complètement les prix envoyés par le navigateur : on ne

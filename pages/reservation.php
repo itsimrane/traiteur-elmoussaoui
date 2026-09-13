@@ -676,7 +676,13 @@ $typesEvenements = [
               <label class="form-label" data-fr="Date de l'événement *" data-ar="تاريخ المناسبة *">Date de l'événement
                 *</label>
               <input type="date" id="date_evenement" class="form-control"
-                min="<?= date('Y-m-d', strtotime('+7 days')) ?>" required>
+                min="<?= date('Y-m-d', strtotime('+7 days')) ?>"
+                max="<?= date('Y-m-d', strtotime('+2 months')) ?>" required>
+              <small style="color:var(--text-muted);font-size:.72rem;display:block;margin-top:5px"
+                     data-fr="Réservation possible entre 7 jours et 2 mois à l'avance."
+                     data-ar="الحجز ممكن بين 7 أيام وشهرين مقدماً.">
+                Réservation possible entre 7 jours et 2 mois à l'avance.
+              </small>
             </div>
             <div class="form-group">
               <label class="form-label" data-fr="Ville / Lieu *" data-ar="المدينة / المكان *">Ville / Lieu *</label>
@@ -972,7 +978,15 @@ $typesEvenements = [
 
     function goStep2() {
       if (!selectedType) { showAlert('Veuillez choisir un type d\'événement.'); return; }
-      if (!document.getElementById('date_evenement').value) { showAlert('Veuillez saisir la date de l\'événement.'); return; }
+      const dateVal = document.getElementById('date_evenement').value;
+      if (!dateVal) { showAlert('Veuillez saisir la date de l\'événement.'); return; }
+      const dateChoisie = new Date(dateVal);
+      const dateMin = new Date(); dateMin.setDate(dateMin.getDate() + 7); dateMin.setHours(0,0,0,0);
+      const dateMax = new Date(); dateMax.setMonth(dateMax.getMonth() + 2); dateMax.setHours(23,59,59,999);
+      if (dateChoisie < dateMin || dateChoisie > dateMax) {
+        showAlert('La date doit être comprise entre 7 jours et 2 mois à partir d\'aujourd\'hui.');
+        return;
+      }
       if (!document.getElementById('ville').value) { showAlert('Veuillez choisir une ville.'); return; }
       if (!document.getElementById('nb_personnes').value) { showAlert('Veuillez indiquer le nombre d\'invités.'); return; }
       filterServicesByType();
