@@ -61,14 +61,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     if ($action === 'toggle_actif') {
         $id = (int)($_POST['id'] ?? 0);
+        if ($id === (int)($_SESSION['admin_id'] ?? 0)) {
+            header('Location: utilisateurs.php?msg=Vous+ne+pouvez+pas+désactiver+votre+propre+compte&type=error'); exit;
+        }
         $pdo->prepare("UPDATE users SET actif = NOT actif WHERE id=?")->execute([$id]);
         header('Location: utilisateurs.php'); exit;
     }
 
     if ($action === 'delete') {
         $id = (int)($_POST['id'] ?? 0);
+        if ($id === (int)($_SESSION['admin_id'] ?? 0)) {
+            header('Location: utilisateurs.php?msg=Vous+ne+pouvez+pas+supprimer+votre+propre+compte&type=error'); exit;
+        }
         // Soft delete
-        $pdo->prepare("UPDATE users SET deleted_at=NOW(), actif=0 WHERE id=? AND role_id > 1")->execute([$id]);
+        $pdo->prepare("UPDATE users SET deleted_at=NOW(), actif=0 WHERE id=?")->execute([$id]);
         header('Location: utilisateurs.php?msg=Utilisateur+supprimé&type=success'); exit;
     }
 }
@@ -272,7 +278,7 @@ $langueLabels = ['fr'=>'\ud83c\uddeb\ud83c\uddf7 Français','ar'=>'\ud83c\uddf2\
           $rc   = $roleColors[$u['role_nom'] ?? 'client'] ?? $roleColors['client'];
           $init = strtoupper(substr($u['prenom'],0,1) . substr($u['nom'],0,1));
           $conn = $u['derniere_connexion'] ? date('d/m/Y H:i', strtotime($u['derniere_connexion'])) : 'Jamais';
-          $isSuperAdmin = $u['role_nom'] === 'super_admin';
+          $estMoiMeme = isset($_SESSION['admin_id']) && (int)$_SESSION['admin_id'] === (int)$u['id'];
         ?>
         <div class="user-card <?= $u['actif'] ? '' : 'inactive' ?>"
              data-role="<?= $u['role_nom'] ?>"
@@ -299,13 +305,15 @@ $langueLabels = ['fr'=>'\ud83c\uddeb\ud83c\uddf7 Français','ar'=>'\ud83c\uddf2\
               <i class="fas fa-clock" style="margin-right:4px;color:#555"></i>
               Dernière connexion : <?= $conn ?>
             </div>
-            <?php if ($isSuperAdmin): ?>
-            <div class="super-protected">🔒 Compte super admin protégé</div>
-            <?php else: ?>
             <div class="user-actions">
               <button class="u-btn" onclick='openEdit(<?= json_encode($u) ?>)'>
                 <i class="fas fa-edit"></i> Modifier
               </button>
+              <?php if ($estMoiMeme): ?>
+              <div class="u-btn" style="width:100%;opacity:.5;cursor:default;text-align:center" title="Vous ne pouvez pas désactiver votre propre compte">
+                <i class="fas fa-user-check"></i> Votre compte
+              </div>
+              <?php else: ?>
               <form method="POST" style="flex:1">
                 <input type="hidden" name="action" value="toggle_actif">
                 <input type="hidden" name="id" value="<?= $u['id'] ?>">
@@ -319,8 +327,8 @@ $langueLabels = ['fr'=>'\ud83c\uddeb\ud83c\uddf7 Français','ar'=>'\ud83c\uddf2\
                 <input type="hidden" name="id" value="<?= $u['id'] ?>">
                 <button type="submit" class="u-btn danger"><i class="fas fa-trash"></i></button>
               </form>
+              <?php endif; ?>
             </div>
-            <?php endif; ?>
           </div>
         </div>
         <?php endforeach; ?>
