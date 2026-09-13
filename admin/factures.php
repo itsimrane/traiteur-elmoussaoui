@@ -113,9 +113,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
             if ($f) {
                 $pdo->prepare("
-                    INSERT INTO paiements (facture_id, montant, mode, date_paiement, recu_par, created_at)
-                    VALUES (?,?,?,?,?,NOW())
-                ")->execute([$factureId, $montant, $mode, $datePmt, $_SESSION['admin_id'] ?? null]);
+                    INSERT INTO paiements (facture_id, montant, mode, date_paiement, created_at)
+                    VALUES (?,?,?,?,NOW())
+                ")->execute([$factureId, $montant, $mode, $datePmt]);
 
                 $nouvelAcompte = (float)$f['acompte'] + $montant;
                 $nouveauReste  = max(0, (float)$f['montant_ttc'] - $nouvelAcompte);
