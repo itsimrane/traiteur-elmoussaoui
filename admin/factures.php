@@ -100,6 +100,37 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         exit;
     }
 
+    if ($action === 'add_paiement') {
+        $factureId = (int)($_POST['facture_id'] ?? 0);
+        $montant   = (float)($_POST['montant'] ?? 0);
+        $mode      = sanitize($_POST['mode'] ?? 'especes');
+        $datePmt   = $_POST['date_paiement'] ?: date('Y-m-d');
+
+        if ($factureId && $montant > 0) {
+            $fac = $pdo->prepare("SELECT montant_ttc, acompte FROM factures WHERE id=?");
+            $fac->execute([$factureId]);
+            $f = $fac->fetch();
+
+            if ($f) {
+                $pdo->prepare("
+                    INSERT INTO paiements (facture_id, montant, mode, date_paiement, recu_par, created_at)
+                    VALUES (?,?,?,?,?,NOW())
+                ")->execute([$factureId, $montant, $mode, $datePmt, $_SESSION['admin_id'] ?? null]);
+
+                $nouvelAcompte = (float)$f['acompte'] + $montant;
+                $nouveauReste  = max(0, (float)$f['montant_ttc'] - $nouvelAcompte);
+                $nouveauStatut = $nouvelAcompte >= (float)$f['montant_ttc'] ? 'payee' : 'partiellement_payee';
+                $datePaiementFacture = $nouveauStatut === 'payee' ? $datePmt : null;
+
+                $pdo->prepare("
+                    UPDATE factures SET acompte=?, reste_a_payer=?, statut=?, date_paiement=?, updated_at=NOW() WHERE id=?
+                ")->execute([$nouvelAcompte, $nouveauReste, $nouveauStatut, $datePaiementFacture, $factureId]);
+            }
+        }
+        header('Location: factures.php?msg=Paiement+enregistré&type=success');
+        exit;
+    }
+
     if ($action === 'delete') {
         $id = (int)($_POST['id'] ?? 0);
         $pdo->prepare("DELETE FROM factures WHERE id = ?")->execute([$id]);
@@ -393,6 +424,9 @@ $searchBlob = strtolower($f['numero'] . ' ' . $f['nom_client'] . ' ' . ($f['emai
     <div class="td-actions">
         <button type="button" class="act-btn" onclick="openDetail(<?= jsAttr($f) ?>)" title="Voir"><i class="fas fa-eye"></i></button>
         <a href="print_facture.php?id=<?= (int)$f['id'] ?>" target="_blank" class="act-btn" title="Imprimer" style="color:#60A5FA;border-color:rgba(59,130,246,.3)"><i class="fas fa-print"></i></a>
+        <?php if (!in_array($f['statut'], ['payee','annulee'], true)): ?>
+        <button type="button" class="act-btn" onclick="openPaiementModal(<?= (int)$f['id'] ?>, <?= (float)$f['reste_a_payer'] ?>, <?= jsAttr($f['numero']) ?>)" title="Enregistrer un paiement" style="color:#25D366;border-color:rgba(37,211,102,.3)"><i class="fas fa-coins"></i></button>
+        <?php endif; ?>
         <button type="button" class="act-btn" onclick="openStatutModal(<?= (int)$f['id'] ?>, <?= jsAttr($f['statut']) ?>)" title="Changer statut"><i class="fas fa-exchange-alt"></i></button>
         <form method="POST" style="display:inline" onsubmit="return confirm('Supprimer cette facture ?')">
             <input type="hidden" name="action" value="delete">
@@ -471,6 +505,48 @@ $searchBlob = strtolower($f['numero'] . ' ' . $f['nom_client'] . ' ' . ($f['emai
 </div>
 </div>
 
+<!-- Modal enregistrement de paiement -->
+<div class="modal-overlay" id="paiementModal">
+<div class="modal-box" style="max-width:400px">
+<div class="modal-header">
+  <h3><i class="fas fa-coins" style="color:#25D366;margin-right:8px"></i>Enregistrer un paiement</h3>
+  <button type="button" class="modal-close" onclick="closePaiement()"><i class="fas fa-times"></i></button>
+</div>
+<form method="POST">
+<input type="hidden" name="action" value="add_paiement">
+<input type="hidden" name="facture_id" id="paiementFactureId">
+<div class="modal-body">
+  <p id="paiementFactureLabel" style="color:var(--text-muted);font-size:.85rem;margin-bottom:16px"></p>
+  <div class="form-group">
+    <label class="form-label">Montant reçu (MAD)</label>
+    <input type="number" name="montant" id="paiementMontant" class="form-control" min="1" step="1" required>
+    <div id="paiementResteHint" style="font-size:.75rem;color:#FBB724;margin-top:6px"></div>
+  </div>
+  <div class="form-group">
+    <label class="form-label">Mode de paiement</label>
+    <select name="mode" class="form-control">
+      <option value="especes">Espèces</option>
+      <option value="virement">Virement bancaire</option>
+      <option value="cheque">Chèque</option>
+      <option value="cmi">Carte bancaire (CMI)</option>
+      <option value="wave">Wave</option>
+      <option value="whatsapp_pay">WhatsApp Pay</option>
+      <option value="autre">Autre</option>
+    </select>
+  </div>
+  <div class="form-group">
+    <label class="form-label">Date du paiement</label>
+    <input type="date" name="date_paiement" class="form-control" value="<?= date('Y-m-d') ?>">
+  </div>
+</div>
+<div class="modal-footer">
+  <button type="button" class="btn-secondary" onclick="closePaiement()">Annuler</button>
+  <button type="submit" class="btn-primary"><i class="fas fa-check"></i> Enregistrer le paiement</button>
+</div>
+</form>
+</div>
+</div>
+
 <script>
 const sidebarToggle = document.getElementById('sidebarToggle');
 const sidebarOverlay = document.getElementById('sidebarOverlay');
@@ -535,6 +611,17 @@ function openDetail(f) {
 function closeDetail() { document.getElementById('detailModal').classList.remove('show'); }
 function openStatutModal(id, statut) { document.getElementById('statutId').value = id; document.getElementById('statutSelect').value = statut; document.getElementById('statutModal').classList.add('show'); }
 function closeStatut() { document.getElementById('statutModal').classList.remove('show'); }
+
+function openPaiementModal(factureId, reste, numero) {
+    document.getElementById('paiementFactureId').value = factureId;
+    document.getElementById('paiementFactureLabel').textContent = 'Facture ' + numero + ' — Reste à payer : ' + reste.toLocaleString('fr-FR') + ' MAD';
+    const montantInput = document.getElementById('paiementMontant');
+    montantInput.max = reste;
+    montantInput.value = reste;
+    document.getElementById('paiementResteHint').textContent = 'Maximum : ' + reste.toLocaleString('fr-FR') + ' MAD (montant restant dû)';
+    document.getElementById('paiementModal').classList.add('show');
+}
+function closePaiement() { document.getElementById('paiementModal').classList.remove('show'); }
 let currentFilter = 'all';
 function setFilter(f, btn) { currentFilter = f; document.querySelectorAll('.tfilter').forEach(b => b.classList.remove('active')); btn.classList.add('active'); filterFac(); }
 function filterFac() {
