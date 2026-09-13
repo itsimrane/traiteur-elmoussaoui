@@ -2,18 +2,19 @@
 require_once __DIR__ . '/../includes/config.php';
 
 try {
-    $services = $pdo->query("SELECT * FROM services WHERE actif=1 ORDER BY ordre ASC")->fetchAll();
-} catch(Exception $e) { $services = []; }
+    $typesEvenements = $pdo->query("SELECT * FROM types_evenements WHERE actif=1 AND slug != 'autre' ORDER BY ordre ASC")->fetchAll();
+} catch(Exception $e) { $typesEvenements = []; }
 
-// Services statiques si BDD vide
-if (empty($services)) {
-    $services = [
-        ['id'=>1,'nom'=>'Restauration & Traiteur','nom_ar'=>'التموين والمطعم','description'=>'Buffet complet, plats marocains traditionnels et modernes, pâtisseries, jus de fruits.','description_ar'=>'بوفيه متكامل، أطباق مغربية تقليدية وعصرية، حلويات، عصائر طازجة.','icone'=>'fa-utensils','slug'=>'restauration'],
-        ['id'=>2,'nom'=>'Décoration & Scénographie','nom_ar'=>'الزينة والديكور','description'=>'Décoration florale, tissus, éclairages LED et mise en scène complète de la salle.','description_ar'=>'زينة زهرية، أقمشة، إضاءة LED وتزيين كامل للقاعة.','icone'=>'fa-paint-brush','slug'=>'decoration'],
-        ['id'=>3,'nom'=>'Tente & Structure','nom_ar'=>'الخيمة والهيكل','description'=>'Location et installation de tentes de réception toutes tailles, chapiteaux et structures.','description_ar'=>'تأجير وتركيب خيام الاستقبال بجميع الأحجام والهياكل.','icone'=>'fa-tent','slug'=>'tente'],
-        ['id'=>4,'nom'=>'Animation Musicale','nom_ar'=>'الموسيقى والترفيه','description'=>'Groupe musical, DJ, chanteur andalou ou gnaoua selon vos préférences.','description_ar'=>'فرقة موسيقية، DJ، مغني أندلسي أو كناوي حسب تفضيلاتك.','icone'=>'fa-music','slug'=>'animation'],
-        ['id'=>5,'nom'=>'Photo & Vidéo Professionnelle','nom_ar'=>'التصوير الفوتوغرافي','description'=>'Photographe et vidéaste professionnels, reportage complet, drone disponible.','description_ar'=>'مصور ومصور فيديو محترفان، تغطية كاملة، طائرة مسيّرة متاحة.','icone'=>'fa-camera','slug'=>'photo-video'],
-        ['id'=>6,'nom'=>'Coordination d\'Événement','nom_ar'=>'تنسيق الحفل','description'=>'Chef de projet dédié pour coordonner tous les prestataires le jour de votre événement.','description_ar'=>'مدير مشروع مخصص لتنسيق جميع مزودي الخدمات يوم مناسبتك.','icone'=>'fa-clipboard-list','slug'=>'coordination'],
+// Repli statique si la table est vide
+if (empty($typesEvenements)) {
+    $typesEvenements = [
+        ['id'=>1,'nom'=>'Mariage','nom_ar'=>'عرس','slug'=>'mariage','description'=>'Organisation complète de cérémonies de mariage traditionnelles et modernes','icone'=>'fa-heart'],
+        ['id'=>2,'nom'=>'Fiançailles','nom_ar'=>'خطوبة','slug'=>'fiancailles','description'=>'Cérémonie de fiançailles élégante et mémorable','icone'=>'fa-ring'],
+        ['id'=>3,'nom'=>'Circoncision','nom_ar'=>'عقيقة وختان','slug'=>'circoncision','description'=>'Fêtes traditionnelles de circoncision avec décoration et buffet','icone'=>'fa-baby'],
+        ['id'=>4,'nom'=>'Anniversaire','nom_ar'=>'عيد ميلاد','slug'=>'anniversaire','description'=>"Célébrations d'anniversaire pour tous les âges",'icone'=>'fa-birthday-cake'],
+        ['id'=>5,'nom'=>"Réception d'entreprise",'nom_ar'=>'تظاهرة مهنية','slug'=>'reception-pro','description'=>'Séminaires, conférences, galas et réceptions professionnelles','icone'=>'fa-briefcase'],
+        ['id'=>6,'nom'=>'Buffet & Banquet','nom_ar'=>'بوفيه وضيافة','slug'=>'buffet-banquet','description'=>'Service de buffet froid/chaud et banquets pour toutes occasions','icone'=>'fa-utensils'],
+        ['id'=>7,'nom'=>'Cérémonie religieuse','nom_ar'=>'مناسبة دينية','slug'=>'ceremonie-reli','description'=>"Fêtes religieuses : Aid, Mouloud, Laylat Al-Qadr...",'icone'=>'fa-mosque'],
     ];
 }
 ?>
@@ -82,11 +83,12 @@ if (empty($services)) {
 <section class="section">
   <div class="container">
 
-    <!-- Grille services -->
+    <!-- Grille : types d'événements → vers la réservation -->
     <div class="services-grid-full">
-      <?php foreach ($services as $idx => $s): ?>
-      <div class="service-card-full" id="<?= htmlspecialchars($s['slug'] ?? 'service-'.$s['id']) ?>"
-           data-aos="fade-up" data-aos-delay="<?= ($idx % 3) * 80 ?>">
+      <?php foreach ($typesEvenements as $idx => $s): ?>
+      <a href="reservation.php?type=<?= htmlspecialchars($s['slug']) ?>" class="service-card-full" id="<?= htmlspecialchars($s['slug'] ?? 'evt-'.$s['id']) ?>"
+         style="text-decoration:none;color:inherit;display:flex;flex-direction:column"
+         data-aos="fade-up" data-aos-delay="<?= ($idx % 3) * 80 ?>">
         <div class="svc-img-zone">
           <div class="svc-icon-big"><i class="fas <?= htmlspecialchars($s['icone'] ?? 'fa-star') ?>"></i></div>
           <div class="svc-img-overlay"></div>
@@ -102,18 +104,18 @@ if (empty($services)) {
             <?= htmlspecialchars($s['description'] ?? '') ?>
           </div>
           <div class="svc-footer">
-            <!-- ✅ Pas de prix — redirection vers devis -->
             <span class="svc-devis-tag">
               <i class="fas fa-file-invoice"></i>
               <span data-fr="Sur devis" data-ar="بعرض أسعار">Sur devis</span>
             </span>
-            <a href="reservation.php" class="svc-link">
+            <span class="svc-link">
               <span data-fr="Demander un devis" data-ar="طلب عرض أسعار">Demander un devis</span>
               <i class="fas fa-arrow-right"></i>
-            </a>
+            </span>
           </div>
+
         </div>
-      </div>
+      </a>
       <?php endforeach; ?>
     </div>
 
