@@ -14,12 +14,60 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $pdo->prepare("UPDATE devis SET statut=?, updated_at=NOW() WHERE id=?")->execute([$statut, $id]);
 
             // Si le devis est accepté, on confirme automatiquement la réservation liée
+            // ET on crée automatiquement la facture correspondante — plus besoin
+            // de le faire manuellement, chaque client accepté apparaît directement
+            // dans le registre des factures.
             if ($statut === 'accepte') {
-                $d = $pdo->prepare("SELECT reservation_id FROM devis WHERE id=?");
+                $d = $pdo->prepare("
+                    SELECT d.*, c.nom AS c_nom, c.prenom AS c_prenom, c.telephone AS c_tel, c.email AS c_email,
+                           te.nom AS type_nom
+                    FROM devis d
+                    LEFT JOIN clients c ON c.id = d.client_id
+                    LEFT JOIN types_evenements te ON te.id = d.type_evenement_id
+                    WHERE d.id = ?
+                ");
                 $d->execute([$id]);
-                $resId = $d->fetchColumn();
+                $devisAccepte = $d->fetch();
+                $resId = $devisAccepte['reservation_id'] ?? null;
+
                 if ($resId) {
                     $pdo->prepare("UPDATE reservations SET statut='confirmee', updated_at=NOW() WHERE id=? AND statut='en_attente'")->execute([$resId]);
+                }
+
+                if ($devisAccepte) {
+                    // On évite de créer un doublon si une facture existe déjà pour cette réservation
+                    $dejaFacture = $pdo->prepare("SELECT id FROM factures WHERE reservation_id = ?");
+                    $dejaFacture->execute([$resId]);
+                    if (!$dejaFacture->fetch()) {
+                        $nomClient = trim(($devisAccepte['c_prenom'] ?? '') . ' ' . ($devisAccepte['c_nom'] ?? ''));
+                        $lastId = (int)$pdo->query("SELECT COALESCE(MAX(id), 0) FROM factures")->fetchColumn() + 1;
+                        $numeroFacture = 'FAC-' . date('Y') . '-' . str_pad($lastId, 4, '0', STR_PAD_LEFT);
+
+                        $pdo->prepare("
+                            INSERT INTO factures (
+                                numero, client_id, reservation_id, nom_client, email_client, telephone_client,
+                                type_evenement, date_evenement, nb_personnes,
+                                montant_ht, tva, montant_tva, montant_ttc, acompte, reste_a_payer,
+                                statut, notes, created_at
+                            ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,0,?,'envoyee',?,NOW())
+                        ")->execute([
+                            $numeroFacture,
+                            $devisAccepte['client_id'],
+                            $resId,
+                            $nomClient ?: 'Client',
+                            $devisAccepte['c_email'],
+                            $devisAccepte['c_tel'],
+                            $devisAccepte['type_nom'],
+                            $devisAccepte['date_evenement'],
+                            $devisAccepte['nbr_invites'],
+                            $devisAccepte['montant_ht'],
+                            $devisAccepte['tva_pct'],
+                            $devisAccepte['montant_tva'],
+                            $devisAccepte['montant_ttc'],
+                            $devisAccepte['montant_ttc'], // reste_a_payer = montant total tant que rien n'est payé
+                            'Facture générée automatiquement depuis le devis ' . $devisAccepte['reference'],
+                        ]);
+                    }
                 }
             }
         }
@@ -218,9 +266,6 @@ $statutConfig = [
                   <?php if ($d['c_tel']): ?>
                   <a href="https://wa.me/212<?= ltrim(preg_replace('/[^0-9]/','',$d['c_tel']), '0') ?>?text=<?= urlencode("Bonjour, voici votre devis {$d['reference']} de Traiteur EL MOUSSAOUI : ") ?>"
                      target="_blank" class="ok" title="Envoyer au client (WhatsApp)"><i class="fab fa-whatsapp"></i></a>
-                  <?php endif; ?>
-                  <?php if ($d['statut'] === 'accepte' && !$d['facture_id']): ?>
-                  <a href="factures.php?from_devis=<?= $d['id'] ?>" class="ok" title="Générer la facture"><i class="fas fa-file-invoice-dollar"></i></a>
                   <?php endif; ?>
                   <form method="POST" style="display:contents">
                     <input type="hidden" name="action" value="update_statut">
