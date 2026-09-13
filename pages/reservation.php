@@ -29,9 +29,9 @@ $typesEvenements = [
   'fiancailles' => ['label' => 'Fiançailles', 'label_ar' => 'حفل خطوبة', 'icon' => 'fa-ring'],
   'circoncision' => ['label' => 'Circoncision', 'label_ar' => 'حفل ختان', 'icon' => 'fa-baby'],
   'anniversaire' => ['label' => 'Anniversaire', 'label_ar' => 'عيد ميلاد', 'icon' => 'fa-birthday-cake'],
-  'reception_pro' => ['label' => 'Réception Pro', 'label_ar' => 'استقبال مهني', 'icon' => 'fa-briefcase'],
-  'buffet' => ['label' => 'Buffet', 'label_ar' => 'بوفيه', 'icon' => 'fa-utensils'],
-  'religieux' => ['label' => 'Cérémonie religieuse', 'label_ar' => 'مناسبة دينية', 'icon' => 'fa-star-and-crescent'],
+  'reception-pro' => ['label' => 'Réception Pro', 'label_ar' => 'استقبال مهني', 'icon' => 'fa-briefcase'],
+  'buffet-banquet' => ['label' => 'Buffet', 'label_ar' => 'بوفيه', 'icon' => 'fa-utensils'],
+  'ceremonie-reli' => ['label' => 'Cérémonie religieuse', 'label_ar' => 'مناسبة دينية', 'icon' => 'fa-star-and-crescent'],
 ];
 ?>
 <!DOCTYPE html>
