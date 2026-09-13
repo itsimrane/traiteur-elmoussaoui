@@ -37,9 +37,9 @@ try {
   .cap-card{background:var(--dark-card);border:1px solid var(--border);border-radius:var(--radius);padding:20px}
   .cap-card h3{font-size:.95rem;color:var(--white);margin-bottom:14px;display:flex;align-items:center;gap:8px}
   .cap-card h3 i{color:var(--gold)}
-  .cap-form{display:flex;gap:10px;align-items:center}
-  .cap-form input{flex:1;background:var(--dark-3);border:1px solid var(--border);border-radius:8px;padding:9px 12px;color:var(--white);font-size:.9rem;text-align:center;font-weight:700}
-  .cap-form button{background:var(--gold);color:var(--dark);border:none;border-radius:8px;padding:9px 16px;font-weight:700;cursor:pointer;font-size:.8rem;white-space:nowrap}
+  .cap-form{display:flex;flex-direction:column;gap:10px}
+  .cap-form input{width:100%;box-sizing:border-box;background:var(--dark-3);border:1px solid var(--border);border-radius:8px;padding:10px 12px;color:var(--white);font-size:.95rem;text-align:center;font-weight:700}
+  .cap-form button{width:100%;background:var(--gold);color:var(--dark);border:none;border-radius:8px;padding:10px 16px;font-weight:700;cursor:pointer;font-size:.82rem;white-space:nowrap}
   .cap-hint{font-size:.7rem;color:var(--text-muted);margin-top:8px}
 </style>
 </head>
