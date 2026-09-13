@@ -15,10 +15,13 @@ echo "<!DOCTYPE html><html><head><meta charset='utf-8'><style>body{font-family:m
 echo "<h1 style='color:#D4AF37'>Migration — max_invites</h1>";
 
 try {
-    $pdo->exec("ALTER TABLE types_evenements
-        ADD COLUMN IF NOT EXISTS max_invites INT UNSIGNED NULL COMMENT 'Nombre maximal d\\'invités autorisé, NULL = pas de limite'
-    ");
-    echo "<p class='ok'>✅ Colonne max_invites ajoutée à types_evenements.</p>";
+    $colonnes = $pdo->query("SHOW COLUMNS FROM types_evenements LIKE 'max_invites'")->fetchAll();
+    if (empty($colonnes)) {
+        $pdo->exec("ALTER TABLE types_evenements ADD COLUMN max_invites INT UNSIGNED NULL COMMENT 'Nombre maximal d invites autorise, NULL = pas de limite'");
+        echo "<p class='ok'>✅ Colonne max_invites ajoutée à types_evenements.</p>";
+    } else {
+        echo "<p class='ok'>✅ La colonne max_invites existe déjà, rien à faire.</p>";
+    }
 } catch (Exception $e) {
     echo "<p class='err'>❌ " . htmlspecialchars($e->getMessage()) . "</p>";
 }
