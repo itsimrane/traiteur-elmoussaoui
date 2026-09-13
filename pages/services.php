@@ -35,11 +35,11 @@ if (empty($services)) {
     .service-card-full{background:var(--dark-card);border:1px solid var(--border);border-radius:var(--radius-lg);overflow:hidden;transition:var(--transition);display:flex;flex-direction:column}
     .service-card-full:hover{transform:translateY(-4px);border-color:rgba(212,175,55,.3);box-shadow:0 16px 48px rgba(0,0,0,.4)}
     .svc-img-zone{height:180px;background:var(--dark-3);position:relative;overflow:hidden;display:flex;align-items:center;justify-content:center}
-    .svc-img-zone i{font-size:3.5rem;color:rgba(212,175,55,.2)}
+    .svc-img-zone i{font-size:3.5rem;color:var(--text-muted);opacity:.35}
     .svc-img-zone img{width:100%;height:100%;object-fit:cover;position:absolute;inset:0}
     .svc-img-overlay{position:absolute;inset:0;background:linear-gradient(to top,rgba(0,0,0,.7) 0%,transparent 60%)}
     .svc-icon-badge{position:absolute;bottom:14px;left:14px;width:44px;height:44px;border-radius:12px;background:rgba(10,10,15,.85);border:1px solid rgba(212,175,55,.3);display:flex;align-items:center;justify-content:center;color:var(--gold);font-size:1.1rem}
-    .svc-icon-big{display:flex;align-items:center;justify-content:center;width:100%;height:100%;font-size:3.5rem;color:rgba(212,175,55,.2)}
+    .svc-icon-big{display:flex;align-items:center;justify-content:center;width:100%;height:100%;font-size:3.5rem;color:var(--text-muted);opacity:.35}
     .svc-body{padding:22px;flex:1;display:flex;flex-direction:column}
     .svc-name{font-size:1.05rem;font-weight:700;color:var(--white);margin-bottom:4px}
     .svc-name-ar{font-size:.82rem;color:var(--gold);opacity:.7;font-family:'Amiri',serif;margin-bottom:10px}

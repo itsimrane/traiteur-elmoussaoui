@@ -101,6 +101,10 @@ try {
       <a href="pages/reservation.php" class="btn-reservation" data-fr="Réserver" data-ar="احجز الآن" data-html>
         Réserver <i class="fas fa-arrow-right"></i>
       </a>
+      <button class="theme-toggle" id="themeToggle" title="Changer de thème">
+        <i class="fas fa-moon"></i>
+        <i class="fas fa-sun"></i>
+      </button>
       <div class="lang-switch">
         <span class="lang-option active" data-lang="fr">FR</span>
         <span class="lang-option" data-lang="ar">AR</span>
@@ -110,6 +114,26 @@ try {
       </button>
     </div>
   </nav>
+  <script>
+    (function () {
+      var saved = localStorage.getItem('theme') || 'dark';
+      if (saved === 'light') document.documentElement.setAttribute('data-theme', 'light');
+    })();
+    document.addEventListener('DOMContentLoaded', function () {
+      var btn = document.getElementById('themeToggle');
+      if (!btn) return;
+      btn.addEventListener('click', function () {
+        var isLight = document.documentElement.getAttribute('data-theme') === 'light';
+        if (isLight) {
+          document.documentElement.removeAttribute('data-theme');
+          localStorage.setItem('theme', 'dark');
+        } else {
+          document.documentElement.setAttribute('data-theme', 'light');
+          localStorage.setItem('theme', 'light');
+        }
+      });
+    });
+  </script>
 </header>
 
 <!-- ══════════════════════════════════════════════

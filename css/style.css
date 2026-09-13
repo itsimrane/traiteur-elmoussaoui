@@ -725,6 +725,9 @@ body.rtl-mode .nav-tel span {
   background: linear-gradient(135deg, #0D0D0D, #1A1400, #0D0D0D);
   border-bottom: 1px solid var(--border);
 }
+[data-theme="light"] .page-hero {
+  background: linear-gradient(135deg, #FBF6E8, #F3E7C4, #FBF6E8);
+}
 .page-hero h1 {
   font-family: var(--ff-display); font-size: clamp(2.5rem, 5vw, 4rem);
   color: var(--white); margin-bottom: 12px;
