@@ -101,7 +101,7 @@ $roleColors = [
     'gestionnaire'=> ['color'=>'#25D366','bg'=>'rgba(37,211,102,.15)', 'icon'=>'fa-user-tie'],
     'client'      => ['color'=>'#888',   'bg'=>'rgba(136,136,136,.1)', 'icon'=>'fa-user'],
 ];
-$langueLabels = ['fr'=>'\ud83c\uddeb\ud83c\uddf7 Français','ar'=>'\ud83c\uddf2\ud83c\udde6 Arabe','en'=>'\ud83c\uddec\ud83c\udde7 Anglais'];
+$langueLabels = ['fr'=>'🇫🇷 Français','ar'=>'🇲🇦 Arabe','en'=>'🇬🇧 Anglais'];
 ?>
 <!DOCTYPE html>
 <html lang="fr">
@@ -299,7 +299,7 @@ $langueLabels = ['fr'=>'\ud83c\uddeb\ud83c\uddf7 Français','ar'=>'\ud83c\uddf2\
               <span class="role-badge" style="background:<?= $rc['bg'] ?>;color:<?= $rc['color'] ?>">
                 <i class="fas <?= $rc['icon'] ?>"></i> <?= htmlspecialchars($u['role_label'] ?? $u['role_nom']) ?>
               </span>
-              <span class="lang-badge"><?= $langueLabels[$u['langue'] ?? 'fr'] ?? '\ud83c\uddeb\ud83c\uddf7' ?></span>
+              <span class="lang-badge"><?= $langueLabels[$u['langue'] ?? 'fr'] ?? '🇫🇷' ?></span>
             </div>
             <div class="user-last-conn">
               <i class="fas fa-clock" style="margin-right:4px;color:#555"></i>
@@ -369,9 +369,9 @@ $langueLabels = ['fr'=>'\ud83c\uddeb\ud83c\uddf7 Français','ar'=>'\ud83c\uddf2\
           <div class="form-group">
             <label class="form-label">Langue</label>
             <select name="langue" class="form-control">
-              <option value="fr">\ud83c\uddeb\ud83c\uddf7 Français</option>
-              <option value="ar">\ud83c\uddf2\ud83c\udde6 Arabe</option>
-              <option value="en">\ud83c\uddec\ud83c\udde7 Anglais</option>
+              <option value="fr">🇫🇷 Français</option>
+              <option value="ar">🇲🇦 Arabe</option>
+              <option value="en">🇬🇧 Anglais</option>
             </select>
           </div>
           <div class="form-group">
@@ -436,9 +436,9 @@ $langueLabels = ['fr'=>'\ud83c\uddeb\ud83c\uddf7 Français','ar'=>'\ud83c\uddf2\
           <div class="form-group">
             <label class="form-label">Langue</label>
             <select name="langue" id="e_langue" class="form-control">
-              <option value="fr">\ud83c\uddeb\ud83c\uddf7 Français</option>
-              <option value="ar">\ud83c\uddf2\ud83c\udde6 Arabe</option>
-              <option value="en">\ud83c\uddec\ud83c\udde7 Anglais</option>
+              <option value="fr">🇫🇷 Français</option>
+              <option value="ar">🇲🇦 Arabe</option>
+              <option value="en">🇬🇧 Anglais</option>
             </select>
           </div>
           <div class="form-group form-full">
