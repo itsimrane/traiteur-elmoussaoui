@@ -16,14 +16,13 @@ echo "<!DOCTYPE html><html><head><meta charset='utf-8'><style>body{font-family:m
 echo "<h1 style='color:#D4AF37'>Migration — email nullable</h1>";
 
 try {
-    // 1. On convertit d'abord les éventuels emails vides existants en NULL
-    //    (sinon la contrainte NOT NULL empêcherait même de les modifier).
-    $pdo->exec("UPDATE clients SET email = NULL WHERE email = ''");
-    echo "<p class='ok'>✅ Emails vides existants convertis en NULL.</p>";
-
-    // 2. On rend la colonne réellement nullable.
+    // 1. On rend d'abord la colonne réellement nullable.
     $pdo->exec("ALTER TABLE clients MODIFY email VARCHAR(191) NULL");
     echo "<p class='ok'>✅ Colonne email rendue optionnelle (NULL autorisé).</p>";
+
+    // 2. Une fois NULL autorisé, on convertit les emails vides existants.
+    $pdo->exec("UPDATE clients SET email = NULL WHERE email = ''");
+    echo "<p class='ok'>✅ Emails vides existants convertis en NULL.</p>";
 
 } catch (Exception $e) {
     echo "<p class='err'>❌ " . htmlspecialchars($e->getMessage()) . "</p>";
