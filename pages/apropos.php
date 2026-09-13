@@ -81,7 +81,8 @@ try {
     .team-grid { display:grid; grid-template-columns:repeat(4,1fr); gap:20px; }
     .team-card { background:var(--dark-card); border:1px solid var(--border); border-radius:var(--radius); overflow:hidden; text-align:center; transition:var(--transition); }
     .team-card:hover { border-color:rgba(212,175,55,.3); transform:translateY(-4px); }
-    .team-avatar { height:140px; background:linear-gradient(135deg,#1A1200,var(--dark-3)); display:flex;align-items:center;justify-content:center; font-size:3rem; color:rgba(212,175,55,.25); }
+    .team-avatar { height:140px; background:linear-gradient(135deg,#1A1200,var(--dark-3)); display:flex;align-items:center;justify-content:center; font-size:3rem; color:var(--text-muted); opacity:.4; }
+    [data-theme="light"] .team-avatar { background:linear-gradient(135deg,#F3E7C4,var(--dark-3)); }
     .team-body { padding:18px; }
     .team-name { font-size:.95rem; color:var(--white); font-weight:700; margin-bottom:4px; }
     .team-role { font-size:.75rem; color:var(--gold); margin-bottom:6px; }
