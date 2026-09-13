@@ -25,7 +25,11 @@ $adminNom   = $_SESSION['admin_nom']   ?? 'Admin';
 $adminEmail = $_SESSION['admin_email'] ?? 'admin@traiteur-elmoussaoui.ma';
 ?>
 <aside class="sidebar" id="sidebar">
-  <div class="sidebar-header">
+  <div class="sidebar-header" style="position:relative">
+    <button class="theme-toggle" id="themeToggleAdmin" title="Changer de thème" style="position:absolute;top:10px;right:10px;width:32px;height:32px;font-size:.8rem">
+      <i class="fas fa-moon"></i>
+      <i class="fas fa-sun"></i>
+    </button>
     <div class="logo-text" style="display:flex;flex-direction:column;align-items:center">
       <span style="font-size:.55rem;letter-spacing:4px;color:var(--text-muted)">TRAITEUR</span>
       <span class="logo-name" style="font-size:1.1rem">EL MOUSSAOUI</span>
@@ -129,3 +133,23 @@ $adminEmail = $_SESSION['admin_email'] ?? 'admin@traiteur-elmoussaoui.ma';
     </div>
   </div>
 </aside>
+<script>
+  (function () {
+    var saved = localStorage.getItem('theme') || 'dark';
+    if (saved === 'light') document.documentElement.setAttribute('data-theme', 'light');
+  })();
+  document.addEventListener('DOMContentLoaded', function () {
+    var btn = document.getElementById('themeToggleAdmin');
+    if (!btn) return;
+    btn.addEventListener('click', function () {
+      var isLight = document.documentElement.getAttribute('data-theme') === 'light';
+      if (isLight) {
+        document.documentElement.removeAttribute('data-theme');
+        localStorage.setItem('theme', 'dark');
+      } else {
+        document.documentElement.setAttribute('data-theme', 'light');
+        localStorage.setItem('theme', 'light');
+      }
+    });
+  });
+</script>

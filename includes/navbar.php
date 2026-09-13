@@ -7,8 +7,8 @@
 $navActive = $navActive ?? '';
 $isAdminConnected = function_exists('isAdmin') && isAdmin();
 $inPages = strpos($_SERVER['PHP_SELF'], '/pages/') !== false;
-$root = $inPages ? '../' : '';
-$base = $inPages ? '' : 'pages/';
+$root    = $inPages ? '../' : '';
+$base    = $inPages ? '' : 'pages/';
 ?>
 <header id="header">
   <nav class="navbar">
@@ -22,16 +22,11 @@ $base = $inPages ? '' : 'pages/';
       </a>
     </div>
     <ul class="nav-links" id="navLinks">
-      <li><a href="<?= $root ?>index.php" class="nav-link <?= $navActive === 'accueil' ? 'active' : '' ?>" data-fr="Accueil"
-          data-ar="الرئيسية">Accueil</a></li>
-      <li><a href="<?= $base ?>services.php" class="nav-link <?= $navActive === 'services' ? 'active' : '' ?>"
-          data-fr="Services" data-ar="خدماتنا">Services</a></li>
-      <li><a href="<?= $base ?>galerie.php" class="nav-link <?= $navActive === 'galerie' ? 'active' : '' ?>"
-          data-fr="Nos réalisations" data-ar="أعمالنا">Nos réalisations</a></li>
-      <li><a href="<?= $base ?>apropos.php" class="nav-link <?= $navActive === 'apropos' ? 'active' : '' ?>"
-          data-fr="À Propos" data-ar="من نحن">À Propos</a></li>
-      <li><a href="<?= $base ?>contact.php" class="nav-link <?= $navActive === 'contact' ? 'active' : '' ?>" data-fr="Contact"
-          data-ar="اتصل بنا">Contact</a></li>
+      <li><a href="<?= $root ?>index.php" class="nav-link <?= $navActive==='accueil'?'active':'' ?>" data-fr="Accueil" data-ar="الرئيسية">Accueil</a></li>
+      <li><a href="<?= $base ?>services.php" class="nav-link <?= $navActive==='services'?'active':'' ?>" data-fr="Services" data-ar="خدماتنا">Services</a></li>
+      <li><a href="<?= $base ?>galerie.php" class="nav-link <?= $navActive==='galerie'?'active':'' ?>" data-fr="Nos réalisations" data-ar="أعمالنا">Nos réalisations</a></li>
+      <li><a href="<?= $base ?>apropos.php" class="nav-link <?= $navActive==='apropos'?'active':'' ?>" data-fr="À Propos" data-ar="من نحن">À Propos</a></li>
+      <li><a href="<?= $base ?>contact.php" class="nav-link <?= $navActive==='contact'?'active':'' ?>" data-fr="Contact" data-ar="اتصل بنا">Contact</a></li>
     </ul>
     <div class="nav-actions">
       <a href="<?= $base ?>reservation.php" class="btn-reservation" data-fr="Réserver" data-ar="احجز الآن" data-html>
@@ -39,14 +34,22 @@ $base = $inPages ? '' : 'pages/';
       </a>
       <!-- ✅ Icône admin — toutes les pages -->
       <?php if ($isAdminConnected): ?>
-        <a href="<?= $root ?>admin/dashboard.php" class="nav-admin-icon connected" title="Panneau Admin — connecté">
-          <i class="fas fa-user-shield"></i>
-        </a>
+      <a href="<?= $root ?>admin/dashboard.php"
+         class="nav-admin-icon connected"
+         title="Panneau Admin — connecté">
+        <i class="fas fa-user-shield"></i>
+      </a>
       <?php else: ?>
-        <a href="<?= $root ?>admin/login.php" class="nav-admin-icon disconnected" title="Connexion Admin">
-          <i class="fas fa-user-lock"></i>
-        </a>
+      <a href="<?= $root ?>admin/login.php"
+         class="nav-admin-icon disconnected"
+         title="Connexion Admin">
+        <i class="fas fa-user-lock"></i>
+      </a>
       <?php endif; ?>
+      <button class="theme-toggle" id="themeToggle" title="Changer de thème">
+        <i class="fas fa-moon"></i>
+        <i class="fas fa-sun"></i>
+      </button>
       <div class="lang-switch">
         <span class="lang-option active" data-lang="fr">FR</span>
         <span class="lang-option" data-lang="ar">AR</span>
@@ -57,3 +60,24 @@ $base = $inPages ? '' : 'pages/';
     </div>
   </nav>
 </header>
+<script>
+  // Applique le thème mémorisé le plus tôt possible (limite le flash).
+  (function () {
+    var saved = localStorage.getItem('theme') || 'dark';
+    if (saved === 'light') document.documentElement.setAttribute('data-theme', 'light');
+  })();
+  document.addEventListener('DOMContentLoaded', function () {
+    var btn = document.getElementById('themeToggle');
+    if (!btn) return;
+    btn.addEventListener('click', function () {
+      var isLight = document.documentElement.getAttribute('data-theme') === 'light';
+      if (isLight) {
+        document.documentElement.removeAttribute('data-theme');
+        localStorage.setItem('theme', 'dark');
+      } else {
+        document.documentElement.setAttribute('data-theme', 'light');
+        localStorage.setItem('theme', 'light');
+      }
+    });
+  });
+</script>
