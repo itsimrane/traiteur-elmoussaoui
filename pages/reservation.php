@@ -33,6 +33,13 @@ $typesEvenements = [
   'buffet-banquet' => ['label' => 'Buffet', 'label_ar' => 'بوفيه', 'icon' => 'fa-utensils'],
   'ceremonie-reli' => ['label' => 'Cérémonie religieuse', 'label_ar' => 'مناسبة دينية', 'icon' => 'fa-star-and-crescent'],
 ];
+
+// Vraies limites d'invités par type, définies par l'admin (nulle = illimité)
+$maxInvitesParType = [];
+try {
+    $rows = $pdo->query("SELECT slug, max_invites FROM types_evenements WHERE max_invites IS NOT NULL")->fetchAll();
+    foreach ($rows as $r) { $maxInvitesParType[$r['slug']] = (int)$r['max_invites']; }
+} catch (Exception $e) {}
 ?>
 <!DOCTYPE html>
 <html lang="fr" dir="ltr">
@@ -1042,6 +1049,8 @@ $typesEvenements = [
       selectedType = type;
     }
 
+    const maxInvitesParType = <?= json_encode($maxInvitesParType) ?>;
+
     function goStep2() {
       if (!selectedType) { showAlert('Veuillez choisir un type d\'événement.'); return; }
       const dateVal = document.getElementById('date_evenement').value;
@@ -1054,7 +1063,13 @@ $typesEvenements = [
         return;
       }
       if (!document.getElementById('ville').value) { showAlert('Veuillez choisir une ville.'); return; }
-      if (!document.getElementById('nb_personnes').value) { showAlert('Veuillez indiquer le nombre d\'invités.'); return; }
+      const nbInvites = parseInt(document.getElementById('nb_personnes').value, 10);
+      if (!nbInvites) { showAlert('Veuillez indiquer le nombre d\'invités.'); return; }
+      const maxPourCeType = maxInvitesParType[selectedType];
+      if (maxPourCeType && nbInvites > maxPourCeType) {
+        showAlert('Le nombre maximal d\'invités pour cet événement est de ' + maxPourCeType + ' personnes.');
+        return;
+      }
       filterServicesByType();
       goStep(2);
     }
