@@ -54,7 +54,7 @@ try {
         $pdo->prepare("
             INSERT INTO clients (nom, prenom, email, telephone, ville, source, created_at)
             VALUES (?,?,?,?,?,'site_web',NOW())
-        ")->execute([$nomRaw ?: '—', $prenomRaw ?: 'Client', $email, $telephone, $ville ?: 'Errachidia']);
+        ")->execute([$nomRaw ?: '—', $prenomRaw ?: 'Client', $email ?: null, $telephone, $ville ?: 'Errachidia']);
         $clientId = $pdo->lastInsertId();
     }
 
