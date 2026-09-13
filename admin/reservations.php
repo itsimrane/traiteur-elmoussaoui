@@ -1,6 +1,5 @@
 <?php
 require_once __DIR__ . '/../includes/config.php';
-require_once __DIR__ . '/../includes/whatsapp.php';
 requireAdmin();
 
 // ── Actions (POST) ────────────────────────────────────────────
@@ -13,7 +12,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $allowed = ['en_attente','confirmee','en_cours','terminee','annulee'];
         if (in_array($statut, $allowed, true)) {
             $pdo->prepare("UPDATE reservations SET statut=?, updated_at=NOW() WHERE id=?")->execute([$statut, $id]);
-            notifierClientSelonStatut($pdo, $id, $statut);
         }
         header('Location: reservations.php?msg=Statut+mis+à+jour&type=success'); exit;
     }
