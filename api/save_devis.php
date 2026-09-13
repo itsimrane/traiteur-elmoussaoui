@@ -60,11 +60,29 @@ try {
 
     // ── 2. Type d'événement ──────────────────────────────────────
     $typeId = 1;
+    $maxInvites = null;
     if ($typeRaw) {
-        $tevt = $pdo->prepare("SELECT id FROM types_evenements WHERE slug=? OR nom LIKE ? LIMIT 1");
+        $tevt = $pdo->prepare("SELECT id, max_invites FROM types_evenements WHERE slug=? OR nom LIKE ? LIMIT 1");
         $tevt->execute([$typeRaw, '%'.$typeRaw.'%']);
         $typeRow = $tevt->fetch();
-        if ($typeRow) $typeId = $typeRow['id'];
+        if ($typeRow) { $typeId = $typeRow['id']; $maxInvites = $typeRow['max_invites']; }
+    }
+
+    // ── 2b. Vérification de la capacité maximale (source de vérité serveur) ──
+    if ($maxInvites !== null && $nb > (int)$maxInvites) {
+        $pdo->rollBack();
+        jsonResponse(['success'=>false,'message'=>"Le nombre maximal d'invités pour ce type d'événement est de {$maxInvites} personnes."]);
+    }
+
+    // ── 2c. Vérification que la date n'est pas déjà confirmée ────────
+    $dateOccupee = $pdo->prepare("
+        SELECT COUNT(*) FROM reservations
+        WHERE date_evenement = ? AND statut IN ('confirmee','en_cours') AND deleted_at IS NULL
+    ");
+    $dateOccupee->execute([$date]);
+    if ((int)$dateOccupee->fetchColumn() > 0) {
+        $pdo->rollBack();
+        jsonResponse(['success'=>false,'message'=>"Cette date est déjà réservée. Merci de choisir une autre date."]);
     }
 
     // ── 3. Réservation ────────────────────────────────────────────

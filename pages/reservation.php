@@ -595,6 +595,52 @@ $typesEvenements = [
         grid-template-columns: 1fr 1fr
       }
     }
+    /* ═══════════════ Calendrier de réservation ═══════════════ */
+    .pro-calendar {
+      background: var(--dark-card); border: 1px solid var(--border);
+      border-radius: var(--radius); padding: 18px; margin-top: 4px;
+    }
+    .cal-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; }
+    .cal-nav-btn {
+      width: 34px; height: 34px; border-radius: 8px; border: 1px solid var(--border);
+      background: var(--dark-3); color: var(--gold); cursor: pointer;
+      display: flex; align-items: center; justify-content: center; transition: var(--transition);
+    }
+    .cal-nav-btn:hover:not(:disabled) { border-color: var(--gold); transform: scale(1.06); }
+    .cal-nav-btn:disabled { opacity: .3; cursor: not-allowed; }
+    .cal-title { font-family: var(--ff-display); font-size: 1.15rem; color: var(--white); font-weight: 700; }
+    .cal-weekdays { display: grid; grid-template-columns: repeat(7,1fr); text-align: center; margin-bottom: 6px; }
+    .cal-weekdays span { font-size: .68rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: .5px; }
+    .cal-days { display: grid; grid-template-columns: repeat(7,1fr); gap: 4px; }
+    .cal-day {
+      aspect-ratio: 1; display: flex; align-items: center; justify-content: center;
+      border-radius: 9px; font-size: .84rem; color: var(--text-light); cursor: pointer;
+      transition: var(--transition); position: relative; border: 1px solid transparent;
+    }
+    .cal-day.empty { visibility: hidden; cursor: default; }
+    .cal-day.today { border-color: var(--gold); font-weight: 700; color: var(--gold); }
+    .cal-day.disabled { color: #444; cursor: not-allowed; opacity: .4; }
+    .cal-day.attente { background: rgba(251,183,36,.14); color: #FBB724; }
+    .cal-day.attente::after { content:''; position:absolute; bottom:4px; width:5px; height:5px; border-radius:50%; background:#FBB724; }
+    .cal-day.reserve { background: rgba(239,68,68,.14); color: #EF5350; cursor: not-allowed; opacity: .85; }
+    .cal-day.reserve::after { content:''; position:absolute; bottom:4px; width:5px; height:5px; border-radius:50%; background:#EF5350; }
+    .cal-day:not(.disabled):not(.reserve):not(.empty):hover { background: rgba(212,175,55,.14); color: var(--gold); transform: scale(1.05); }
+    .cal-day.selected { background: var(--gold) !important; color: var(--dark) !important; font-weight: 700; opacity: 1 !important; }
+    .cal-footer { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px; margin-top: 16px; padding-top: 14px; border-top: 1px solid var(--border); }
+    .cal-today-btn { background: none; border: 1px solid var(--border); color: var(--gold); border-radius: 20px; padding: 6px 16px; font-size: .75rem; cursor: pointer; transition: var(--transition); }
+    .cal-today-btn:hover { border-color: var(--gold); }
+    .cal-legend { display: flex; gap: 14px; flex-wrap: wrap; font-size: .72rem; color: var(--text-muted); }
+    .cal-legend span { display: flex; align-items: center; gap: 5px; }
+    .cal-legend .dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; }
+    .dot-dispo { background: #25D366; }
+    .dot-attente { background: #FBB724; }
+    .dot-reserve { background: #EF5350; }
+    .cal-selected-label { margin-top: 10px; font-size: .85rem; color: var(--gold); font-weight: 600; min-height: 20px; }
+    @media(max-width:480px){
+      .cal-day{font-size:.76rem}
+      .cal-legend{gap:8px;font-size:.68rem}
+      .cal-title{font-size:1rem}
+    }
   </style>
 </head>
 
@@ -675,9 +721,29 @@ $typesEvenements = [
             <div class="form-group">
               <label class="form-label" data-fr="Date de l'événement *" data-ar="تاريخ المناسبة *">Date de l'événement
                 *</label>
-              <input type="date" id="date_evenement" class="form-control"
-                min="<?= date('Y-m-d', strtotime('+7 days')) ?>"
-                max="<?= date('Y-m-d', strtotime('+2 months')) ?>" required>
+
+              <div class="pro-calendar" id="proCalendar">
+                <div class="cal-header">
+                  <button type="button" class="cal-nav-btn" id="calPrev"><i class="fas fa-chevron-left"></i></button>
+                  <div class="cal-title" id="calTitle">—</div>
+                  <button type="button" class="cal-nav-btn" id="calNext"><i class="fas fa-chevron-right"></i></button>
+                </div>
+                <div class="cal-weekdays">
+                  <span data-fr="L" data-ar="ن">L</span><span data-fr="M" data-ar="ث">M</span><span data-fr="M" data-ar="ر">M</span><span data-fr="J" data-ar="خ">J</span><span data-fr="V" data-ar="ج">V</span><span data-fr="S" data-ar="س">S</span><span data-fr="D" data-ar="ح">D</span>
+                </div>
+                <div class="cal-days" id="calDays"></div>
+                <div class="cal-footer">
+                  <button type="button" class="cal-today-btn" id="calToday" data-fr="Aujourd'hui" data-ar="اليوم">Aujourd'hui</button>
+                  <div class="cal-legend">
+                    <span><i class="dot dot-dispo"></i> <span data-fr="Disponible" data-ar="متاح">Disponible</span></span>
+                    <span><i class="dot dot-attente"></i> <span data-fr="En attente" data-ar="قيد الانتظار">En attente</span></span>
+                    <span><i class="dot dot-reserve"></i> <span data-fr="Réservé" data-ar="محجوز">Réservé</span></span>
+                  </div>
+                </div>
+              </div>
+              <div class="cal-selected-label" id="dateSelectedLabel"></div>
+
+              <input type="hidden" id="date_evenement" required>
               <small style="color:var(--text-muted);font-size:.72rem;display:block;margin-top:5px"
                      data-fr="Réservation possible entre 7 jours et 2 mois à l'avance."
                      data-ar="الحجز ممكن بين 7 أيام وشهرين مقدماً.">
@@ -1214,6 +1280,115 @@ $typesEvenements = [
       updateTotal();
       goStep(1);
     }
+
+    // ═══════════════ Calendrier de réservation ═══════════════
+    (function () {
+      const MIN_DATE = new Date(); MIN_DATE.setDate(MIN_DATE.getDate() + 7); MIN_DATE.setHours(0,0,0,0);
+      const MAX_DATE = new Date(); MAX_DATE.setMonth(MAX_DATE.getMonth() + 2); MAX_DATE.setHours(0,0,0,0);
+      const moisNoms = ['Janvier','Février','Mars','Avril','Mai','Juin','Juillet','Août','Septembre','Octobre','Novembre','Décembre'];
+
+      let vueMois = MIN_DATE.getMonth();
+      let vueAnnee = MIN_DATE.getFullYear();
+      let datesStatut = {};
+      let dateSelectionnee = null;
+
+      function fmtDate(d) {
+        return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
+      }
+
+      function chargerDisponibilite(mois, annee) {
+        return fetch('../api/calendrier_disponibilite.php?mois=' + (mois+1) + '&annee=' + annee)
+          .then(r => r.json())
+          .then(res => { datesStatut = (res.success && res.dates) ? res.dates : {}; });
+      }
+
+      function peutReculer() {
+        const premierMoisVue = new Date(vueAnnee, vueMois, 1);
+        const premierMoisMin = new Date(MIN_DATE.getFullYear(), MIN_DATE.getMonth(), 1);
+        return premierMoisVue > premierMoisMin;
+      }
+      function peutAvancer() {
+        const premierMoisVue = new Date(vueAnnee, vueMois, 1);
+        const premierMoisMax = new Date(MAX_DATE.getFullYear(), MAX_DATE.getMonth(), 1);
+        return premierMoisVue < premierMoisMax;
+      }
+
+      function dessinerCalendrier() {
+        document.getElementById('calTitle').textContent = moisNoms[vueMois] + ' ' + vueAnnee;
+        document.getElementById('calPrev').disabled = !peutReculer();
+        document.getElementById('calNext').disabled = !peutAvancer();
+
+        const grille = document.getElementById('calDays');
+        grille.innerHTML = '';
+
+        const premierJour = new Date(vueAnnee, vueMois, 1);
+        let decalage = premierJour.getDay(); // 0=dimanche
+        decalage = (decalage === 0) ? 6 : decalage - 1; // On veut Lundi en premier
+        const nbJours = new Date(vueAnnee, vueMois + 1, 0).getDate();
+        const aujourdHui = new Date(); aujourdHui.setHours(0,0,0,0);
+
+        for (let i = 0; i < decalage; i++) {
+          const vide = document.createElement('div');
+          vide.className = 'cal-day empty';
+          grille.appendChild(vide);
+        }
+
+        for (let jour = 1; jour <= nbJours; jour++) {
+          const dateObj = new Date(vueAnnee, vueMois, jour);
+          const dateStr = fmtDate(dateObj);
+          const cell = document.createElement('div');
+          cell.className = 'cal-day';
+          cell.textContent = jour;
+
+          const horsPlage = dateObj < MIN_DATE || dateObj > MAX_DATE;
+          const statut = datesStatut[dateStr];
+
+          if (dateObj.getTime() === aujourdHui.getTime()) cell.classList.add('today');
+
+          if (horsPlage) {
+            cell.classList.add('disabled');
+          } else if (statut === 'reserve') {
+            cell.classList.add('reserve');
+            cell.addEventListener('click', () => {
+              showAlert("Cette date est déjà réservée. Veuillez choisir une autre date.");
+            });
+          } else {
+            if (statut === 'attente') cell.classList.add('attente');
+            cell.addEventListener('click', () => selectionnerDate(dateObj, cell));
+          }
+
+          if (dateSelectionnee === dateStr) cell.classList.add('selected');
+
+          grille.appendChild(cell);
+        }
+      }
+
+      function selectionnerDate(dateObj, cell) {
+        dateSelectionnee = fmtDate(dateObj);
+        document.getElementById('date_evenement').value = dateSelectionnee;
+        document.querySelectorAll('.cal-day.selected').forEach(c => c.classList.remove('selected'));
+        cell.classList.add('selected');
+        const isAr = document.documentElement.lang === 'ar' || document.body.classList.contains('rtl-mode');
+        const dateAffichee = dateObj.toLocaleDateString(isAr ? 'ar-MA' : 'fr-FR', { weekday:'long', day:'numeric', month:'long', year:'numeric' });
+        document.getElementById('dateSelectedLabel').textContent = '✓ ' + dateAffichee;
+      }
+
+      function changerMois(delta) {
+        vueMois += delta;
+        if (vueMois > 11) { vueMois = 0; vueAnnee++; }
+        if (vueMois < 0) { vueMois = 11; vueAnnee--; }
+        chargerDisponibilite(vueMois, vueAnnee).then(dessinerCalendrier);
+      }
+
+      document.getElementById('calPrev').addEventListener('click', () => { if (peutReculer()) changerMois(-1); });
+      document.getElementById('calNext').addEventListener('click', () => { if (peutAvancer()) changerMois(1); });
+      document.getElementById('calToday').addEventListener('click', () => {
+        vueMois = MIN_DATE.getMonth(); vueAnnee = MIN_DATE.getFullYear();
+        chargerDisponibilite(vueMois, vueAnnee).then(dessinerCalendrier);
+      });
+
+      chargerDisponibilite(vueMois, vueAnnee).then(dessinerCalendrier);
+    })();
 
     function showAlert(msg) {
       const div = document.createElement('div');
