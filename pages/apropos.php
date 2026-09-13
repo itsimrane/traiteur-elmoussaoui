@@ -70,6 +70,7 @@ try {
 
     /* Stats */
     .stats-section { background:linear-gradient(135deg,#0D0900,#050300); padding:70px 0; }
+    [data-theme="light"] .stats-section { background:linear-gradient(135deg,#FBF6E8,#F3E7C4); }
     .stats-row { display:grid; grid-template-columns:repeat(4,1fr); gap:20px; }
     .stat-block { text-align:center; }
     .big-num { font-family:var(--ff-display); font-size:3rem; color:var(--gold); font-weight:700; }
@@ -78,6 +79,7 @@ try {
 
     /* Équipe */
     .team-section { padding:90px 0; background:linear-gradient(180deg,#0D0900 0%,var(--dark) 100%); }
+    [data-theme="light"] .team-section { background:linear-gradient(180deg,#F3E7C4 0%,var(--dark) 100%); }
     .team-grid { display:grid; grid-template-columns:repeat(4,1fr); gap:20px; }
     .team-card { background:var(--dark-card); border:1px solid var(--border); border-radius:var(--radius); overflow:hidden; text-align:center; transition:var(--transition); }
     .team-card:hover { border-color:rgba(212,175,55,.3); transform:translateY(-4px); }
