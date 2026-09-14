@@ -243,15 +243,15 @@ body { overflow-x: hidden; }
 .factures-table-wrap { width: 100%; overflow-x: auto; overflow-y: hidden; -webkit-overflow-scrolling: touch; }
 #facTable { width: 100%; min-width: 1150px; border-collapse: collapse !important; border-spacing: 0 !important; table-layout: fixed !important; margin: 0 !important; padding: 0 !important; }
 #facTable th, #facTable td { box-sizing: border-box; min-width: 0; }
-#facTable col:nth-child(1) { width: 10%; }
-#facTable col:nth-child(2) { width: 16%; }
-#facTable col:nth-child(3) { width: 10%; }
-#facTable col:nth-child(4) { width: 12%; }
-#facTable col:nth-child(5) { width: 11%; }
+#facTable col:nth-child(1) { width: 9%; }
+#facTable col:nth-child(2) { width: 13%; }
+#facTable col:nth-child(3) { width: 9%; }
+#facTable col:nth-child(4) { width: 11%; }
+#facTable col:nth-child(5) { width: 10%; }
 #facTable col:nth-child(6) { width: 10%; }
-#facTable col:nth-child(7) { width: 11%; }
-#facTable col:nth-child(8) { width: 10%; }
-#facTable col:nth-child(9) { width: 10%; }
+#facTable col:nth-child(7) { width: 10%; }
+#facTable col:nth-child(8) { width: 9%; }
+#facTable col:nth-child(9) { width: 19%; }
 #facTable, #facTable thead, #facTable tbody, #facTable tr, #facTable th, #facTable td {
     position: static !important; float: none !important; transform: none !important;
 }
@@ -291,13 +291,13 @@ body { overflow-x: hidden; }
 #facTable .statut-badge { display: inline-flex !important; align-items: center; gap: 5px; padding: 4px 12px; border-radius: 20px; font-size: .72rem; font-weight: 700; white-space: nowrap !important; }
 #facTable td:nth-child(8) { white-space: nowrap !important; font-size: .78rem; }
 #facTable td:nth-child(9) { white-space: nowrap !important; overflow: visible !important; }
-#facTable .td-actions { display: flex !important; align-items: center !important; justify-content: flex-start !important; gap: 6px !important; flex-wrap: nowrap !important; width: max-content !important; max-width: none !important; }
+#facTable .td-actions { display: flex !important; align-items: center !important; justify-content: flex-start !important; gap: 5px !important; flex-wrap: nowrap !important; width: max-content !important; max-width: none !important; }
 #facTable .act-btn {
-    width: 30px !important; min-width: 30px !important; max-width: 30px !important;
-    height: 30px !important; min-height: 30px !important; max-height: 30px !important; flex: 0 0 30px !important;
+    width: 27px !important; min-width: 27px !important; max-width: 27px !important;
+    height: 27px !important; min-height: 27px !important; max-height: 27px !important; flex: 0 0 27px !important;
     border-radius: 7px; border: 1px solid var(--border); background: none; cursor: pointer;
     display: flex !important; align-items: center !important; justify-content: center !important;
-    font-size: .78rem; transition: var(--transition); color: var(--text-muted); text-decoration: none;
+    font-size: .72rem; transition: var(--transition); color: var(--text-muted); text-decoration: none;
 }
 #facTable .act-btn:hover { border-color: var(--gold); color: var(--gold); }
 #facTable .act-btn.danger:hover { border-color: rgba(239,68,68,.4); color: #EF5350; }
@@ -386,9 +386,9 @@ body { overflow-x: hidden; }
 <div class="factures-table-wrap">
 <table id="facTable">
 <colgroup>
-    <col style="width:10%"><col style="width:16%"><col style="width:10%">
-    <col style="width:12%"><col style="width:11%"><col style="width:10%">
+    <col style="width:9%"><col style="width:13%"><col style="width:9%">
     <col style="width:11%"><col style="width:10%"><col style="width:10%">
+    <col style="width:10%"><col style="width:9%"><col style="width:19%">
 </colgroup>
 <thead>
 <tr>
