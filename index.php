@@ -5,6 +5,23 @@
  */
 require_once __DIR__ . '/includes/config.php';
 
+// ── Paramètres de contact réels (modifiables depuis admin/parametres.php) ──
+$paramsContact = [
+    'contact_telephone' => '0626986533',
+    'contact_whatsapp'  => '+212626986533',
+    'contact_email'     => 'contact@traiteur-elmoussaoui.ma',
+    'contact_adresse'   => 'Errachidia, Région Drâa-Tafilalet, Maroc',
+    'horaires_ouverture'=> 'Lun–Sam : 08h–20h',
+];
+try {
+    $rows = $pdo->query("SELECT cle, valeur FROM parametres WHERE groupe='contact'")->fetchAll();
+    foreach ($rows as $r) {
+        if ($r['valeur'] !== null && $r['valeur'] !== '') $paramsContact[$r['cle']] = $r['valeur'];
+    }
+} catch (Exception $e) {}
+$waNumeroIndex = ltrim(preg_replace('/[^0-9]/', '', $paramsContact['contact_whatsapp']), '+');
+$telAfficheIndex = preg_replace('/(\d{2})(?=\d)/', '$1 ', $paramsContact['contact_telephone']);
+
 // ── Statistiques réelles (plus de faux chiffres) ──────────────
 $statEvenements = 0;
 $statClients    = 0;
@@ -475,8 +492,8 @@ try {
         <a href="pages/reservation.php" class="btn-primary large" data-fr="Demander un devis gratuit" data-ar="طلب عرض سعر مجاني" data-html>
           <i class="fas fa-calendar-check"></i> Demander un devis gratuit
         </a>
-        <a href="https://wa.me/212626986533" target="_blank" class="btn-whatsapp large" data-fr="WhatsApp : 0626 986 533" data-ar="واتساب: 0626986533" data-html>
-          <i class="fab fa-whatsapp"></i> WhatsApp : <span dir="ltr">0626 986 533</span>
+        <a href="https://wa.me/<?= htmlspecialchars($waNumeroIndex) ?>" target="_blank" class="btn-whatsapp large" data-html>
+          <i class="fab fa-whatsapp"></i> WhatsApp : <span dir="ltr"><?= htmlspecialchars($telAfficheIndex) ?></span>
         </a>
       </div>
     </div>
@@ -501,7 +518,7 @@ try {
           <div class="footer-social">
             <a href="https://www.facebook.com/profile.php?id=61565592029636" target="_blank" rel="noopener" aria-label="Facebook"><i class="fab fa-facebook-f"></i></a>
             <a href="https://www.instagram.com/elmoussaoui_traiteur__officiel/" target="_blank" rel="noopener" aria-label="Instagram"><i class="fab fa-instagram"></i></a>
-            <a href="https://wa.me/212626986533" target="_blank" rel="noopener" aria-label="WhatsApp"><i class="fab fa-whatsapp"></i></a>
+            <a href="https://wa.me/<?= htmlspecialchars($waNumeroIndex) ?>" target="_blank" rel="noopener" aria-label="WhatsApp"><i class="fab fa-whatsapp"></i></a>
           </div>
         </div>
         <!-- Services -->
@@ -532,11 +549,11 @@ try {
         <div class="footer-col">
           <h4 data-fr="Contact" data-ar="اتصل بنا">Contact</h4>
           <ul class="footer-contact">
-            <li><i class="fas fa-map-marker-alt"></i> <span data-fr="Errachidia, Région Drâa-Tafilalet, Maroc" data-ar="الراشيدية، جهة درعة تافيلالت، المغرب">Errachidia, Région Drâa-Tafilalet, Maroc</span></li>
-            <li><i class="fas fa-phone"></i> <a href="tel:0626986533"><span dir="ltr">0626 986 533</span></a></li>
-            <li><i class="fab fa-whatsapp"></i> <a href="https://wa.me/212626986533" data-fr="WhatsApp direct" data-ar="واتساب مباشر">WhatsApp direct</a></li>
-            <li><i class="fas fa-envelope"></i> <a href="mailto:contact@traiteur-elmoussaoui.ma">contact@traiteur-elmoussaoui.ma</a></li>
-            <li><i class="fas fa-clock"></i> <span data-fr="Lun–Sam : 08h–20h" data-ar="الإثنين-السبت: 08h-20h">Lun–Sam : 08h–20h</span></li>
+            <li><i class="fas fa-map-marker-alt"></i> <span><?= htmlspecialchars($paramsContact['contact_adresse']) ?></span></li>
+            <li><i class="fas fa-phone"></i> <a href="tel:<?= htmlspecialchars($paramsContact['contact_telephone']) ?>"><span dir="ltr"><?= htmlspecialchars($telAfficheIndex) ?></span></a></li>
+            <li><i class="fab fa-whatsapp"></i> <a href="https://wa.me/<?= htmlspecialchars($waNumeroIndex) ?>" data-fr="WhatsApp direct" data-ar="واتساب مباشر">WhatsApp direct</a></li>
+            <li><i class="fas fa-envelope"></i> <a href="mailto:<?= htmlspecialchars($paramsContact['contact_email']) ?>"><?= htmlspecialchars($paramsContact['contact_email']) ?></a></li>
+            <li><i class="fas fa-clock"></i> <span><?= htmlspecialchars($paramsContact['horaires_ouverture']) ?></span></li>
           </ul>
         </div>
       </div>
@@ -551,13 +568,13 @@ try {
 </footer>
 
 <!-- WhatsApp Float Button (desktop) -->
-<a href="https://wa.me/212626986533" class="whatsapp-float" target="_blank" title="Contactez-nous sur WhatsApp">
+<a href="https://wa.me/<?= htmlspecialchars($waNumeroIndex) ?>" class="whatsapp-float" target="_blank" title="Contactez-nous sur WhatsApp">
   <i class="fab fa-whatsapp"></i>
 </a>
 
 <!-- Barre d'actions flottante mobile -->
 <div class="mobile-action-bar">
-  <a href="https://wa.me/212626986533" target="_blank" rel="noopener" class="mab-item mab-whatsapp">
+  <a href="https://wa.me/<?= htmlspecialchars($waNumeroIndex) ?>" target="_blank" rel="noopener" class="mab-item mab-whatsapp">
     <i class="fab fa-whatsapp"></i><span data-fr="WhatsApp" data-ar="واتساب">WhatsApp</span>
   </a>
   <a href="https://www.instagram.com/elmoussaoui_traiteur__officiel/" target="_blank" rel="noopener" class="mab-item mab-instagram">
