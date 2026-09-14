@@ -52,6 +52,8 @@
 }
 [data-theme="light"] body { background: var(--dark); }
 [data-theme="light"] .whatsapp-float,
+[data-theme="light"] .instagram-float,
+[data-theme="light"] .facebook-float,
 [data-theme="light"] .scroll-top { box-shadow: 0 6px 20px rgba(0,0,0,.15); }
 [data-theme="light"] ::-webkit-scrollbar-track { background: #EFE9DC; }
 
@@ -737,6 +739,25 @@ body.rtl-mode .nav-tel span {
   transition: var(--transition);
 }
 .whatsapp-float:hover { transform: scale(1.1) translateY(-3px); box-shadow: 0 8px 30px rgba(37,211,102,0.6); }
+.instagram-float {
+  position: fixed; bottom: 156px; right: 24px; z-index: 900;
+  width: 52px; height: 52px; border-radius: 50%;
+  background: radial-gradient(circle at 30% 107%, #fdf497 0%, #fdf497 5%, #fd5949 45%, #d6249f 60%, #285AEB 90%);
+  color: white;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 1.35rem; box-shadow: 0 4px 20px rgba(214,36,159,0.4);
+  transition: var(--transition);
+}
+.instagram-float:hover { transform: scale(1.1) translateY(-3px); box-shadow: 0 8px 30px rgba(214,36,159,0.6); }
+.facebook-float {
+  position: fixed; bottom: 216px; right: 24px; z-index: 900;
+  width: 52px; height: 52px; border-radius: 50%;
+  background: #1877F2; color: white;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 1.35rem; box-shadow: 0 4px 20px rgba(24,119,242,0.4);
+  transition: var(--transition);
+}
+.facebook-float:hover { transform: scale(1.1) translateY(-3px); box-shadow: 0 8px 30px rgba(24,119,242,0.6); }
 .scroll-top {
   position: fixed; bottom: 24px; right: 24px; z-index: 900;
   width: 44px; height: 44px; border-radius: 50%;
@@ -747,6 +768,12 @@ body.rtl-mode .nav-tel span {
 }
 .scroll-top.visible { opacity: 1; visibility: visible; }
 .scroll-top:hover { transform: translateY(-3px); }
+@media(max-width:480px) {
+  .whatsapp-float { bottom: 80px; right: 16px; width: 50px; height: 50px; font-size: 1.3rem; }
+  .instagram-float { bottom: 138px; right: 18px; width: 46px; height: 46px; font-size: 1.15rem; }
+  .facebook-float { bottom: 192px; right: 18px; width: 46px; height: 46px; font-size: 1.15rem; }
+  .scroll-top { bottom: 20px; right: 18px; width: 40px; height: 40px; }
+}
 
 /* ══════════════════════════════════════════════════════════════
    PAGE : RÉSERVATION / DEVIS

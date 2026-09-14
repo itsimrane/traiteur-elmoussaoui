@@ -571,6 +571,12 @@ try {
 <a href="https://wa.me/<?= htmlspecialchars($waNumeroIndex) ?>" class="whatsapp-float" target="_blank" title="Contactez-nous sur WhatsApp">
   <i class="fab fa-whatsapp"></i>
 </a>
+<a href="https://www.instagram.com/elmoussaoui_traiteur__officiel/" class="instagram-float" target="_blank" rel="noopener" title="Suivez-nous sur Instagram">
+  <i class="fab fa-instagram"></i>
+</a>
+<a href="https://www.facebook.com/profile.php?id=61565592029636" class="facebook-float" target="_blank" rel="noopener" title="Suivez-nous sur Facebook">
+  <i class="fab fa-facebook-f"></i>
+</a>
 
 <!-- Barre d'actions flottante mobile -->
 <div class="mobile-action-bar">
