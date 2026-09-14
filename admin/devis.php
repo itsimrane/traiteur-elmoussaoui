@@ -48,8 +48,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                                 numero, client_id, reservation_id, nom_client, email_client, telephone_client,
                                 type_evenement, date_evenement, nb_personnes,
                                 montant_ht, tva, montant_tva, montant_ttc, acompte, reste_a_payer,
-                                statut, notes, created_at
-                            ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,0,?,'envoyee',?,NOW())
+                                statut, notes, date_echeance, created_at
+                            ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,0,?,'envoyee',?, DATE_ADD(CURDATE(), INTERVAL 30 DAY), NOW())
                         ")->execute([
                             $numeroFacture,
                             $devisAccepte['client_id'],
