@@ -6,7 +6,7 @@ header('Content-Type: text/html; charset=utf-8');
 echo "<pre style='background:#111;color:#0f0;padding:20px;font-family:monospace'>";
 
 echo "=== Ligne(s) avec reference = DEV-2026-0015 ===\n\n";
-$r = $pdo->query("SELECT id, reference, client_id, created_at, deleted_at FROM devis WHERE reference = 'DEV-2026-0015'")->fetchAll();
+$r = $pdo->query("SELECT id, reference, client_id, created_at FROM devis WHERE reference = 'DEV-2026-0015'")->fetchAll();
 print_r($r);
 
 echo "\n=== Ligne(s) avec id = 15 ===\n\n";
