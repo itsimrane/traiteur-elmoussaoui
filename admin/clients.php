@@ -591,8 +591,8 @@ if (isset($_GET['msg'])) {
                         </div>
                       </td>
                       <td>
-                        <div style="font-size:.82rem;color:var(--white)"><?= htmlspecialchars($c['email']) ?></div>
-                        <div style="font-size:.75rem;color:#555"><?= htmlspecialchars($c['telephone']) ?></div>
+                        <div style="font-size:.82rem;color:var(--white)"><?= htmlspecialchars($c['email'] ?? '—') ?></div>
+                        <div style="font-size:.75rem;color:#555"><?= htmlspecialchars($c['telephone'] ?? '') ?></div>
                       </td>
                       <td style="font-size:.82rem"><?= htmlspecialchars($c['ville'] ?? 'Errachidia') ?></td>
                       <td>
