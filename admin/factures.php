@@ -429,9 +429,7 @@ $searchBlob = strtolower($f['numero'] . ' ' . $f['nom_client'] . ' ' . ($f['emai
     <div class="td-actions">
         <button type="button" class="act-btn" onclick="openDetail(<?= jsAttr($f) ?>)" title="Voir"><i class="fas fa-eye"></i></button>
         <a href="print_facture.php?id=<?= (int)$f['id'] ?>" target="_blank" class="act-btn" title="Imprimer" style="color:#60A5FA;border-color:rgba(59,130,246,.3)"><i class="fas fa-print"></i></a>
-        <?php if (!in_array($f['statut'], ['payee','annulee'], true)): ?>
         <button type="button" class="act-btn" onclick="openPaiementModal(<?= (int)$f['id'] ?>, <?= (float)$f['reste_a_payer'] ?>, <?= jsAttr($f['numero']) ?>)" title="Enregistrer un paiement" style="color:#25D366;border-color:rgba(37,211,102,.3)"><i class="fas fa-coins"></i></button>
-        <?php endif; ?>
         <button type="button" class="act-btn" onclick="openStatutModal(<?= (int)$f['id'] ?>, <?= jsAttr($f['statut']) ?>)" title="Changer statut"><i class="fas fa-exchange-alt"></i></button>
         <form method="POST" style="display:inline" onsubmit="return confirm('Supprimer cette facture ?')">
             <input type="hidden" name="action" value="delete">
@@ -616,11 +614,19 @@ function closeStatut() { document.getElementById('statutModal').classList.remove
 
 function openPaiementModal(factureId, reste, numero) {
     document.getElementById('paiementFactureId').value = factureId;
-    document.getElementById('paiementFactureLabel').textContent = 'Facture ' + numero + ' — Reste à payer : ' + reste.toLocaleString('fr-FR') + ' MAD';
     const montantInput = document.getElementById('paiementMontant');
-    montantInput.max = reste;
-    montantInput.value = reste;
-    document.getElementById('paiementResteHint').textContent = 'Maximum : ' + reste.toLocaleString('fr-FR') + ' MAD (montant restant dû)';
+    montantInput.removeAttribute('max');
+    const hint = document.getElementById('paiementResteHint');
+
+    if (reste > 0) {
+        document.getElementById('paiementFactureLabel').textContent = 'Facture ' + numero + ' — Reste à payer : ' + reste.toLocaleString('fr-FR') + ' MAD';
+        montantInput.value = reste;
+        hint.textContent = 'Montant suggéré : ' + reste.toLocaleString('fr-FR') + ' MAD (reste dû actuel)';
+    } else {
+        document.getElementById('paiementFactureLabel').textContent = 'Facture ' + numero + ' — Déjà soldée';
+        montantInput.value = '';
+        hint.textContent = 'Cette facture est déjà payée. Utilisez ceci uniquement pour corriger une erreur ou ajouter un paiement complémentaire.';
+    }
     document.getElementById('paiementModal').classList.add('show');
 }
 function closePaiement() { document.getElementById('paiementModal').classList.remove('show'); }
