@@ -107,17 +107,22 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $datePmt   = $_POST['date_paiement'] ?: date('Y-m-d');
 
         if ($factureId && $montant > 0) {
-            $fac = $pdo->prepare("SELECT montant_ttc, acompte FROM factures WHERE id=?");
+            $fac = $pdo->prepare("SELECT numero, nom_client, telephone_client, montant_ttc, acompte FROM factures WHERE id=?");
             $fac->execute([$factureId]);
             $f = $fac->fetch();
 
             if ($f) {
-                $pdo->prepare("
-                    INSERT INTO paiements (facture_id, montant, mode, date_paiement, created_at)
-                    VALUES (?,?,?,?,NOW())
-                ")->execute([$factureId, $montant, $mode, $datePmt]);
-
                 $nouvelAcompte = (float)$f['acompte'] + $montant;
+                $soldeComplet  = $nouvelAcompte >= (float)$f['montant_ttc'];
+
+                $pdo->prepare("
+                    INSERT INTO paiements (facture_id, facture_num, nom_client, telephone, montant, type, mode, statut, date_paiement, created_at)
+                    VALUES (?,?,?,?,?,?,?,'recu',?,NOW())
+                ")->execute([
+                    $factureId, $f['numero'], $f['nom_client'], $f['telephone_client'],
+                    $montant, $soldeComplet ? 'solde' : 'acompte', $mode, $datePmt
+                ]);
+
                 $nouveauReste  = max(0, (float)$f['montant_ttc'] - $nouvelAcompte);
                 $nouveauStatut = $nouvelAcompte >= (float)$f['montant_ttc'] ? 'payee' : 'partiellement_payee';
                 $datePaiementFacture = $nouveauStatut === 'payee' ? $datePmt : null;
@@ -528,9 +533,6 @@ $searchBlob = strtolower($f['numero'] . ' ' . $f['nom_client'] . ' ' . ($f['emai
       <option value="especes">Espèces</option>
       <option value="virement">Virement bancaire</option>
       <option value="cheque">Chèque</option>
-      <option value="cmi">Carte bancaire (CMI)</option>
-      <option value="wave">Wave</option>
-      <option value="whatsapp_pay">WhatsApp Pay</option>
       <option value="autre">Autre</option>
     </select>
   </div>
