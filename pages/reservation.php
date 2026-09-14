@@ -1008,14 +1008,6 @@ try {
               <i class="fab fa-whatsapp" style="font-size:1.3rem"></i>
               <span data-fr="Envoyer par WhatsApp" data-ar="إرسال عبر واتساب">Envoyer par WhatsApp</span>
             </a>
-            <button onclick="downloadPDF()" class="btn-secondary" style="padding:13px 28px;font-size:.85rem">
-              <i class="fas fa-download"></i>
-              <span data-fr="Télécharger le devis PDF" data-ar="تحميل عرض الأسعار PDF">Télécharger le devis PDF</span>
-            </button>
-            <button onclick="resetForm()" class="btn-secondary" style="padding:13px 24px;font-size:.85rem">
-              <i class="fas fa-redo"></i>
-              <span data-fr="Nouveau devis" data-ar="عرض جديد">Nouveau devis</span>
-            </button>
           </div>
         </div>
 
