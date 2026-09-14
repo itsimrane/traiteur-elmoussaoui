@@ -111,6 +111,10 @@ button { cursor: pointer; border: none; background: none; font-family: inherit; 
   position: fixed; top: 0; left: 0; right: 0; z-index: 1000;
   transition: background 0.4s ease, box-shadow 0.4s ease;
 }
+[data-theme="light"] #header {
+  background: rgba(250,248,244,0.92);
+  box-shadow: 0 2px 16px rgba(120,100,50,0.08);
+}
 #header.scrolled {
   background: rgba(13,13,13,0.96);
   box-shadow: 0 4px 30px rgba(0,0,0,0.5);
@@ -268,6 +272,9 @@ body.rtl-mode .nav-tel span {
   position: absolute; inset: 0;
   background: #0D0900;
 }
+[data-theme="light"] .hero-bg {
+  background: #FBF6E8;
+}
 
 /* ════════════════════════════════════════════
    BANDES DIAGONALES — Hero EL MOUSSAOUI
@@ -315,6 +322,9 @@ body.rtl-mode .nav-tel span {
   position: absolute;
   inset: 0;
   background: rgba(5, 3, 0, 0.55);
+}
+[data-theme="light"] .diag-band::after {
+  background: rgba(255, 248, 230, 0.4);
 }
 
 /* Animation d'apparition */
@@ -403,6 +413,9 @@ body.rtl-mode .nav-tel span {
   border: 1px solid var(--border); border-radius: 50px; overflow: hidden;
   background: rgba(255,255,255,0.03); backdrop-filter: blur(10px);
   max-width: 500px; margin: 0 auto;
+}
+[data-theme="light"] .hero-stats {
+  background: rgba(255,255,255,0.65);
 }
 .stat-item { padding: 16px 32px; text-align: center; }
 .stat-num { font-family: var(--ff-display); font-size: 2rem; color: var(--gold); font-weight: 700; }
