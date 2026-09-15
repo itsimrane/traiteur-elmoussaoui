@@ -35,6 +35,66 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $pdo->prepare("UPDATE reservations SET deleted_at=NOW() WHERE id=?")->execute([$id]);
         header('Location: reservations.php?msg=Réservation+supprimée&type=success'); exit;
     }
+
+    // ── Choix de la tente ────────────────────────────────────────
+    if ($action === 'set_tente') {
+        $tenteId = (int)($_POST['tente_id'] ?? 0);
+        if ($tenteId > 0) {
+            $chk = $pdo->prepare("SELECT id FROM tentes WHERE id=? AND actif=1");
+            $chk->execute([$tenteId]);
+            if ($chk->fetch()) {
+                $pdo->prepare("UPDATE reservations SET tente_id=?, updated_at=NOW() WHERE id=?")->execute([$tenteId, $id]);
+                $msg = 'Tente associée à la réservation.'; $msgType = 'success';
+            }
+        } else {
+            $pdo->prepare("UPDATE reservations SET tente_id=NULL, updated_at=NOW() WHERE id=?")->execute([$id]);
+            $msg = 'Tente retirée.'; $msgType = 'success';
+        }
+    }
+
+    // ── Tarification manuelle (source de vérité serveur) ──────────
+    // L'admin saisit librement désignation / quantité / prix unitaire
+    // pour chaque ligne. On ne fait jamais confiance à un total envoyé
+    // par le navigateur : il est toujours recalculé ici, côté serveur.
+    if ($action === 'save_pricing') {
+        $designations = $_POST['designation'] ?? [];
+        $quantites    = $_POST['quantite']    ?? [];
+        $prix         = $_POST['prix_unitaire'] ?? [];
+
+        // Récupérer (ou créer) le devis lié à cette réservation
+        $d = $pdo->prepare("SELECT id FROM devis WHERE reservation_id = ? ORDER BY id DESC LIMIT 1");
+        $d->execute([$id]);
+        $devisRow = $d->fetch();
+        if ($devisRow) {
+            $devisId = $devisRow['id'];
+        } else {
+            $tempNumero = 'TMP-' . uniqid();
+            $pdo->prepare("INSERT INTO devis (reference, reservation_id, statut, montant_ht, tva_pct, montant_tva, montant_ttc, created_at)
+                            VALUES (?,?,'en_traitement',0,0,0,0,NOW())")->execute([$tempNumero, $id]);
+            $devisId = $pdo->lastInsertId();
+            $numero = 'DEV-' . date('Y') . '-' . str_pad($devisId, 4, '0', STR_PAD_LEFT);
+            $pdo->prepare("UPDATE devis SET reference=? WHERE id=?")->execute([$numero, $devisId]);
+        }
+
+        $pdo->prepare("DELETE FROM devis_lignes WHERE devis_id=?")->execute([$devisId]);
+
+        $total = 0; $ordre = 0;
+        $ins = $pdo->prepare("INSERT INTO devis_lignes (devis_id, designation, quantite, prix_unitaire, ordre) VALUES (?,?,?,?,?)");
+        foreach ($designations as $i => $nomLigne) {
+            $nomLigne = sanitize($nomLigne);
+            $q = max(0, (float)($quantites[$i] ?? 0));
+            $pu = max(0, (float)($prix[$i] ?? 0));
+            if ($nomLigne === '' || $q <= 0) continue; // ignore lignes vides
+            $ins->execute([$devisId, $nomLigne, $q, $pu, $ordre++]);
+            $total += $q * $pu;
+        }
+
+        $pdo->prepare("UPDATE devis SET montant_ht=?, tva_pct=0, montant_tva=0, montant_ttc=?, statut=IF(statut='recu','en_traitement',statut), updated_at=NOW() WHERE id=?")
+            ->execute([$total, $total, $devisId]);
+        $pdo->prepare("UPDATE reservations SET montant_total=?, updated_at=NOW() WHERE id=?")->execute([$total, $id]);
+
+        $msg = 'Tarification enregistrée. Total : ' . number_format($total,0,',',' ') . ' MAD.'; $msgType = 'success';
+    }
 }
 
 // ── Chargement ─────────────────────────────────────────────────
@@ -63,6 +123,20 @@ try {
         $lignes = $l->fetchAll();
     }
 } catch (Exception $e) {}
+
+// Tentes disponibles + tente actuellement choisie
+$tentes = []; $tenteChoisie = null;
+try {
+    $tentes = $pdo->query("SELECT * FROM tentes WHERE actif=1 ORDER BY ordre ASC, id ASC")->fetchAll();
+    if (!empty($r['tente_id'])) {
+        foreach ($tentes as $t) { if ($t['id'] == $r['tente_id']) { $tenteChoisie = $t; break; } }
+        if (!$tenteChoisie) {
+            $tq = $pdo->prepare("SELECT * FROM tentes WHERE id=?");
+            $tq->execute([$r['tente_id']]);
+            $tenteChoisie = $tq->fetch() ?: null;
+        }
+    }
+} catch (Exception $e) { /* table tentes pas encore migrée */ }
 
 $statutConfig = [
     'en_attente' => ['label'=>'En attente', 'color'=>'#FBB724','bg'=>'rgba(251,183,36,.15)'],
@@ -110,6 +184,16 @@ $nomClient = trim(($r['c_prenom'] ?? '').' '.($r['c_nom'] ?? '')) ?: 'Client #'.
     .edit-form{display:none;margin-top:16px;padding-top:16px;border-top:1px dashed var(--border)}
     .edit-form.show{display:block}
     .edit-form input,.edit-form textarea{width:100%;background:var(--dark-3);border:1px solid var(--border);border-radius:8px;padding:9px 12px;color:var(--white);font-size:.82rem;font-family:inherit;margin-bottom:10px}
+    .tentes-choice-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:14px}
+    .tente-choice-card{background:var(--dark-3);border:1px solid var(--border);border-radius:12px;overflow:hidden}
+    .tente-choice-card.selected{border-color:var(--gold)}
+    .tc-photo{width:100%;height:100px;background:var(--dark-card) center/cover no-repeat;display:flex;align-items:center;justify-content:center;color:#555;font-size:1.6rem}
+    .tc-body{padding:12px}
+    .tc-name{font-size:.85rem;font-weight:700;color:var(--white);margin-bottom:6px}
+    .tc-meta{display:flex;justify-content:space-between;font-size:.7rem;color:var(--text-muted);margin-bottom:10px}
+    .pricing-row input.form-control{padding:7px 9px;font-size:.8rem}
+    #pricingTable td{vertical-align:middle}
+    .pr-remove{background:transparent;border:none;color:#EF5350;cursor:pointer;font-size:.85rem}
   </style>
 </head>
 <body>
@@ -159,20 +243,85 @@ $nomClient = trim(($r['c_prenom'] ?? '').' '.($r['c_nom'] ?? '')) ?: 'Client #'.
             </div>
           </div>
 
-          <!-- Service / menu -->
-          <?php if (!empty($lignes)): ?>
+          <!-- Choix de la tente -->
           <div class="panel">
-            <h3><i class="fas fa-utensils"></i> Services / Menu demandés</h3>
-            <table class="lignes-table">
-              <?php foreach ($lignes as $l): ?>
-              <tr>
-                <td><?= htmlspecialchars($l['designation']) ?></td>
-                <td style="text-align:right;color:var(--gold)"><?= $l['prix_unitaire'] > 0 ? number_format($l['prix_unitaire'],0,',',' ').' MAD' : 'Sur devis' ?></td>
-              </tr>
-              <?php endforeach; ?>
-            </table>
+            <h3><i class="fas fa-campground"></i> Choix de la tente</h3>
+            <?php if (empty($tentes)): ?>
+              <div class="message-box" style="border-left-color:#EF5350">
+                Aucune tente active n'est configurée. Rends-toi dans
+                <a href="tentes.php" style="color:var(--gold)">Admin → Tentes</a> pour créer et activer les fiches des 4 tentes.
+              </div>
+            <?php else: ?>
+              <?php if ($tenteChoisie): ?>
+                <div class="message-box" style="margin-bottom:16px">
+                  <strong style="color:var(--gold)">Tente sélectionnée : <?= htmlspecialchars($tenteChoisie['nom']) ?></strong>
+                  <?php if (!$tenteChoisie['actif']): ?><span style="color:#EF5350"> (désactivée depuis)</span><?php endif; ?>
+                </div>
+              <?php endif; ?>
+              <div class="tentes-choice-grid">
+                <?php foreach ($tentes as $t): $isSel = $tenteChoisie && $tenteChoisie['id'] == $t['id']; ?>
+                <div class="tente-choice-card <?= $isSel ? 'selected' : '' ?>">
+                  <div class="tc-photo" style="<?= $t['photo'] ? "background-image:url('../assets/uploads/".htmlspecialchars($t['photo'])."')" : '' ?>">
+                    <?php if (!$t['photo']): ?><i class="fas fa-campground"></i><?php endif; ?>
+                  </div>
+                  <div class="tc-body">
+                    <div class="tc-name"><?= htmlspecialchars($t['nom']) ?></div>
+                    <div class="tc-meta">
+                      <span><?= $t['longueur'] !== null ? $t['longueur'].'m' : '—' ?> × <?= $t['largeur'] !== null ? $t['largeur'].'m' : '—' ?></span>
+                      <span><?= $t['capacite_max'] !== null ? $t['capacite_max'].' pers.' : '—' ?></span>
+                    </div>
+                    <form method="POST">
+                      <input type="hidden" name="action" value="set_tente">
+                      <input type="hidden" name="tente_id" value="<?= $t['id'] ?>">
+                      <button type="submit" class="action-btn <?= $isSel ? 'confirm' : 'edit' ?>" style="margin-bottom:0">
+                        <?= $isSel ? '<i class="fas fa-check"></i> Choisie' : 'Choisir' ?>
+                      </button>
+                    </form>
+                  </div>
+                </div>
+                <?php endforeach; ?>
+              </div>
+            <?php endif; ?>
           </div>
-          <?php endif; ?>
+
+          <!-- Tarification manuelle -->
+          <div class="panel">
+            <h3><i class="fas fa-tags"></i> Tarification</h3>
+            <p style="font-size:.78rem;color:var(--text-muted);margin-bottom:14px">
+              Saisis librement la désignation, la quantité et le prix unitaire de chaque ligne. Le total est calculé automatiquement.
+            </p>
+            <form method="POST" id="pricingForm">
+              <input type="hidden" name="action" value="save_pricing">
+              <table class="lignes-table" id="pricingTable" style="width:100%">
+                <thead>
+                  <tr style="font-size:.72rem;color:var(--text-muted);text-transform:uppercase">
+                    <th style="text-align:left">Désignation</th><th style="width:70px">Qté</th><th style="width:110px">Prix unit. (MAD)</th><th style="width:110px;text-align:right">Total</th><th style="width:30px"></th>
+                  </tr>
+                </thead>
+                <tbody id="pricingBody">
+                  <?php if (empty($lignes)): ?>
+                    <!-- ligne vide de départ -->
+                  <?php else: foreach ($lignes as $l): ?>
+                  <tr class="pricing-row">
+                    <td><input type="text" name="designation[]" class="form-control pr-designation" value="<?= htmlspecialchars($l['designation']) ?>" required></td>
+                    <td><input type="number" step="1" min="0" name="quantite[]" class="form-control pr-qte" value="<?= (float)$l['quantite'] ?>" oninput="recalcPricing()"></td>
+                    <td><input type="number" step="0.01" min="0" name="prix_unitaire[]" class="form-control pr-prix" value="<?= (float)$l['prix_unitaire'] ?>" oninput="recalcPricing()"></td>
+                    <td class="pr-total" style="text-align:right;color:var(--gold)">0 MAD</td>
+                    <td><button type="button" class="pr-remove" onclick="this.closest('tr').remove();recalcPricing()"><i class="fas fa-times"></i></button></td>
+                  </tr>
+                  <?php endforeach; endif; ?>
+                </tbody>
+              </table>
+              <button type="button" class="action-btn edit" style="margin-top:10px" onclick="addPricingRow()"><i class="fas fa-plus"></i> Ajouter une ligne</button>
+              <div style="display:flex;justify-content:flex-end;margin-top:14px;padding-top:14px;border-top:1px dashed var(--border)">
+                <div style="text-align:right">
+                  <div style="font-size:.75rem;color:var(--text-muted);text-transform:uppercase">Total</div>
+                  <div style="font-size:1.3rem;font-weight:700;color:var(--gold)" id="pricingGrandTotal">0 MAD</div>
+                </div>
+              </div>
+              <button type="submit" class="action-btn confirm" style="margin-top:14px"><i class="fas fa-save"></i> Enregistrer la tarification</button>
+            </form>
+          </div>
 
           <!-- Message du client -->
           <?php if (!empty($r['notes_client'])): ?>
@@ -251,8 +400,24 @@ $nomClient = trim(($r['c_prenom'] ?? '').' '.($r['c_nom'] ?? '')) ?: 'Client #'.
           <div class="panel">
             <h3><i class="fas fa-file-invoice"></i> Devis associé</h3>
             <div class="info-field" style="margin-bottom:12px"><label>Référence</label><span><?= htmlspecialchars($devis['reference']) ?></span></div>
-            <div class="info-field"><label>Montant TTC</label><span style="color:var(--gold);font-weight:700"><?= number_format($devis['montant_ttc'],0,',',' ') ?> MAD</span></div>
-            <a href="devis.php" style="display:block;text-align:center;margin-top:14px;font-size:.78rem;color:var(--gold)">Voir dans Devis →</a>
+            <div class="info-field"><label>Total</label><span style="color:var(--gold);font-weight:700"><?= number_format($devis['montant_ht'],0,',',' ') ?> MAD</span></div>
+            <?php if ($r['c_tel'] && !empty($lignes)):
+                $texte = "Bonjour {$nomClient},\n\nVoici votre devis {$devis['reference']} — Traiteur EL MOUSSAOUI :\n";
+                $texte .= "Événement : " . ($r['type_nom'] ?: '—') . " le " . ($r['date_evenement'] ? date('d/m/Y', strtotime($r['date_evenement'])) : '—') . "\n";
+                if ($tenteChoisie) $texte .= "Tente : " . $tenteChoisie['nom'] . "\n";
+                $texte .= "\nServices :\n";
+                foreach ($lignes as $l) {
+                    $texte .= "- {$l['designation']} (x{$l['quantite']}) : " . number_format($l['prix_unitaire']*$l['quantite'],0,',',' ') . " MAD\n";
+                }
+                $texte .= "\nTOTAL : " . number_format($devis['montant_ht'],0,',',' ') . " MAD\n\nMerci de nous confirmer votre accord.";
+                $numTel = ltrim(preg_replace('/[^0-9]/','',$r['c_tel']), '0');
+            ?>
+            <a href="https://wa.me/212<?= $numTel ?>?text=<?= urlencode($texte) ?>" target="_blank" class="action-btn contact" style="margin-top:8px">
+              <i class="fab fa-whatsapp"></i> Envoyer le devis par WhatsApp
+            </a>
+            <?php endif; ?>
+            <a href="print_devis.php?id=<?= $devis['id'] ?>" target="_blank" style="display:block;text-align:center;margin-top:14px;font-size:.78rem;color:var(--gold)">Voir / imprimer le devis →</a>
+            <a href="devis.php" style="display:block;text-align:center;margin-top:8px;font-size:.78rem;color:var(--text-muted)">Voir dans Devis →</a>
           </div>
           <?php endif; ?>
         </div>
@@ -265,6 +430,34 @@ $nomClient = trim(($r['c_prenom'] ?? '').' '.($r['c_nom'] ?? '')) ?: 'Client #'.
 document.getElementById('sidebarToggle').addEventListener('click',()=>{
   document.getElementById('sidebar').classList.toggle('open');
   document.getElementById('sidebarOverlay').classList.toggle('show');
+});
+function addPricingRow(designation, quantite, prix) {
+  const tbody = document.getElementById('pricingBody');
+  const tr = document.createElement('tr');
+  tr.className = 'pricing-row';
+  tr.innerHTML = `
+    <td><input type="text" name="designation[]" class="form-control pr-designation" value="${designation||''}"></td>
+    <td><input type="number" step="1" min="0" name="quantite[]" class="form-control pr-qte" value="${quantite||1}" oninput="recalcPricing()"></td>
+    <td><input type="number" step="0.01" min="0" name="prix_unitaire[]" class="form-control pr-prix" value="${prix||0}" oninput="recalcPricing()"></td>
+    <td class="pr-total" style="text-align:right;color:var(--gold)">0 MAD</td>
+    <td><button type="button" class="pr-remove" onclick="this.closest('tr').remove();recalcPricing()"><i class="fas fa-times"></i></button></td>`;
+  tbody.appendChild(tr);
+  recalcPricing();
+}
+function recalcPricing() {
+  let grandTotal = 0;
+  document.querySelectorAll('#pricingBody .pricing-row').forEach(row => {
+    const q = parseFloat(row.querySelector('.pr-qte').value) || 0;
+    const p = parseFloat(row.querySelector('.pr-prix').value) || 0;
+    const t = q * p;
+    row.querySelector('.pr-total').textContent = t.toLocaleString('fr-FR') + ' MAD';
+    grandTotal += t;
+  });
+  document.getElementById('pricingGrandTotal').textContent = grandTotal.toLocaleString('fr-FR') + ' MAD';
+}
+document.addEventListener('DOMContentLoaded', function () {
+  if (document.querySelectorAll('#pricingBody .pricing-row').length === 0) addPricingRow();
+  else recalcPricing();
 });
 document.getElementById('sidebarOverlay').addEventListener('click',()=>{
   document.getElementById('sidebar').classList.remove('open');

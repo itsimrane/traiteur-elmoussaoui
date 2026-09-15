@@ -28,6 +28,15 @@ try {
 if (!$d)
   die('Devis introuvable');
 
+$tenteNom = null;
+if (!empty($d['reservation_id'])) {
+  try {
+    $tq = $pdo->prepare("SELECT t.nom FROM reservations r JOIN tentes t ON t.id = r.tente_id WHERE r.id = ?");
+    $tq->execute([$d['reservation_id']]);
+    $tenteNom = $tq->fetchColumn() ?: null;
+  } catch (Exception $e) {}
+}
+
 $nom = trim(($d['c_prenom'] ?? '') . ' ' . ($d['c_nom'] ?? '')) ?: ($d['nom_prospect'] ?: 'Client');
 $telephone = $d['c_tel'] ?? $d['telephone_prospect'] ?? '';
 $email = $d['c_email'] ?? $d['email_prospect'] ?? '';
@@ -37,7 +46,7 @@ $refNum = $d['reference'];
 
 $services = [];
 try {
-  $l = $pdo->prepare("SELECT designation, prix_unitaire FROM devis_lignes WHERE devis_id = ? ORDER BY ordre ASC");
+  $l = $pdo->prepare("SELECT designation, quantite, prix_unitaire FROM devis_lignes WHERE devis_id = ? ORDER BY ordre ASC");
   $l->execute([$id]);
   $services = $l->fetchAll();
 } catch (Exception $e) {}
@@ -398,6 +407,9 @@ try {
         <div class="field"><label>Type
             d'événement</label><span><?= htmlspecialchars($d['type_nom'] ?? '—') ?></span></div>
         <div class="field"><label>Date souhaitée</label><span><?= $date ?></span></div>
+        <?php if ($tenteNom): ?>
+        <div class="field"><label>Tente</label><span><?= htmlspecialchars($tenteNom) ?></span></div>
+        <?php endif; ?>
       </div>
     </div>
 
@@ -407,11 +419,11 @@ try {
         <div class="section-title">Services sélectionnés</div>
         <div class="package-card">
           <ul class="package-items" style="grid-template-columns:1fr">
-            <?php foreach ($services as $s): ?>
+            <?php foreach ($services as $s): $qte = (float)($s['quantite'] ?? 1); $pu = (float)($s['prix_unitaire'] ?? 0); ?>
               <li style="justify-content:space-between">
-                <span><?= htmlspecialchars($s['designation'] ?? '') ?></span>
+                <span><?= htmlspecialchars($s['designation'] ?? '') ?> <?= $qte != 1 ? '(x'.$qte.')' : '' ?></span>
                 <span style="margin-left:auto;color:#D4AF37;font-weight:700">
-                  <?= isset($s['prix_unitaire']) && $s['prix_unitaire'] > 0 ? number_format((float) $s['prix_unitaire'], 0, ',', ' ') . ' MAD' : 'Sur devis' ?>
+                  <?= $pu > 0 ? number_format($qte * $pu, 0, ',', ' ') . ' MAD' : 'Sur devis' ?>
                 </span>
               </li>
             <?php endforeach; ?>
@@ -422,21 +434,15 @@ try {
 
     <!-- Total -->
     <div class="section">
-      <div style="display:flex;justify-content:flex-end;margin-bottom:14px">
-        <table style="font-size:.85rem;color:#555;border-collapse:collapse">
-          <tr><td style="padding:4px 20px 4px 0">Total HT</td><td style="text-align:right;padding:4px 0"><?= number_format((float)$d['montant_ht'], 0, ',', ' ') ?> MAD</td></tr>
-          <tr><td style="padding:4px 20px 4px 0">TVA (<?= number_format((float)$d['tva_pct'],0) ?>%)</td><td style="text-align:right;padding:4px 0"><?= number_format((float)$d['montant_tva'], 0, ',', ' ') ?> MAD</td></tr>
-        </table>
-      </div>
       <div class="total-box">
         <div>
-          <div class="total-label">Montant total TTC</div>
+          <div class="total-label">Montant total</div>
           <div class="total-note">* Hors options supplémentaires</div>
         </div>
         <div style="text-align:right">
-          <div class="total-amount"><?= number_format((float) $d['montant_ttc'], 0, ',', ' ') ?> MAD</div>
+          <div class="total-amount"><?= number_format((float) $d['montant_ht'], 0, ',', ' ') ?> MAD</div>
           <div style="font-size:.75rem;color:#AAA;margin-top:2px">Acompte 30% :
-            <?= number_format((float) $d['montant_ttc'] * 0.3, 0, ',', ' ') ?> MAD</div>
+            <?= number_format((float) $d['montant_ht'] * 0.3, 0, ',', ' ') ?> MAD</div>
         </div>
       </div>
     </div>

@@ -45,10 +45,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     if ($action === 'add') {
 
+        // TVA supprimée : le total facturé est directement le montant saisi
         $montantHT  = (float)($_POST['montant_ht'] ?? 0);
-        $tva        = (float)($_POST['tva'] ?? 0);
-        $montantTVA = round($montantHT * $tva / 100, 2);
-        $montantTTC = round($montantHT + $montantTVA, 2);
+        $tva        = 0;
+        $montantTVA = 0;
+        $montantTTC = $montantHT;
 
         $acompte = (float)($_POST['acompte'] ?? 0);
         $reste   = round($montantTTC - $acompte, 2);
@@ -171,7 +172,6 @@ $pfEmail = $prefillDevis['c_email'] ?? '';
 $pfDate  = $prefillDevis['date_evenement'] ?? '';
 $pfNb    = $prefillDevis['nbr_invites'] ?? '';
 $pfHT    = $prefillDevis['montant_ht'] ?? '';
-$pfTva   = $prefillDevis['tva_pct'] ?? 20;
 
 
 /* =========================================================
@@ -468,17 +468,14 @@ $searchBlob = strtolower($f['numero'] . ' ' . $f['nom_client'] . ' ' . ($f['emai
 <div class="form-group"><label class="form-label">Date de l'événement</label><input type="date" name="date_evenement" class="form-control" value="<?= htmlspecialchars($pfDate) ?>"></div>
 <div class="form-group"><label class="form-label">Nombre d'invités</label><input type="number" name="nb_personnes" class="form-control" placeholder="100" min="1" value="<?= htmlspecialchars($pfNb) ?>"></div>
 <div class="form-group"><label class="form-label">Package</label><select name="package_nom" class="form-control"><option value="">— Aucun —</option><?php foreach ($packages as $p): ?><option value="<?= htmlspecialchars($p) ?>"><?= htmlspecialchars($p) ?></option><?php endforeach; ?></select></div>
-<div class="form-group"><label class="form-label">Montant HT (MAD)</label><input type="number" name="montant_ht" id="montantHT" class="form-control" placeholder="18000" min="0" step="100" oninput="calcTotal()" value="<?= htmlspecialchars($pfHT) ?>" required></div>
-<div class="form-group"><label class="form-label">TVA (%)</label><input type="number" name="tva" id="tvaInput" class="form-control" value="<?= htmlspecialchars($pfTva) ?>" min="0" max="100" step="0.5" oninput="calcTotal()"></div>
+<div class="form-group"><label class="form-label">Montant total (MAD)</label><input type="number" name="montant_ht" id="montantHT" class="form-control" placeholder="18000" min="0" step="100" oninput="calcTotal()" value="<?= htmlspecialchars($pfHT) ?>" required></div>
 <div class="form-group"><label class="form-label">Acompte déjà reçu (MAD)</label><input type="number" name="acompte" id="acompteInput" class="form-control" value="0" min="0" step="100" oninput="calcTotal()"></div>
 <div class="form-group"><label class="form-label">Échéance</label><input type="date" name="date_echeance" class="form-control"></div>
 <div class="form-group form-full"><label class="form-label">Statut</label><select name="statut" class="form-control"><option value="brouillon">Brouillon</option><option value="envoyee">Envoyée</option><option value="partiellement_payee">Partiellement payée</option><option value="payee">Payée</option></select></div>
 <div class="form-group form-full"><label class="form-label">Notes (optionnel)</label><textarea name="notes" class="form-control" rows="2"></textarea></div>
 </div>
 <div class="calc-preview">
-<div class="calc-row"><span>Montant HT</span><span id="prevHT" dir="ltr">0 MAD</span></div>
-<div class="calc-row"><span>TVA</span><span id="prevTVA" dir="ltr">0 MAD</span></div>
-<div class="calc-row total"><span>Total TTC</span><span id="prevTTC" dir="ltr">0 MAD</span></div>
+<div class="calc-row total"><span>Total</span><span id="prevTTC" dir="ltr">0 MAD</span></div>
 <div class="calc-row acompte"><span>Acompte</span><span id="prevAcompte" dir="ltr">0 MAD</span></div>
 <div class="calc-row reste"><span>Reste à payer</span><span id="prevReste" dir="ltr">0 MAD</span></div>
 </div>
@@ -555,15 +552,11 @@ if (sidebarOverlay) { sidebarOverlay.addEventListener('click', () => { const sid
 
 function calcTotal() {
     const ht = parseFloat(document.getElementById('montantHT')?.value) || 0;
-    const tva = parseFloat(document.getElementById('tvaInput')?.value) || 0;
     const acompte = parseFloat(document.getElementById('acompteInput')?.value) || 0;
-    const mTVA = Math.round(ht * tva / 100 * 100) / 100;
-    const ttc = Math.round((ht + mTVA) * 100) / 100;
+    const ttc = ht;
     const reste = Math.max(0, Math.round((ttc - acompte) * 100) / 100);
     const fmt = n => n.toLocaleString('fr-FR') + ' MAD';
-    const prevHT = document.getElementById('prevHT'), prevTVA = document.getElementById('prevTVA'), prevTTC = document.getElementById('prevTTC'), prevAcompte = document.getElementById('prevAcompte'), prevReste = document.getElementById('prevReste');
-    if (prevHT) prevHT.textContent = fmt(ht);
-    if (prevTVA) prevTVA.textContent = fmt(mTVA);
+    const prevTTC = document.getElementById('prevTTC'), prevAcompte = document.getElementById('prevAcompte'), prevReste = document.getElementById('prevReste');
     if (prevTTC) prevTTC.textContent = fmt(ttc);
     if (prevAcompte) prevAcompte.textContent = fmt(acompte);
     if (prevReste) prevReste.textContent = fmt(reste);
@@ -596,9 +589,7 @@ function openDetail(f) {
                 <div><div style="font-size:.68rem;color:var(--text-muted);text-transform:uppercase;margin-bottom:3px">Échéance</div><div style="color:var(--white)">${dateEch}</div></div>
             </div>
             <div style="background:var(--dark-3);border-radius:10px;padding:16px">
-                <div style="display:flex;justify-content:space-between;padding:5px 0;font-size:.84rem"><span style="color:var(--text-muted)">Montant HT</span><span style="color:var(--white)" dir="ltr">${fmt(f.montant_ht)}</span></div>
-                <div style="display:flex;justify-content:space-between;padding:5px 0;font-size:.84rem"><span style="color:var(--text-muted)">TVA (${f.tva}%)</span><span style="color:var(--white)" dir="ltr">${fmt(f.montant_tva)}</span></div>
-                <div style="display:flex;justify-content:space-between;padding:8px 0 5px;font-size:1rem;font-weight:700;border-top:1px solid var(--border);margin-top:4px"><span style="color:var(--white)">Total TTC</span><span style="color:var(--gold)" dir="ltr">${fmt(f.montant_ttc)}</span></div>
+                <div style="display:flex;justify-content:space-between;padding:8px 0 5px;font-size:1rem;font-weight:700;border-top:1px solid var(--border);margin-top:4px"><span style="color:var(--white)">Total</span><span style="color:var(--gold)" dir="ltr">${fmt(f.montant_ttc)}</span></div>
                 <div style="display:flex;justify-content:space-between;padding:5px 0;font-size:.84rem"><span style="color:#FBB724">Acompte reçu</span><span style="color:#FBB724" dir="ltr">${fmt(f.acompte)}</span></div>
                 <div style="display:flex;justify-content:space-between;padding:5px 0;font-size:.9rem;font-weight:700"><span style="color:#25D366">Reste à payer</span><span style="color:#25D366" dir="ltr">${parseFloat(f.reste_a_payer) <= 0 ? '✓ Soldé' : fmt(f.reste_a_payer)}</span></div>
             </div>

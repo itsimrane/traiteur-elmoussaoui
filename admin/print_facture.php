@@ -167,7 +167,7 @@ $fmtInt = fn($n) => number_format((float)$n, 0, ',', ' ') . ' MAD';
         <th style="width:50%">Description</th>
         <th>Qté</th>
         <th>Prix unitaire</th>
-        <th>Total HT</th>
+        <th>Total</th>
       </tr>
     </thead>
     <tbody>
@@ -192,9 +192,7 @@ $fmtInt = fn($n) => number_format((float)$n, 0, ',', ' ') . ' MAD';
   <!-- Totaux -->
   <div class="totals-wrap">
     <div class="totals-box">
-      <div class="total-row"><span>Sous-total HT</span><span><?= $fmt($f['montant_ht']) ?></span></div>
-      <div class="total-row"><span>TVA (<?= (float)$f['tva'] ?>%)</span><span><?= $fmt($f['montant_tva']) ?></span></div>
-      <div class="total-row sep main"><span>TOTAL TTC</span><span style="color:#D4AF37"><?= $fmt($f['montant_ttc']) ?></span></div>
+      <div class="total-row sep main"><span>TOTAL</span><span style="color:#D4AF37"><?= $fmt($f['montant_ttc']) ?></span></div>
       <?php if ($f['acompte'] > 0): ?>
       <div class="total-row acompte"><span>Acompte versé (30%)</span><span>- <?= $fmt($f['acompte']) ?></span></div>
       <div class="total-row reste <?= $f['reste_a_payer'] <= 0 ? '' : 'due' ?>">

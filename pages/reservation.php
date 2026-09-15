@@ -814,10 +814,9 @@ try {
             <?php foreach ($services as $s):
               $typesArr = json_decode($s['types_evenements'] ?? '[]', true) ?: [];
               $typesStr = implode(',', $typesArr);
-              $prix = (float) ($s['prix'] ?? 0);
               ?>
               <div class="service-chk-card" data-id="<?= $s['id'] ?>" data-nom="<?= htmlspecialchars($s['nom']) ?>"
-                data-prix="<?= $prix ?>" data-tier="<?= $s['categorie_tarif'] ?? 'bronze' ?>"
+                data-tier="<?= $s['categorie_tarif'] ?? 'bronze' ?>"
                 data-types="<?= htmlspecialchars($typesStr) ?>" onclick="toggleService(this)">
                 <input type="checkbox" name="services[]" value="<?= $s['id'] ?>">
                 <div class="checkmark"><i class="fas fa-check" style="font-size:.65rem"></i></div>
@@ -830,8 +829,6 @@ try {
                 <?php if ($s['description']): ?>
                   <div class="svc-desc"><?= htmlspecialchars($s['description']) ?></div>
                 <?php endif; ?>
-                <div class="svc-price" dir="ltr"><?= $prix > 0 ? number_format($prix, 0, ',', ' ') . ' MAD' : 'Sur devis' ?>
-                </div>
               </div>
             <?php endforeach; ?>
             <div class="no-services" id="noServices" style="display:none">
@@ -842,11 +839,10 @@ try {
             </div>
           </div>
 
-          <!-- Barre total sticky -->
+          <!-- Barre récap sélection (sans montant — le prix sera fixé par notre équipe) -->
           <div class="total-bar" id="totalBar">
             <div>
-              <div class="total-label" data-fr="Total estimé" data-ar="الإجمالي التقديري">Total estimé</div>
-              <div class="total-amount" id="totalAmount" dir="ltr">0 MAD</div>
+              <div class="total-label" data-fr="Services sélectionnés" data-ar="الخدمات المختارة">Services sélectionnés</div>
               <div class="total-detail" id="totalDetail" data-fr="0 service sélectionné" data-ar="0 خدمة محددة">0
                 service sélectionné</div>
             </div>
@@ -951,15 +947,15 @@ try {
                   <tr>
                     <th data-fr="Service" data-ar="الخدمة">Service</th>
                     <th data-fr="Catégorie" data-ar="الفئة">Catégorie</th>
-                    <th data-fr="Prix" data-ar="السعر">Prix</th>
                   </tr>
                 </thead>
                 <tbody id="recapServicesBody"></tbody>
               </table>
             </div>
             <div class="recap-total-row">
-              <span class="rt-label" data-fr="TOTAL ESTIMÉ" data-ar="الإجمالي التقديري">TOTAL ESTIMÉ</span>
-              <span class="rt-amount" id="recapTotal" dir="ltr">0 MAD</span>
+              <span class="rt-label" data-fr="Le prix vous sera communiqué par notre équipe après étude de votre demande" data-ar="سيتم إبلاغكم بالسعر من طرف فريقنا بعد دراسة طلبكم" style="font-size:.8rem">
+                Le prix vous sera communiqué par notre équipe après étude de votre demande
+              </span>
             </div>
           </div>
 
@@ -1026,7 +1022,6 @@ try {
     const allServices = <?= json_encode(array_map(fn($s) => [
       'id' => $s['id'],
       'nom' => $s['nom'],
-      'prix' => (float) ($s['prix'] ?? 0),
       'tier' => $s['categorie_tarif'] ?? 'bronze',
       'icon' => $s['icone'] ?? 'fa-star',
       'types' => json_decode($s['types_evenements'] ?? '[]', true) ?: [],
@@ -1115,12 +1110,11 @@ try {
       card.classList.toggle('checked');
       const id = parseInt(card.dataset.id);
       const nom = card.dataset.nom;
-      const prix = parseFloat(card.dataset.prix) || 0;
       const tier = card.dataset.tier;
 
       if (card.classList.contains('checked')) {
         if (!selectedServices.find(s => s.id === id))
-          selectedServices.push({ id, nom, prix, tier });
+          selectedServices.push({ id, nom, tier });
       } else {
         selectedServices = selectedServices.filter(s => s.id !== id);
       }
@@ -1128,9 +1122,7 @@ try {
     }
 
     function updateTotal() {
-      const total = selectedServices.reduce((sum, s) => sum + s.prix, 0);
       const count = selectedServices.length;
-      document.getElementById('totalAmount').textContent = total.toLocaleString('fr-FR') + ' MAD';
       document.getElementById('totalDetail').textContent = count + ' service' + (count > 1 ? 's' : '') + ' sélectionné' + (count > 1 ? 's' : '');
       const chips = document.getElementById('selectedChips');
       chips.innerHTML = selectedServices.slice(0, 5).map(s =>
@@ -1165,7 +1157,6 @@ try {
         ville: document.getElementById('ville').value,
         nb: document.getElementById('nb_personnes').value,
         services: selectedServices,
-        total: selectedServices.reduce((s, x) => s + x.prix, 0),
       };
 
       // Étape 3 = simple aperçu côté navigateur. On NE sauvegarde PAS encore
@@ -1207,11 +1198,8 @@ try {
     <tr>
       <td>${s.nom}</td>
       <td>${tierLabels[s.tier] || s.tier}</td>
-      <td dir="ltr">${s.prix > 0 ? s.prix.toLocaleString('fr-FR') + ' MAD' : 'Sur devis'}</td>
     </tr>
   `).join('');
-
-      document.getElementById('recapTotal').textContent = devisData.total.toLocaleString('fr-FR') + ' MAD';
     }
 
     // ── Enregistrer la demande ────────────────────────────────
@@ -1251,9 +1239,8 @@ try {
 
             // ── Construction du message WhatsApp complet et pré-rempli ──
             const servicesTexte = (devisData.services || [])
-              .map(s => '- ' + s.nom + (s.prix ? ' (' + Number(s.prix).toLocaleString('fr-FR') + ' MAD)' : ' (sur devis)'))
+              .map(s => '- ' + s.nom)
               .join('\n');
-            const totalAffiche = (res.total !== undefined ? res.total : devisData.total) || 0;
             const typeLabel = eventTypesLabels[devisData.type] || devisData.type || '';
             const dateAffichee = devisData.date ? new Date(devisData.date).toLocaleDateString('fr-FR') : '';
 
@@ -1271,14 +1258,12 @@ try {
 📦 Services demandés :
 ${servicesTexte || '—'}
 
-💰 Estimation : ${Number(totalAffiche).toLocaleString('fr-FR')} MAD (montant estimatif, à confirmer)
-
 📝 Informations supplémentaires :
 ${devisData.message || '—'}
 
 🔖 Référence de demande : ${ref}
 
-Je souhaite recevoir la confirmation de ma demande après vérification. Merci.`;
+Je souhaite recevoir votre devis personnalisé après étude de ma demande. Merci.`;
 
             const btnWa = document.getElementById('btnWhatsappDevis');
             const waUrl = 'https://wa.me/212626986533?text=' + encodeURIComponent(messageWa);

@@ -35,7 +35,6 @@ if ($count == 0) {
         ['contact_instagram','','contact','Lien Instagram','url',16],
         // Business
         ['acompte_pct','30','business','Acompte requis (%)','number',20],
-        ['tva_defaut','0','business','TVA par défaut (%)','number',21],
         ['annulation_jours','30','business','Délai annulation sans pénalité (jours)','number',22],
         ['devis_validite','30','business','Validité devis (jours)','number',23],
         ['zone_intervention','Errachidia, Erfoud, Rissani, Goulmima, Rich, Tinghir','business','Zone d\'intervention','textarea',24],

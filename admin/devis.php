@@ -43,13 +43,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         $lastId = (int)$pdo->query("SELECT COALESCE(MAX(id), 0) FROM factures")->fetchColumn() + 1;
                         $numeroFacture = 'FAC-' . date('Y') . '-' . str_pad($lastId, 4, '0', STR_PAD_LEFT);
 
+                        // TVA supprimée : montant_ht = montant_ttc = total saisi par l'admin sur le devis
+                        $totalDevis = (float)$devisAccepte['montant_ht'];
                         $pdo->prepare("
                             INSERT INTO factures (
                                 numero, client_id, reservation_id, nom_client, email_client, telephone_client,
                                 type_evenement, date_evenement, nb_personnes,
                                 montant_ht, tva, montant_tva, montant_ttc, acompte, reste_a_payer,
                                 statut, notes, date_echeance, created_at
-                            ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,0,?,'envoyee',?, DATE_ADD(CURDATE(), INTERVAL 30 DAY), NOW())
+                            ) VALUES (?,?,?,?,?,?,?,?,?,?,0,0,?,0,?,'envoyee',?, DATE_ADD(CURDATE(), INTERVAL 30 DAY), NOW())
                         ")->execute([
                             $numeroFacture,
                             $devisAccepte['client_id'],
@@ -60,11 +62,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                             $devisAccepte['type_nom'],
                             $devisAccepte['date_evenement'],
                             $devisAccepte['nbr_invites'],
-                            $devisAccepte['montant_ht'],
-                            $devisAccepte['tva_pct'],
-                            $devisAccepte['montant_tva'],
-                            $devisAccepte['montant_ttc'],
-                            $devisAccepte['montant_ttc'], // reste_a_payer = montant total tant que rien n'est payé
+                            $totalDevis,
+                            $totalDevis,
+                            $totalDevis, // reste_a_payer = montant total tant que rien n'est payé
                             'Facture générée automatiquement depuis le devis ' . $devisAccepte['reference'],
                         ]);
                     }
@@ -230,7 +230,7 @@ $statutConfig = [
           <thead>
             <tr>
               <th>N° Devis</th><th>Client</th><th>Réservation</th><th>Événement</th><th>Date</th>
-              <th>HT</th><th>TVA</th><th>TTC</th><th>Acompte / Reste</th><th>Expire le</th><th>Statut</th><th>Actions</th>
+              <th>Total</th><th>Acompte / Reste</th><th>Expire le</th><th>Statut</th><th>Actions</th>
             </tr>
           </thead>
           <tbody>
@@ -247,9 +247,7 @@ $statutConfig = [
               <td><?= $d['resa_ref'] ? htmlspecialchars($d['resa_ref']) : '<span style="color:#555">—</span>' ?></td>
               <td><?= htmlspecialchars($d['type_nom'] ?: '—') ?></td>
               <td><?= $d['date_evenement'] ? date('d/m/Y', strtotime($d['date_evenement'])) : '—' ?></td>
-              <td><?= number_format($d['montant_ht'],0,',',' ') ?> MAD</td>
-              <td><?= number_format($d['montant_tva'],0,',',' ') ?> MAD</td>
-              <td><strong style="color:var(--gold)"><?= number_format($d['montant_ttc'],0,',',' ') ?> MAD</strong></td>
+              <td><strong style="color:var(--gold)"><?= number_format($d['montant_ht'],0,',',' ') ?> MAD</strong></td>
               <td>
                 <?php if ($d['facture_id']): ?>
                   <span style="color:#25D366"><?= number_format($d['facture_paye'],0,',',' ') ?></span> /

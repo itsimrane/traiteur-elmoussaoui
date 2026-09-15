@@ -31,16 +31,24 @@ if ($dateChoisie === false) jsonResponse(['success'=>false,'message'=>'Date inva
 if ($dateChoisie < $dateMin) jsonResponse(['success'=>false,'message'=>"La date de l'événement doit être au moins 7 jours à l'avance"]);
 if ($dateChoisie > $dateMax) jsonResponse(['success'=>false,'message'=>"La date de l'événement ne peut pas dépasser 2 mois à l'avance"]);
 
-// ── Recalcul serveur du prix — SOURCE DE VÉRITÉ ─────────────────
-// On ignore complètement les prix envoyés par le navigateur : on ne
-// garde que les IDs des services choisis, et on recalcule tout
-// depuis la base de données (protection contre la manipulation
-// des prix côté client).
+// ── Services demandés — SANS PRIX ───────────────────────────────
+// Le client ne voit et n'envoie plus aucun prix : on ne garde que les
+// noms des services choisis. Le prix de chaque ligne sera fixé
+// librement par l'administrateur au moment du traitement de la
+// demande (voir admin/reservation_details.php). Le total démarre à 0
+// et sera calculé automatiquement une fois les prix saisis par l'admin.
 $serviceIds = array_map(fn($s) => (int)($s['id'] ?? 0), $services);
 $serviceIds = array_filter($serviceIds);
-$calcul = recalculerDevis($serviceIds, $nb, $pdo);
-$lignesCalculees = $calcul['lignes'];
-$total = $calcul['total'];
+$lignesCalculees = [];
+if (!empty($serviceIds)) {
+    $placeholders = implode(',', array_fill(0, count($serviceIds), '?'));
+    $stmt = $pdo->prepare("SELECT id, nom FROM services WHERE id IN ($placeholders) AND actif=1");
+    $stmt->execute($serviceIds);
+    foreach ($stmt->fetchAll() as $s) {
+        $lignesCalculees[] = ['service_id' => $s['id'], 'nom' => $s['nom'], 'quantite' => 1, 'prix_unitaire' => 0];
+    }
+}
+$total = 0;
 
 $pdo->beginTransaction();
 try {
@@ -109,9 +117,9 @@ try {
     $pdo->prepare("
         INSERT INTO devis
             (reference, client_id, type_evenement_id, date_evenement, nbr_invites, lieu,
-             message, statut, montant_ht, tva_pct, reservation_id, date_expiration, created_at)
-        VALUES (?,?,?,?,?,?,?,'recu',?,20,?, DATE_ADD(NOW(), INTERVAL 30 DAY), NOW())
-    ")->execute([$tempNumero, $clientId, $typeId, $date, $nb, $ville, $message, $total, $reservationId]);
+             message, statut, montant_ht, tva_pct, montant_tva, montant_ttc, reservation_id, date_expiration, created_at)
+        VALUES (?,?,?,?,?,?,?,'recu',?,0,0,?,?, DATE_ADD(NOW(), INTERVAL 30 DAY), NOW())
+    ")->execute([$tempNumero, $clientId, $typeId, $date, $nb, $ville, $message, $total, $total, $reservationId]);
     $devisId = $pdo->lastInsertId();
 
     $numero = 'DEV-' . date('Y') . '-' . str_pad($devisId, 4, '0', STR_PAD_LEFT);
