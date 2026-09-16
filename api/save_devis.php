@@ -21,6 +21,7 @@ $ville     = sanitize($data['ville']     ?? '');
 $nb        = (int)($data['nb'] ?? 0) ?: 100;
 $message   = sanitize($data['message']  ?? '');
 $services  = $data['services'] ?? [];
+$tenteIdRaw = (int)($data['tente']['id'] ?? 0);
 
 if (!$telephone) jsonResponse(['success'=>false,'message'=>'Téléphone requis']);
 if ($nb <= 0) jsonResponse(['success'=>false,'message'=>'Le nombre d\'invités doit être supérieur à 0']);
@@ -51,6 +52,19 @@ try {
         }
     }
     $total = 0;
+
+    // ── Tente choisie — vérifiée côté serveur (source de vérité) ────
+    // On ne fait jamais confiance à l'id envoyé par le navigateur :
+    // on vérifie qu'elle existe bien et qu'elle est active. L'admin
+    // pourra toujours la modifier plus tard dans reservation_details.php.
+    $tenteId = null;
+    if ($tenteIdRaw > 0) {
+        try {
+            $tchk = $pdo->prepare("SELECT id FROM tentes WHERE id=? AND actif=1");
+            $tchk->execute([$tenteIdRaw]);
+            if ($tchk->fetch()) $tenteId = $tenteIdRaw;
+        } catch (Exception $e) { /* table tentes pas encore migrée */ }
+    }
 
     // ── 1. Client : retrouver ou créer ──────────────────────────
     $existing = $pdo->prepare("SELECT id FROM clients WHERE telephone=? OR (email=? AND email<>'') LIMIT 1");
@@ -100,12 +114,26 @@ try {
     // toute collision si d'anciens enregistrements ont été supprimés.
     $tempRefRes = 'TMP-' . uniqid();
 
-    $pdo->prepare("
-        INSERT INTO reservations
-            (reference, client_id, type_evenement_id, date_evenement, nbr_invites,
-             lieu, statut, notes_client, montant_total, created_at)
-        VALUES (?,?,?,?,?,?,'en_attente',?,?,NOW())
-    ")->execute([$tempRefRes, $clientId, $typeId, $date, $nb, $ville, $message, $total]);
+    $aColTenteId = false;
+    try {
+        $aColTenteId = (bool) $pdo->query("SHOW COLUMNS FROM reservations LIKE 'tente_id'")->fetch();
+    } catch (Exception $e) {}
+
+    if ($aColTenteId) {
+        $pdo->prepare("
+            INSERT INTO reservations
+                (reference, client_id, type_evenement_id, tente_id, date_evenement, nbr_invites,
+                 lieu, statut, notes_client, montant_total, created_at)
+            VALUES (?,?,?,?,?,?,?,'en_attente',?,?,NOW())
+        ")->execute([$tempRefRes, $clientId, $typeId, $tenteId, $date, $nb, $ville, $message, $total]);
+    } else {
+        $pdo->prepare("
+            INSERT INTO reservations
+                (reference, client_id, type_evenement_id, date_evenement, nbr_invites,
+                 lieu, statut, notes_client, montant_total, created_at)
+            VALUES (?,?,?,?,?,?,'en_attente',?,?,NOW())
+        ")->execute([$tempRefRes, $clientId, $typeId, $date, $nb, $ville, $message, $total]);
+    }
     $reservationId = $pdo->lastInsertId();
 
     $refRes = 'RES-' . date('Y') . '-' . str_pad($reservationId, 4, '0', STR_PAD_LEFT);

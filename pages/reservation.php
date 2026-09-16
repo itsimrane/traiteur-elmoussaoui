@@ -4,6 +4,11 @@ require_once __DIR__ . '/../includes/config.php';
 // Récupérer les services depuis la BDD
 $services = $pdo->query("SELECT * FROM services WHERE actif=1 ORDER BY categorie_tarif, ordre")->fetchAll();
 
+// Tentes actives (si la table existe déjà — sinon liste vide, sans casser la page)
+$tentesDispo = [];
+try { $tentesDispo = $pdo->query("SELECT * FROM tentes WHERE actif=1 ORDER BY ordre ASC, id ASC")->fetchAll(); }
+catch (Exception $e) { /* migration pas encore lancée */ }
+
 // Villes autour d'Errachidia
 $villes = [
   'Errachidia',
@@ -236,6 +241,39 @@ try {
       grid-template-columns: repeat(3, 1fr);
       gap: 12px
     }
+
+    .tentes-select-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+      gap: 16px;
+      margin-bottom: 24px;
+    }
+    .tente-select-card {
+      background: var(--dark-card);
+      border: 2px solid var(--border);
+      border-radius: 14px;
+      overflow: hidden;
+      cursor: pointer;
+      transition: var(--transition);
+    }
+    .tente-select-card:hover { border-color: var(--gold-dim, var(--gold)); }
+    .tente-select-card.selected { border-color: var(--gold); box-shadow: 0 0 0 1px var(--gold); }
+    .tsc-photo {
+      width: 100%; height: 140px;
+      background: var(--dark-3) center/cover no-repeat;
+      display: flex; align-items: center; justify-content: center;
+      color: #555; font-size: 2rem;
+    }
+    .tsc-body { padding: 14px 16px; }
+    .tsc-name { color: var(--white); font-weight: 700; font-size: .95rem; margin-bottom: 8px; }
+    .tsc-meta { display: flex; justify-content: space-between; font-size: .74rem; color: var(--text-muted); margin-bottom: 8px; }
+    .tsc-desc { font-size: .74rem; color: var(--text-muted); line-height: 1.5; margin-bottom: 12px; }
+    .tsc-choose-btn {
+      width: 100%; padding: 9px; border-radius: 8px; border: 1px solid var(--gold);
+      background: transparent; color: var(--gold); font-size: .8rem; font-weight: 600; cursor: pointer;
+      transition: var(--transition);
+    }
+    .tente-select-card.selected .tsc-choose-btn { background: var(--gold); color: var(--dark-1, #111); }
 
     .service-chk-card {
       background: var(--dark-card);
@@ -692,16 +730,21 @@ try {
         </div>
         <div class="step-line" id="line-1"></div>
         <div class="step" id="step-ind-2">
-          <div class="step-circle"><i class="fas fa-concierge-bell"></i></div>
-          <div class="step-label" data-fr="Services" data-ar="الخدمات">Services</div>
+          <div class="step-circle"><i class="fas fa-campground"></i></div>
+          <div class="step-label" data-fr="Tente" data-ar="الخيمة">Tente</div>
         </div>
         <div class="step-line" id="line-2"></div>
         <div class="step" id="step-ind-3">
-          <div class="step-circle"><i class="fas fa-user"></i></div>
-          <div class="step-label" data-fr="Vos infos" data-ar="معلوماتك">Vos infos</div>
+          <div class="step-circle"><i class="fas fa-concierge-bell"></i></div>
+          <div class="step-label" data-fr="Services" data-ar="الخدمات">Services</div>
         </div>
         <div class="step-line" id="line-3"></div>
         <div class="step" id="step-ind-4">
+          <div class="step-circle"><i class="fas fa-user"></i></div>
+          <div class="step-label" data-fr="Vos infos" data-ar="معلوماتك">Vos infos</div>
+        </div>
+        <div class="step-line" id="line-4"></div>
+        <div class="step" id="step-ind-5">
           <div class="step-circle"><i class="fas fa-file-invoice"></i></div>
           <div class="step-label" data-fr="Votre devis" data-ar="عرض أسعارك">Votre devis</div>
         </div>
@@ -781,6 +824,60 @@ try {
           <div class="step-nav">
             <div></div>
             <button class="btn-primary" onclick="goStep2()" style="padding:12px 32px">
+              <span data-fr="Choisir la tente" data-ar="اختيار الخيمة">Choisir la tente</span>
+              <i class="fas fa-arrow-right" style="margin-left:8px"></i>
+            </button>
+          </div>
+        </div>
+
+        <!-- ═══ ÉTAPE 2 : Choix de la tente ═══ -->
+        <div class="step-content" id="step2">
+          <h2 style="color:var(--white);font-size:1.3rem;margin-bottom:8px">
+            <i class="fas fa-campground" style="color:var(--gold);margin-right:8px"></i>
+            <span data-fr="Choisissez votre tente" data-ar="اختر خيمتك">Choisissez votre tente</span>
+          </h2>
+          <p style="color:var(--text-muted);font-size:.84rem;margin-bottom:20px"
+            data-fr="Notre équipe pourra ajuster ce choix selon la disponibilité et vos besoins réels."
+            data-ar="سيقوم فريقنا بتعديل هذا الاختيار حسب التوفر واحتياجاتكم الفعلية.">
+            Notre équipe pourra ajuster ce choix selon la disponibilité et vos besoins réels.
+          </p>
+
+          <?php if (empty($tentesDispo)): ?>
+            <div class="message-box" style="padding:20px;border:1px solid var(--border);border-radius:12px;color:var(--text-muted);font-size:.85rem">
+              <span data-fr="Aucune tente n'est disponible pour le moment. Notre équipe vous proposera une option adaptée avec votre devis."
+                data-ar="لا توجد خيمة متاحة حالياً. سيقترح عليكم فريقنا خياراً مناسباً مع عرض الأسعار.">
+                Aucune tente n'est disponible pour le moment. Notre équipe vous proposera une option adaptée avec votre devis.
+              </span>
+            </div>
+          <?php else: ?>
+            <div class="tentes-select-grid" id="tentesSelectGrid">
+              <?php foreach ($tentesDispo as $t): ?>
+                <div class="tente-select-card" data-id="<?= $t['id'] ?>" data-nom="<?= htmlspecialchars($t['nom']) ?>" onclick="selectTente(<?= $t['id'] ?>, this)">
+                  <div class="tsc-photo" style="<?= $t['photo'] ? "background-image:url('../assets/uploads/".htmlspecialchars($t['photo'])."')" : '' ?>">
+                    <?php if (!$t['photo']): ?><i class="fas fa-campground"></i><?php endif; ?>
+                  </div>
+                  <div class="tsc-body">
+                    <div class="tsc-name"><?= htmlspecialchars($t['nom']) ?></div>
+                    <div class="tsc-meta">
+                      <span><i class="fas fa-ruler-combined"></i> <?= $t['longueur'] !== null ? $t['longueur'].'m' : '—' ?> × <?= $t['largeur'] !== null ? $t['largeur'].'m' : '—' ?></span>
+                      <span><i class="fas fa-users"></i> <?= $t['capacite_max'] !== null ? $t['capacite_max'].' pers.' : '—' ?></span>
+                    </div>
+                    <?php if ($t['description']): ?><div class="tsc-desc"><?= htmlspecialchars($t['description']) ?></div><?php endif; ?>
+                    <button type="button" class="tsc-choose-btn">
+                      <span data-fr="Choisir" data-ar="اختيار">Choisir</span>
+                    </button>
+                  </div>
+                </div>
+              <?php endforeach; ?>
+            </div>
+          <?php endif; ?>
+
+          <div class="step-nav">
+            <button class="btn-back" onclick="goStep(1)">
+              <i class="fas fa-arrow-left" style="margin-right:6px"></i>
+              <span data-fr="Retour" data-ar="رجوع">Retour</span>
+            </button>
+            <button class="btn-primary" onclick="goStepAfterTente()" style="padding:12px 32px">
               <span data-fr="Choisir les services" data-ar="اختيار الخدمات">Choisir les services</span>
               <i class="fas fa-arrow-right" style="margin-left:8px"></i>
             </button>
@@ -788,7 +885,8 @@ try {
         </div>
 
         <!-- ═══ ÉTAPE 2 : Services ═══ -->
-        <div class="step-content" id="step2">
+        <!-- ═══ ÉTAPE 3 : Services ═══ -->
+        <div class="step-content" id="step3">
           <h2 style="color:var(--white);font-size:1.3rem;margin-bottom:8px">
             <i class="fas fa-concierge-bell" style="color:var(--gold);margin-right:8px"></i>
             <span data-fr="Sélectionnez vos services" data-ar="اختر خدماتك">Sélectionnez vos services</span>
@@ -850,19 +948,19 @@ try {
           </div>
 
           <div class="step-nav">
-            <button class="btn-back" onclick="goStep(1)">
+            <button class="btn-back" onclick="goStep(2)">
               <i class="fas fa-arrow-left" style="margin-right:6px"></i>
               <span data-fr="Retour" data-ar="رجوع">Retour</span>
             </button>
-            <button class="btn-primary" onclick="goStep3()" style="padding:12px 32px">
+            <button class="btn-primary" onclick="goStep4()" style="padding:12px 32px">
               <span data-fr="Vos coordonnées" data-ar="معلوماتك الشخصية">Vos coordonnées</span>
               <i class="fas fa-arrow-right" style="margin-left:8px"></i>
             </button>
           </div>
         </div>
 
-        <!-- ═══ ÉTAPE 3 : Informations client ═══ -->
-        <div class="step-content" id="step3">
+        <!-- ═══ ÉTAPE 4 : Informations client ═══ -->
+        <div class="step-content" id="step4">
           <h2 style="color:var(--white);font-size:1.3rem;margin-bottom:8px">
             <i class="fas fa-user" style="color:var(--gold);margin-right:8px"></i>
             <span data-fr="Vos coordonnées" data-ar="معلوماتك الشخصية">Vos coordonnées</span>
@@ -897,7 +995,7 @@ try {
             </div>
           </div>
           <div class="step-nav">
-            <button class="btn-back" onclick="goStep(2)">
+            <button class="btn-back" onclick="goStep(3)">
               <i class="fas fa-arrow-left" style="margin-right:6px"></i>
               <span data-fr="Retour" data-ar="رجوع">Retour</span>
             </button>
@@ -908,8 +1006,8 @@ try {
           </div>
         </div>
 
-        <!-- ═══ ÉTAPE 4 : Récap + PDF ═══ -->
-        <div class="step-content" id="step4">
+        <!-- ═══ ÉTAPE 5 : Récap + PDF ═══ -->
+        <div class="step-content" id="step5">
           <div style="text-align:center;margin-bottom:28px">
             <div
               style="width:70px;height:70px;border-radius:50%;background:rgba(37,211,102,.15);border:2px solid #25D366;display:flex;align-items:center;justify-content:center;margin:0 auto 14px;font-size:1.8rem;color:#25D366">
@@ -1032,6 +1130,8 @@ try {
 
     let currentStep = 1;
     let selectedType = '';
+    let selectedTente = null; // { id, nom } ou null
+    const tentesDisponibles = <?= json_encode(!empty($tentesDispo)) ?>;
     let selectedServices = [];
     let devisData = {};
     let devisNumero = '';
@@ -1079,8 +1179,23 @@ try {
         showAlert('Le nombre maximal d\'invités pour cet événement est de ' + maxPourCeType + ' personnes.');
         return;
       }
-      filterServicesByType();
       goStep(2);
+    }
+
+    // ── Tente ────────────────────────────────────────────────
+    function selectTente(id, card) {
+      document.querySelectorAll('.tente-select-card').forEach(c => c.classList.remove('selected'));
+      card.classList.add('selected');
+      selectedTente = { id, nom: card.dataset.nom };
+    }
+
+    function goStepAfterTente() {
+      if (tentesDisponibles && !selectedTente) {
+        showAlert('Veuillez choisir une tente (notre équipe pourra ajuster ce choix si besoin).');
+        return;
+      }
+      filterServicesByType();
+      goStep(3);
     }
 
     // ── Services ──────────────────────────────────────────────
@@ -1130,9 +1245,9 @@ try {
       ).join('') + (count > 5 ? `<span class="svc-chip">+${count - 5}</span>` : '');
     }
 
-    function goStep3() {
+    function goStep4() {
       if (selectedServices.length === 0) { showAlert('Veuillez sélectionner au moins un service.'); return; }
-      goStep(3);
+      goStep(4);
     }
 
     // ── Génération devis ──────────────────────────────────────
@@ -1157,18 +1272,19 @@ try {
         ville: document.getElementById('ville').value,
         nb: document.getElementById('nb_personnes').value,
         services: selectedServices,
+        tente: selectedTente,
       };
 
-      // Étape 3 = simple aperçu côté navigateur. On NE sauvegarde PAS encore
+      // Étape 4 = simple aperçu côté navigateur. On NE sauvegarde PAS encore
       // en base ici — sinon on crée un doublon avec l'enregistrement final
-      // de l'étape 4 (envoyerDemande). Le vrai enregistrement se fait
+      // de l'étape 5 (envoyerDemande). Le vrai enregistrement se fait
       // uniquement quand le client clique sur "Enregistrer ma demande".
       devisNumero = 'DEV-' + new Date().getFullYear() + '-' + String(Date.now()).slice(-4);
       devisData.numero = devisNumero;
       buildRecap();
       btn.disabled = false;
       btn.innerHTML = '<i class="fas fa-file-invoice"></i> Générer mon devis';
-      goStep(4);
+      goStep(5);
     }
 
     function buildRecap() {
@@ -1192,6 +1308,7 @@ try {
     <div class="recap-row"><span class="r-label">Date</span><span class="r-value" dir="ltr">${new Date(devisData.date).toLocaleDateString('fr-FR')}</span></div>
     <div class="recap-row"><span class="r-label">Ville</span><span class="r-value">${devisData.ville}</span></div>
     <div class="recap-row"><span class="r-label">Nombre d'invités</span><span class="r-value" dir="ltr">${devisData.nb} personnes</span></div>
+    ${devisData.tente ? `<div class="recap-row"><span class="r-label">Tente</span><span class="r-value">${devisData.tente.nom}</span></div>` : ''}
   `;
 
       document.getElementById('recapServicesBody').innerHTML = devisData.services.map(s => `
@@ -1254,6 +1371,7 @@ try {
 📅 Date : ${dateAffichee}
 📍 Ville : ${devisData.ville || '—'}
 👥 Nombre d'invités : ${devisData.nb}
+⛺ Tente : ${devisData.tente ? devisData.tente.nom : '—'}
 
 📦 Services demandés :
 ${servicesTexte || '—'}
@@ -1317,12 +1435,12 @@ Je souhaite recevoir votre devis personnalisé après étude de ma demande. Merc
     function goStep(n) {
       document.querySelectorAll('.step-content').forEach(s => s.classList.remove('active'));
       document.getElementById('step' + n).classList.add('active');
-      for (let i = 1; i <= 4; i++) {
+      for (let i = 1; i <= 5; i++) {
         const ind = document.getElementById('step-ind-' + i);
         ind.classList.remove('active', 'done');
         if (i < n) ind.classList.add('done');
         else if (i === n) ind.classList.add('active');
-        if (i < 4) {
+        if (i < 5) {
           const line = document.getElementById('line-' + i);
           line.classList.toggle('done', i < n);
         }
@@ -1332,7 +1450,7 @@ Je souhaite recevoir votre devis personnalisé après étude de ma demande. Merc
     }
 
     function resetForm() {
-      selectedType = ''; selectedServices = [];
+      selectedType = ''; selectedServices = []; selectedTente = null;
       document.querySelectorAll('.event-type-card').forEach(c => c.classList.remove('selected'));
       document.querySelectorAll('.service-chk-card').forEach(c => c.classList.remove('checked'));
       document.getElementById('date_evenement').value = '';
