@@ -56,6 +56,8 @@ $totalAll     = count($medias);
     .media-btns { display: flex; gap: 6px; }
     .btn-star { flex: 1; padding: 5px; border-radius: 6px; border: 1px solid var(--border); background: none; color: #666; cursor: pointer; font-size: .72rem; transition: var(--transition); }
     .btn-star.on, .btn-star:hover { border-color: var(--gold); color: var(--gold); background: rgba(212,175,55,.08); }
+    .btn-edit-m { padding: 5px 10px; border-radius: 6px; border: 1px solid var(--border); background: none; color: #888; cursor: pointer; font-size: .72rem; transition: var(--transition); }
+    .btn-edit-m:hover { border-color: var(--gold); color: var(--gold); background: rgba(212,175,55,.08); }
     .btn-del-m { padding: 5px 10px; border-radius: 6px; border: 1px solid rgba(239,68,68,.3); background: none; color: #EF5350; cursor: pointer; font-size: .72rem; transition: var(--transition); }
     .btn-del-m:hover { background: rgba(239,68,68,.15); }
     .filter-bar { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; margin-bottom: 20px; }
@@ -285,6 +287,18 @@ $totalAll     = count($medias);
                       onclick="toggleVedette(<?= $m['id'] ?>,this)">
                 <i class="fas fa-star"></i> Vedette
               </button>
+              <button class="btn-edit-m"
+                      onclick='openEdit(<?= json_encode([
+                          "id" => $m["id"],
+                          "titre" => $m["titre"],
+                          "categorie_id" => $m["categorie_id"],
+                          "alt_text" => $m["alt_text"],
+                          "en_vedette" => $m["en_vedette"],
+                          "type" => $m["type"],
+                          "src" => $src,
+                      ], JSON_HEX_APOS | JSON_HEX_QUOT) ?>)'>
+                <i class="fas fa-pen"></i>
+              </button>
               <button class="btn-del-m"
                       onclick="confirmDel(<?= $m['id'] ?>,'<?= addslashes($m['titre'] ?? '') ?>')">
                 <i class="fas fa-trash"></i>
@@ -311,6 +325,57 @@ $totalAll     = count($medias);
         <i class="fas fa-trash"></i> Supprimer
       </button>
     </div>
+  </div>
+</div>
+
+<!-- Modal édition -->
+<div class="modal-overlay" id="editModal">
+  <div class="modal-box" style="max-width:460px">
+    <h3><i class="fas fa-pen" style="color:var(--gold);margin-right:8px"></i>Modifier le média</h3>
+    <form id="editForm" enctype="multipart/form-data">
+      <input type="hidden" name="id" id="edit_id">
+      <div class="form-group">
+        <label class="form-label">Titre *</label>
+        <input type="text" name="titre" id="edit_titre" class="form-control" required>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Catégorie</label>
+        <select name="categorie_id" id="edit_categorie" class="form-control">
+          <?php foreach ($categories as $cat): ?>
+          <option value="<?= $cat['id'] ?>"><?= htmlspecialchars($cat['nom']) ?></option>
+          <?php endforeach; ?>
+        </select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Texte alternatif (SEO)</label>
+        <input type="text" name="alt_text" id="edit_alt" class="form-control">
+      </div>
+      <div class="form-group">
+        <label class="form-label" style="display:flex;align-items:center;gap:8px">
+          <input type="checkbox" name="en_vedette" id="edit_vedette" value="1" style="width:auto">
+          En vedette sur la page d'accueil
+        </label>
+      </div>
+      <div class="form-group" id="editCurrentPhotoWrap" style="display:none">
+        <label class="form-label">Photo actuelle</label>
+        <img id="editCurrentPhoto" src="" alt="" style="max-width:140px;border-radius:8px;display:block;margin-bottom:10px">
+      </div>
+      <div class="upload-zone" id="editPhotoZone">
+        <i class="fas fa-cloud-upload-alt"></i>
+        <p>Cliquez pour remplacer la photo (optionnel)</p>
+        <p style="font-size:.72rem;color:#444;margin-top:4px">JPG, PNG, WEBP — max 5 Mo</p>
+        <input type="file" name="fichier" accept="image/*" onchange="showFile(this,'editPhotoZone','editPhotoName')">
+        <div class="file-chosen" id="editPhotoName"></div>
+      </div>
+      <div class="progress-upload" id="editProgressUpload">
+        <div class="progress-bar-bg"><div class="progress-bar-fill" id="editProgressFill"></div></div>
+        <div class="progress-pct" id="editProgressPct">0%</div>
+      </div>
+      <div class="modal-btns" style="margin-top:18px">
+        <button type="button" class="btn-secondary" onclick="closeEdit()">Annuler</button>
+        <button type="submit" class="btn-primary" id="editSubmitBtn"><i class="fas fa-save"></i> Enregistrer</button>
+      </div>
+    </form>
   </div>
 </div>
 
@@ -456,6 +521,74 @@ function toggleVedette(id, btn) {
       else if (!res.en_vedette && badge) badge.remove();
     });
 }
+
+// Édition
+const UPDATE_URL = '<?= SITE_URL ?>/api/update_media.php';
+function openEdit(m) {
+  document.getElementById('edit_id').value = m.id;
+  document.getElementById('edit_titre').value = m.titre || '';
+  document.getElementById('edit_categorie').value = m.categorie_id || '';
+  document.getElementById('edit_alt').value = m.alt_text || '';
+  document.getElementById('edit_vedette').checked = !!parseInt(m.en_vedette);
+  document.getElementById('editPhotoName').textContent = '';
+  document.querySelector('#editPhotoZone input[type=file]').value = '';
+  const wrap = document.getElementById('editCurrentPhotoWrap');
+  const img = document.getElementById('editCurrentPhoto');
+  if (m.src) { img.src = m.src; wrap.style.display = 'block'; }
+  else { wrap.style.display = 'none'; }
+  document.getElementById('editModal').classList.add('show');
+}
+function closeEdit() { document.getElementById('editModal').classList.remove('show'); }
+
+document.getElementById('editForm').addEventListener('submit', function(e) {
+  e.preventDefault();
+  const btn  = document.getElementById('editSubmitBtn');
+  const prog = document.getElementById('editProgressUpload');
+  const fill = document.getElementById('editProgressFill');
+  const pct  = document.getElementById('editProgressPct');
+
+  btn.disabled = true;
+  btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Envoi...';
+  prog.classList.add('show');
+
+  const fd = new FormData(this);
+  if (!document.getElementById('edit_vedette').checked) fd.set('en_vedette', '0');
+
+  const xhr = new XMLHttpRequest();
+  xhr.open('POST', UPDATE_URL);
+  xhr.upload.onprogress = ev => {
+    if (ev.lengthComputable) {
+      const p = Math.round(ev.loaded / ev.total * 100);
+      fill.style.width = p + '%';
+      pct.textContent  = p + '%';
+    }
+  };
+  xhr.onload = () => {
+    prog.classList.remove('show');
+    fill.style.width = '0';
+    btn.disabled = false;
+    btn.innerHTML = '<i class="fas fa-save"></i> Enregistrer';
+    try {
+      const res = JSON.parse(xhr.responseText);
+      if (res.success) {
+        closeEdit();
+        showAlert('success', res.message);
+        setTimeout(() => location.reload(), 1200);
+      } else {
+        showAlert('error', '❌ ' + res.message);
+      }
+    } catch (err) {
+      showAlert('error', 'Réponse inattendue du serveur : ' + xhr.responseText.substring(0, 200));
+    }
+  };
+  xhr.onerror = () => {
+    prog.classList.remove('show');
+    btn.disabled = false;
+    btn.innerHTML = '<i class="fas fa-save"></i> Enregistrer';
+    showAlert('error', 'Erreur réseau.');
+  };
+  xhr.send(fd);
+});
 
 // Suppression
 let delId = null;
