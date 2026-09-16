@@ -69,8 +69,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $devisId = $devisRow['id'];
         } else {
             $tempNumero = 'TMP-' . uniqid();
-            $pdo->prepare("INSERT INTO devis (reference, reservation_id, statut, montant_ht, tva_pct, montant_tva, montant_ttc, created_at)
-                            VALUES (?,?,'en_traitement',0,0,0,0,NOW())")->execute([$tempNumero, $id]);
+            $pdo->prepare("INSERT INTO devis (reference, reservation_id, statut, montant_ht, tva_pct, created_at)
+                            VALUES (?,?,'en_traitement',0,0,NOW())")->execute([$tempNumero, $id]);
             $devisId = $pdo->lastInsertId();
             $numero = 'DEV-' . date('Y') . '-' . str_pad($devisId, 4, '0', STR_PAD_LEFT);
             $pdo->prepare("UPDATE devis SET reference=? WHERE id=?")->execute([$numero, $devisId]);
@@ -89,8 +89,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $total += $q * $pu;
         }
 
-        $pdo->prepare("UPDATE devis SET montant_ht=?, tva_pct=0, montant_tva=0, montant_ttc=?, statut=IF(statut='recu','en_traitement',statut), updated_at=NOW() WHERE id=?")
-            ->execute([$total, $total, $devisId]);
+        $pdo->prepare("UPDATE devis SET montant_ht=?, tva_pct=0, statut=IF(statut='recu','en_traitement',statut), updated_at=NOW() WHERE id=?")
+            ->execute([$total, $devisId]);
         $pdo->prepare("UPDATE reservations SET montant_total=?, updated_at=NOW() WHERE id=?")->execute([$total, $id]);
 
         $msg = 'Tarification enregistrée. Total : ' . number_format($total,0,',',' ') . ' MAD.'; $msgType = 'success';

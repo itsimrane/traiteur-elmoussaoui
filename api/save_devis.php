@@ -117,9 +117,9 @@ try {
     $pdo->prepare("
         INSERT INTO devis
             (reference, client_id, type_evenement_id, date_evenement, nbr_invites, lieu,
-             message, statut, montant_ht, tva_pct, montant_tva, montant_ttc, reservation_id, date_expiration, created_at)
-        VALUES (?,?,?,?,?,?,?,'recu',?,0,0,?,?, DATE_ADD(NOW(), INTERVAL 30 DAY), NOW())
-    ")->execute([$tempNumero, $clientId, $typeId, $date, $nb, $ville, $message, $total, $total, $reservationId]);
+             message, statut, montant_ht, tva_pct, reservation_id, date_expiration, created_at)
+        VALUES (?,?,?,?,?,?,?,'recu',?,0,?, DATE_ADD(NOW(), INTERVAL 30 DAY), NOW())
+    ")->execute([$tempNumero, $clientId, $typeId, $date, $nb, $ville, $message, $total, $reservationId]);
     $devisId = $pdo->lastInsertId();
 
     $numero = 'DEV-' . date('Y') . '-' . str_pad($devisId, 4, '0', STR_PAD_LEFT);
