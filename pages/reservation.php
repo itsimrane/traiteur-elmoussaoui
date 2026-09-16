@@ -909,23 +909,28 @@ try {
           </div>
 
           <div class="services-grid" id="servicesGrid">
-            <?php foreach ($services as $s):
+            <?php
+            $tierLabelsAr = ['bronze' => 'برونز', 'argent' => 'فضي', 'or' => 'ذهبي'];
+            foreach ($services as $s):
               $typesArr = json_decode($s['types_evenements'] ?? '[]', true) ?: [];
               $typesStr = implode(',', $typesArr);
+              $tier = $s['categorie_tarif'] ?? 'bronze';
+              $nomAr  = $s['nom_ar'] ?: $s['nom'];
+              $descAr = $s['description_ar'] ?: $s['description'];
               ?>
               <div class="service-chk-card" data-id="<?= $s['id'] ?>" data-nom="<?= htmlspecialchars($s['nom']) ?>"
-                data-tier="<?= $s['categorie_tarif'] ?? 'bronze' ?>"
+                data-nom-ar="<?= htmlspecialchars($nomAr) ?>"
+                data-tier="<?= $tier ?>"
                 data-types="<?= htmlspecialchars($typesStr) ?>" onclick="toggleService(this)">
                 <input type="checkbox" name="services[]" value="<?= $s['id'] ?>">
                 <div class="checkmark"><i class="fas fa-check" style="font-size:.65rem"></i></div>
-                <span
-                  class="svc-tier <?= $s['categorie_tarif'] ?? 'bronze' ?>"><?= ucfirst($s['categorie_tarif'] ?? 'bronze') ?></span>
+                <span class="svc-tier <?= $tier ?>" data-fr="<?= ucfirst($tier) ?>" data-ar="<?= htmlspecialchars($tierLabelsAr[$tier] ?? ucfirst($tier)) ?>"><?= ucfirst($tier) ?></span>
                 <div class="svc-header">
                   <div class="svc-icon"><i class="fas <?= htmlspecialchars($s['icone'] ?? 'fa-star') ?>"></i></div>
-                  <div class="svc-name"><?= htmlspecialchars($s['nom']) ?></div>
+                  <div class="svc-name" data-fr="<?= htmlspecialchars($s['nom']) ?>" data-ar="<?= htmlspecialchars($nomAr) ?>"><?= htmlspecialchars($s['nom']) ?></div>
                 </div>
                 <?php if ($s['description']): ?>
-                  <div class="svc-desc"><?= htmlspecialchars($s['description']) ?></div>
+                  <div class="svc-desc" data-fr="<?= htmlspecialchars($s['description']) ?>" data-ar="<?= htmlspecialchars($descAr) ?>"><?= htmlspecialchars($s['description']) ?></div>
                 <?php endif; ?>
               </div>
             <?php endforeach; ?>
@@ -1127,6 +1132,7 @@ try {
 
     const typesLabels = <?= json_encode(array_map(fn($t) => $t['label'], $typesEvenements), JSON_UNESCAPED_UNICODE) ?>;
     const tierLabels = { bronze: '🥉 Bronze', argent: '🥈 Argent', or: '🥇 Or' };
+    const tierLabelsAr = { bronze: '🥉 برونز', argent: '🥈 فضي', or: '🥇 ذهبي' };
 
     let currentStep = 1;
     let selectedType = '';
@@ -1225,11 +1231,12 @@ try {
       card.classList.toggle('checked');
       const id = parseInt(card.dataset.id);
       const nom = card.dataset.nom;
+      const nomAr = card.dataset.nomAr || nom;
       const tier = card.dataset.tier;
 
       if (card.classList.contains('checked')) {
         if (!selectedServices.find(s => s.id === id))
-          selectedServices.push({ id, nom, tier });
+          selectedServices.push({ id, nom, nomAr, tier });
       } else {
         selectedServices = selectedServices.filter(s => s.id !== id);
       }
@@ -1240,8 +1247,9 @@ try {
       const count = selectedServices.length;
       document.getElementById('totalDetail').textContent = count + ' service' + (count > 1 ? 's' : '') + ' sélectionné' + (count > 1 ? 's' : '');
       const chips = document.getElementById('selectedChips');
+      const curLang = localStorage.getItem('site_lang') || 'fr';
       chips.innerHTML = selectedServices.slice(0, 5).map(s =>
-        `<span class="svc-chip">${s.nom}</span>`
+        `<span class="svc-chip">${curLang === 'ar' ? (s.nomAr || s.nom) : s.nom}</span>`
       ).join('') + (count > 5 ? `<span class="svc-chip">+${count - 5}</span>` : '');
     }
 
@@ -1311,10 +1319,11 @@ try {
     ${devisData.tente ? `<div class="recap-row"><span class="r-label">Tente</span><span class="r-value">${devisData.tente.nom}</span></div>` : ''}
   `;
 
+      const curLang = localStorage.getItem('site_lang') || 'fr';
       document.getElementById('recapServicesBody').innerHTML = devisData.services.map(s => `
     <tr>
-      <td>${s.nom}</td>
-      <td>${tierLabels[s.tier] || s.tier}</td>
+      <td>${curLang === 'ar' ? (s.nomAr || s.nom) : s.nom}</td>
+      <td>${(curLang === 'ar' ? tierLabelsAr[s.tier] : tierLabels[s.tier]) || s.tier}</td>
     </tr>
   `).join('');
     }
