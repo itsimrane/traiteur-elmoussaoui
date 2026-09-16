@@ -31,27 +31,27 @@ if ($dateChoisie === false) jsonResponse(['success'=>false,'message'=>'Date inva
 if ($dateChoisie < $dateMin) jsonResponse(['success'=>false,'message'=>"La date de l'événement doit être au moins 7 jours à l'avance"]);
 if ($dateChoisie > $dateMax) jsonResponse(['success'=>false,'message'=>"La date de l'événement ne peut pas dépasser 2 mois à l'avance"]);
 
-// ── Services demandés — SANS PRIX ───────────────────────────────
-// Le client ne voit et n'envoie plus aucun prix : on ne garde que les
-// noms des services choisis. Le prix de chaque ligne sera fixé
-// librement par l'administrateur au moment du traitement de la
-// demande (voir admin/reservation_details.php). Le total démarre à 0
-// et sera calculé automatiquement une fois les prix saisis par l'admin.
-$serviceIds = array_map(fn($s) => (int)($s['id'] ?? 0), $services);
-$serviceIds = array_filter($serviceIds);
-$lignesCalculees = [];
-if (!empty($serviceIds)) {
-    $placeholders = implode(',', array_fill(0, count($serviceIds), '?'));
-    $stmt = $pdo->prepare("SELECT id, nom FROM services WHERE id IN ($placeholders) AND actif=1");
-    $stmt->execute($serviceIds);
-    foreach ($stmt->fetchAll() as $s) {
-        $lignesCalculees[] = ['service_id' => $s['id'], 'nom' => $s['nom'], 'quantite' => 1, 'prix_unitaire' => 0];
-    }
-}
-$total = 0;
-
 $pdo->beginTransaction();
 try {
+    // ── Services demandés — SANS PRIX ───────────────────────────
+    // Le client ne voit et n'envoie plus aucun prix : on ne garde que
+    // les noms des services choisis. Le prix de chaque ligne sera fixé
+    // librement par l'administrateur au moment du traitement de la
+    // demande (voir admin/reservation_details.php). Le total démarre à
+    // 0 et sera calculé automatiquement une fois les prix saisis par l'admin.
+    $serviceIds = array_map(fn($s) => (int)($s['id'] ?? 0), $services);
+    $serviceIds = array_filter($serviceIds);
+    $lignesCalculees = [];
+    if (!empty($serviceIds)) {
+        $placeholders = implode(',', array_fill(0, count($serviceIds), '?'));
+        $stmt = $pdo->prepare("SELECT id, nom FROM services WHERE id IN ($placeholders) AND actif=1");
+        $stmt->execute($serviceIds);
+        foreach ($stmt->fetchAll() as $s) {
+            $lignesCalculees[] = ['service_id' => $s['id'], 'nom' => $s['nom'], 'quantite' => 1, 'prix_unitaire' => 0];
+        }
+    }
+    $total = 0;
+
     // ── 1. Client : retrouver ou créer ──────────────────────────
     $existing = $pdo->prepare("SELECT id FROM clients WHERE telephone=? OR (email=? AND email<>'') LIMIT 1");
     $existing->execute([$telephone, $email ?: '__none__']);
@@ -160,7 +160,8 @@ try {
         'lignes'         => $lignesCalculees,
     ]);
 
-} catch (Exception $e) {
-    $pdo->rollBack();
-    jsonResponse(['success'=>false,'message'=>$e->getMessage()]);
+} catch (Throwable $e) {
+    if ($pdo->inTransaction()) $pdo->rollBack();
+    http_response_code(200); // on garde 200 pour que le fetch() côté client lise bien le JSON
+    jsonResponse(['success'=>false,'message'=>'Erreur serveur : ' . $e->getMessage()]);
 }
