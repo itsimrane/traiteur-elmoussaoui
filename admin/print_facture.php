@@ -13,6 +13,21 @@ try {
 
 if (!$f) die('Facture introuvable');
 
+// Lignes détaillées du devis à l'origine de cette facture (si disponible)
+$lignesFacture = [];
+if (!empty($f['reservation_id'])) {
+    try {
+        $dq = $pdo->prepare("SELECT id FROM devis WHERE reservation_id = ? ORDER BY id DESC LIMIT 1");
+        $dq->execute([$f['reservation_id']]);
+        $devisId = $dq->fetchColumn();
+        if ($devisId) {
+            $lq = $pdo->prepare("SELECT designation, quantite, prix_unitaire FROM devis_lignes WHERE devis_id = ? ORDER BY ordre ASC");
+            $lq->execute([$devisId]);
+            $lignesFacture = $lq->fetchAll();
+        }
+    } catch (Exception $e) { /* pas de devis lié — on retombe sur la ligne générique */ }
+}
+
 $dateEv  = !empty($f['date_evenement'])  ? date('d/m/Y', strtotime($f['date_evenement']))  : '—';
 $dateEch = !empty($f['date_echeance'])   ? date('d/m/Y', strtotime($f['date_echeance']))   : '—';
 $datePai = !empty($f['date_paiement'])   ? date('d/m/Y', strtotime($f['date_paiement']))   : null;
@@ -171,21 +186,32 @@ $fmtInt = fn($n) => number_format((float)$n, 0, ',', ' ') . ' MAD';
       </tr>
     </thead>
     <tbody>
-      <tr>
-        <td>
-          <div class="line-name">
-            <?= $f['package_nom'] ? 'Package ' . htmlspecialchars($f['package_nom']) : 'Prestation événementielle' ?>
-          </div>
-          <div class="line-desc">
-            <?= ucfirst(str_replace('_',' ',$f['type_evenement']??'')) ?>
-            <?= $f['date_evenement'] ? ' — ' . $dateEv : '' ?>
-            <?= $f['nb_personnes'] ? ' — ' . $f['nb_personnes'] . ' invités' : '' ?>
-          </div>
-        </td>
-        <td>1</td>
-        <td><?= $fmt($f['montant_ht']) ?></td>
-        <td><?= $fmt($f['montant_ht']) ?></td>
-      </tr>
+      <?php if (!empty($lignesFacture)): ?>
+        <?php foreach ($lignesFacture as $l): $qte = (float)$l['quantite']; $pu = (float)$l['prix_unitaire']; ?>
+        <tr>
+          <td><div class="line-name"><?= htmlspecialchars($l['designation']) ?></div></td>
+          <td><?= rtrim(rtrim(number_format($qte, 2, ',', ' '), '0'), ',') ?></td>
+          <td><?= $fmt($pu) ?></td>
+          <td><?= $fmt($qte * $pu) ?></td>
+        </tr>
+        <?php endforeach; ?>
+      <?php else: ?>
+        <tr>
+          <td>
+            <div class="line-name">
+              <?= $f['package_nom'] ? 'Package ' . htmlspecialchars($f['package_nom']) : 'Prestation événementielle' ?>
+            </div>
+            <div class="line-desc">
+              <?= ucfirst(str_replace('_',' ',$f['type_evenement']??'')) ?>
+              <?= $f['date_evenement'] ? ' — ' . $dateEv : '' ?>
+              <?= $f['nb_personnes'] ? ' — ' . $f['nb_personnes'] . ' invités' : '' ?>
+            </div>
+          </td>
+          <td>1</td>
+          <td><?= $fmt($f['montant_ht']) ?></td>
+          <td><?= $fmt($f['montant_ht']) ?></td>
+        </tr>
+      <?php endif; ?>
     </tbody>
   </table>
 
@@ -229,7 +255,7 @@ $fmtInt = fn($n) => number_format((float)$n, 0, ',', ' ') . ' MAD';
     Un acompte de 30% est exigé pour confirmer la réservation.
     Le solde est dû 3 jours avant la date de l'événement.
     En cas d'annulation à moins de 30 jours, l'acompte reste acquis.
-    Cette facture est valable 30 jours à compter de sa date d'émission.
+    Cette facture est valable 7 jours (une semaine) à compter de sa date d'émission.
   </div>
 
   <!-- Signatures -->
