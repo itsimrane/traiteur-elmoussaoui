@@ -88,7 +88,7 @@ $groupeLabels = [
 $ongletActif = $_GET['tab'] ?? 'general';
 ?>
 <!DOCTYPE html>
-<html lang="fr">
+<html lang="<?= adminLang() ?>" dir="<?= adminDir() ?>">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -155,7 +155,7 @@ $ongletActif = $_GET['tab'] ?? 'general';
 </head>
 <body>
 <div class="sidebar-overlay" id="sidebarOverlay"></div>
-<div class="admin-layout">
+<div class="admin-layout <?= adminRtlClass() ?>">
 
   <?php $activePage = 'parametres'; include_once __DIR__ . '/../includes/admin-sidebar.php'; ?>
 
@@ -163,7 +163,7 @@ $ongletActif = $_GET['tab'] ?? 'general';
     <div class="admin-topbar">
       <div style="display:flex;align-items:center;gap:12px">
         <button id="sidebarToggle" class="topbar-btn"><i class="fas fa-bars"></i></button>
-        <div class="topbar-title"><h2 data-fr="Paramètres du site" data-ar="إعدادات الموقع">Paramètres du site</h2><p data-fr="Configuration générale de Traiteur EL MOUSSAOUI" data-ar="الإعدادات العامة لترايتور المساوي">Configuration générale de Traiteur EL MOUSSAOUI</p></div>
+        <div class="topbar-title"><h2 data-fr="Paramètres du site" data-ar="إعدادات الموقع"><?= tt('Paramètres du site', 'إعدادات الموقع') ?></h2><p data-fr="Configuration générale de Traiteur EL MOUSSAOUI" data-ar="الإعدادات العامة لترايتور المساوي"><?= tt('Configuration générale de Traiteur EL MOUSSAOUI', 'الإعدادات العامة لترايتور المساوي') ?></p></div>
       </div>
       <div class="topbar-actions">
         <a href="../index.php" target="_blank" class="topbar-btn" title="Voir le site"><i class="fas fa-external-link-alt"></i></a>
@@ -204,7 +204,7 @@ $ongletActif = $_GET['tab'] ?? 'general';
               <div class="params-card">
                 <div class="params-card-header">
                   <i class="fas <?= $gl['icon'] ?>" style="color:<?= $gl['color'] ?>"></i>
-                  <h3 data-fr="<?= $gl['label'] ?>" data-ar="<?= $gl['label_ar'] ?? $gl['label'] ?>"><?= $gl['label'] ?></h3>
+                  <h3 data-fr="<?= $gl['label'] ?>" data-ar="<?= $gl['label_ar'] ?? $gl['label'] ?>"><?= tt($gl['label'], $gl['label_ar'] ?? $gl['label']) ?></h3>
                 </div>
                 <div class="params-card-body">
                   <?php foreach ($grouped[$groupeKey] ?? [] as $p): ?>
@@ -224,7 +224,7 @@ $ongletActif = $_GET['tab'] ?? 'general';
                               <input type="checkbox" name="<?= $name ?>" value="1" <?= $p['valeur'] == '1' ? 'checked' : '' ?>>
                               <span class="sw-slider"></span>
                             </label>
-                            <span class="bool-label" data-fr="<?= $p['valeur'] == '1' ? 'Activé' : 'Désactivé' ?>" data-ar="<?= $p['valeur'] == '1' ? 'مفعّل' : 'معطّل' ?>"><?= $p['valeur'] == '1' ? 'Activé' : 'Désactivé' ?></span>
+                            <span class="bool-label" data-fr="<?= $p['valeur'] == '1' ? 'Activé' : 'Désactivé' ?>" data-ar="<?= $p['valeur'] == '1' ? 'مفعّل' : 'معطّل' ?>"><?= tt($p['valeur'] == '1' ? 'Activé' : 'Désactivé', $p['valeur'] == '1' ? 'مفعّل' : 'معطّل') ?></span>
                           </div>
                         <?php break;
                         case 'textarea': ?>

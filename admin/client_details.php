@@ -79,25 +79,25 @@ $nomComplet = trim(($c['civilite'] ?? '') . ' ' . ($c['prenom'] ?? '') . ' ' . (
 $initiales = strtoupper(mb_substr($c['prenom'] ?? '', 0, 1) . mb_substr($c['nom'] ?? '', 0, 1));
 
 $statutResaConfig = [
-    'en_attente' => ['label'=>'En attente','color'=>'#FBB724','bg'=>'rgba(251,183,36,.15)'],
-    'confirmee'  => ['label'=>'Confirmée','color'=>'#25D366','bg'=>'rgba(37,211,102,.15)'],
-    'en_cours'   => ['label'=>'En cours','color'=>'#60A5FA','bg'=>'rgba(59,130,246,.15)'],
-    'terminee'   => ['label'=>'Terminée','color'=>'#888','bg'=>'rgba(136,136,136,.15)'],
-    'annulee'    => ['label'=>'Annulée','color'=>'#EF5350','bg'=>'rgba(239,68,68,.15)'],
+    'en_attente' => ['label'=>tt('En attente','قيد الانتظار'),'color'=>'#FBB724','bg'=>'rgba(251,183,36,.15)'],
+    'confirmee'  => ['label'=>tt('Confirmée','مؤكدة'),'color'=>'#25D366','bg'=>'rgba(37,211,102,.15)'],
+    'en_cours'   => ['label'=>tt('En cours','قيد التنفيذ'),'color'=>'#60A5FA','bg'=>'rgba(59,130,246,.15)'],
+    'terminee'   => ['label'=>tt('Terminée','منتهية'),'color'=>'#888','bg'=>'rgba(136,136,136,.15)'],
+    'annulee'    => ['label'=>tt('Annulée','ملغاة'),'color'=>'#EF5350','bg'=>'rgba(239,68,68,.15)'],
 ];
 $statutDevisConfig = [
-    'recu'=>['label'=>'Reçu','color'=>'#FBB724'], 'en_traitement'=>['label'=>'En traitement','color'=>'#60A5FA'],
-    'envoye'=>['label'=>'Envoyé','color'=>'#A78BFA'], 'accepte'=>['label'=>'Accepté','color'=>'#25D366'],
-    'refuse'=>['label'=>'Refusé','color'=>'#EF5350'], 'expire'=>['label'=>'Expiré','color'=>'#888'],
+    'recu'=>['label'=>tt('Reçu','مستلم'),'color'=>'#FBB724'], 'en_traitement'=>['label'=>tt('En traitement','قيد المعالجة'),'color'=>'#60A5FA'],
+    'envoye'=>['label'=>tt('Envoyé','مرسل'),'color'=>'#A78BFA'], 'accepte'=>['label'=>tt('Accepté','مقبول'),'color'=>'#25D366'],
+    'refuse'=>['label'=>tt('Refusé','مرفوض'),'color'=>'#EF5350'], 'expire'=>['label'=>tt('Expiré','منتهي الصلاحية'),'color'=>'#888'],
 ];
 $statutFacConfig = [
-    'brouillon'=>['label'=>'Brouillon','color'=>'#888'], 'envoyee'=>['label'=>'Envoyée','color'=>'#60A5FA'],
-    'payee'=>['label'=>'Payée','color'=>'#25D366'], 'partiellement_payee'=>['label'=>'Partiel','color'=>'#FBB724'],
-    'annulee'=>['label'=>'Annulée','color'=>'#EF5350'],
+    'brouillon'=>['label'=>tt('Brouillon','مسودة'),'color'=>'#888'], 'envoyee'=>['label'=>tt('Envoyée','مرسلة'),'color'=>'#60A5FA'],
+    'payee'=>['label'=>tt('Payée','مدفوعة'),'color'=>'#25D366'], 'partiellement_payee'=>['label'=>tt('Partiel','جزئي'),'color'=>'#FBB724'],
+    'annulee'=>['label'=>tt('Annulée','ملغاة'),'color'=>'#EF5350'],
 ];
 ?>
 <!DOCTYPE html>
-<html lang="fr">
+<html lang="<?= adminLang() ?>" dir="<?= adminDir() ?>">
 <head>
   <meta charset="UTF-8">
   <link rel="icon" type="image/png" href="../assets/img/favicon-32.png">
@@ -137,15 +137,15 @@ $statutFacConfig = [
 </head>
 <body>
 <div class="sidebar-overlay" id="sidebarOverlay"></div>
-<div class="admin-layout">
+<div class="admin-layout <?= adminRtlClass() ?>">
   <?php $activePage = 'clients'; include_once __DIR__ . '/../includes/admin-sidebar.php'; ?>
   <main class="admin-main">
     <div class="admin-topbar">
       <div style="display:flex;align-items:center;gap:12px">
         <button id="sidebarToggle" class="topbar-btn"><i class="fas fa-bars"></i></button>
-        <div class="topbar-title"><h2>Fiche client</h2><p>Historique complet</p></div>
+        <div class="topbar-title"><h2><?= tt('Fiche client','بطاقة العميل') ?></h2><p><?= tt('Historique complet','السجل الكامل') ?></p></div>
       </div>
-      <a href="clients.php" class="topbar-btn" title="Retour à la liste"><i class="fas fa-arrow-left"></i></a>
+      <a href="clients.php" class="topbar-btn" title="<?= tt('Retour à la liste','العودة إلى القائمة') ?>"><i class="fas fa-arrow-left"></i></a>
     </div>
 
     <div class="admin-content">
@@ -155,34 +155,34 @@ $statutFacConfig = [
         <div>
           <h2><?= htmlspecialchars($nomComplet) ?></h2>
           <div class="client-hero-meta">
-            <a href="tel:<?= htmlspecialchars($c['telephone']) ?>"><i class="fas fa-phone"></i> <?= htmlspecialchars($c['telephone']) ?></a>
+            <a href="tel:<?= htmlspecialchars($c['telephone']) ?>" dir="ltr"><i class="fas fa-phone"></i> <?= htmlspecialchars($c['telephone']) ?></a>
             <?php if ($c['email']): ?><a href="mailto:<?= htmlspecialchars($c['email']) ?>"><i class="fas fa-envelope"></i> <?= htmlspecialchars($c['email']) ?></a><?php endif; ?>
             <span><i class="fas fa-map-marker-alt"></i> <?= htmlspecialchars($c['ville'] ?: 'Errachidia') ?></span>
-            <span><i class="fas fa-clock"></i> Client depuis <?= date('d/m/Y', strtotime($c['created_at'])) ?></span>
+            <span><i class="fas fa-clock"></i> <?= tt('Client depuis','عميل منذ') ?> <span dir="ltr"><?= date('d/m/Y', strtotime($c['created_at'])) ?></span></span>
           </div>
         </div>
       </div>
 
       <!-- Résumé financier -->
       <div class="stats-grid" style="margin-bottom:20px">
-        <div class="stat-card"><div class="stat-card-value"><?= count($reservations) ?></div><div class="stat-card-label">Réservations</div></div>
-        <div class="stat-card"><div class="stat-card-value" style="color:var(--gold)"><?= number_format($totalFacture,0,',',' ') ?></div><div class="stat-card-label">Total facturé (MAD)</div></div>
-        <div class="stat-card"><div class="stat-card-value" style="color:#25D366"><?= number_format($totalPaye,0,',',' ') ?></div><div class="stat-card-label">Total payé (MAD)</div></div>
-        <div class="stat-card"><div class="stat-card-value" style="color:#FBB724"><?= number_format(max(0,$totalFacture-$totalPaye),0,',',' ') ?></div><div class="stat-card-label">Reste à payer (MAD)</div></div>
+        <div class="stat-card"><div class="stat-card-value"><?= count($reservations) ?></div><div class="stat-card-label"><?= t('reservations') ?></div></div>
+        <div class="stat-card"><div class="stat-card-value" style="color:var(--gold)"><?= number_format($totalFacture,0,',',' ') ?></div><div class="stat-card-label"><?= tt('Total facturé (MAD)','إجمالي الفواتير (MAD)') ?></div></div>
+        <div class="stat-card"><div class="stat-card-value" style="color:#25D366"><?= number_format($totalPaye,0,',',' ') ?></div><div class="stat-card-label"><?= tt('Total payé (MAD)','إجمالي المدفوع (MAD)') ?></div></div>
+        <div class="stat-card"><div class="stat-card-value" style="color:#FBB724"><?= number_format(max(0,$totalFacture-$totalPaye),0,',',' ') ?></div><div class="stat-card-label"><?= t('reste_a_payer') ?></div></div>
       </div>
 
       <!-- Informations personnelles -->
       <div class="panel">
-        <h3><i class="fas fa-id-card" style="color:var(--gold)"></i> Informations personnelles</h3>
+        <h3><i class="fas fa-id-card" style="color:var(--gold)"></i> <?= tt('Informations personnelles','المعلومات الشخصية') ?></h3>
         <div class="info-grid">
-          <div class="info-field"><label>Nom complet</label><span><?= htmlspecialchars($nomComplet) ?></span></div>
-          <div class="info-field"><label>Téléphone</label><span dir="ltr"><?= htmlspecialchars($c['telephone']) ?></span></div>
-          <div class="info-field"><label>Téléphone 2</label><span><?= htmlspecialchars($c['telephone2'] ?: '—') ?></span></div>
+          <div class="info-field"><label><?= tt('Nom complet','الاسم الكامل') ?></label><span><?= htmlspecialchars($nomComplet) ?></span></div>
+          <div class="info-field"><label><?= tt('Téléphone','الهاتف') ?></label><span dir="ltr"><?= htmlspecialchars($c['telephone']) ?></span></div>
+          <div class="info-field"><label><?= tt('Téléphone 2','الهاتف 2') ?></label><span><?= htmlspecialchars($c['telephone2'] ?: '—') ?></span></div>
           <div class="info-field"><label>Email</label><span><?= htmlspecialchars($c['email'] ?: '—') ?></span></div>
-          <div class="info-field"><label>Adresse</label><span><?= htmlspecialchars($c['adresse'] ?: '—') ?></span></div>
-          <div class="info-field"><label>Ville</label><span><?= htmlspecialchars($c['ville'] ?: '—') ?></span></div>
+          <div class="info-field"><label><?= tt('Adresse','العنوان') ?></label><span><?= htmlspecialchars($c['adresse'] ?: '—') ?></span></div>
+          <div class="info-field"><label><?= tt('Ville','المدينة') ?></label><span><?= htmlspecialchars($c['ville'] ?: '—') ?></span></div>
           <div class="info-field"><label>CIN</label><span><?= htmlspecialchars($c['cin'] ?: '—') ?></span></div>
-          <div class="info-field"><label>Source</label><span><?= htmlspecialchars($c['source'] ?: '—') ?></span></div>
+          <div class="info-field"><label><?= tt('Source','المصدر') ?></label><span><?= htmlspecialchars($c['source'] ?: '—') ?></span></div>
         </div>
         <?php if (!empty($c['notes_internes'])): ?>
         <div style="margin-top:16px;background:var(--dark-3);border-left:3px solid var(--gold);padding:12px 16px;border-radius:0 8px 8px 0;font-size:.82rem;color:var(--text-muted)">
@@ -193,11 +193,11 @@ $statutFacConfig = [
 
       <!-- Réservations -->
       <div class="panel">
-        <h3><i class="fas fa-calendar-check" style="color:var(--gold)"></i> Réservations <span class="count">(<?= count($reservations) ?>)</span></h3>
-        <?php if (empty($reservations)): ?><div class="empty-row">Aucune réservation.</div><?php else: foreach ($reservations as $r):
+        <h3><i class="fas fa-calendar-check" style="color:var(--gold)"></i> <?= t('reservations') ?> <span class="count">(<?= count($reservations) ?>)</span></h3>
+        <?php if (empty($reservations)): ?><div class="empty-row"><?= tt('Aucune réservation.','لا يوجد حجز.') ?></div><?php else: foreach ($reservations as $r):
           $sc = $statutResaConfig[$r['statut']] ?? $statutResaConfig['en_attente']; ?>
         <a href="reservation_details.php?id=<?= $r['id'] ?>" class="hist-row" style="text-decoration:none;cursor:pointer">
-          <div class="hist-left"><strong><?= htmlspecialchars($r['type_nom'] ?: 'Événement') ?></strong><span><?= $r['date_evenement'] ? date('d/m/Y', strtotime($r['date_evenement'])) : '—' ?> · <?= (int)$r['nbr_invites'] ?> invités</span></div>
+          <div class="hist-left"><strong><?= htmlspecialchars($r['type_nom'] ?: 'Événement') ?></strong><span><?= $r['date_evenement'] ? date('d/m/Y', strtotime($r['date_evenement'])) : '—' ?> · <?= (int)$r['nbr_invites'] ?> <?= t('invites') ?></span></div>
           <span class="badge-mini" style="background:<?= $sc['bg'] ?>;color:<?= $sc['color'] ?>"><?= $sc['label'] ?></span>
         </a>
         <?php endforeach; endif; ?>
@@ -205,8 +205,8 @@ $statutFacConfig = [
 
       <!-- Devis -->
       <div class="panel">
-        <h3><i class="fas fa-file-invoice" style="color:var(--gold)"></i> Devis <span class="count">(<?= count($devisListe) ?>)</span></h3>
-        <?php if (empty($devisListe)): ?><div class="empty-row">Aucun devis.</div><?php else: foreach ($devisListe as $d):
+        <h3><i class="fas fa-file-invoice" style="color:var(--gold)"></i> <?= t('devis') ?> <span class="count">(<?= count($devisListe) ?>)</span></h3>
+        <?php if (empty($devisListe)): ?><div class="empty-row"><?= tt('Aucun devis.','لا يوجد عرض أسعار.') ?></div><?php else: foreach ($devisListe as $d):
           $sc = $statutDevisConfig[$d['statut']] ?? $statutDevisConfig['recu']; ?>
         <div class="hist-row">
           <div class="hist-left"><strong><?= htmlspecialchars($d['reference']) ?></strong><span><?= date('d/m/Y', strtotime($d['created_at'])) ?></span></div>
@@ -220,8 +220,8 @@ $statutFacConfig = [
 
       <!-- Factures -->
       <div class="panel">
-        <h3><i class="fas fa-receipt" style="color:var(--gold)"></i> Factures <span class="count">(<?= count($factures) ?>)</span></h3>
-        <?php if (empty($factures)): ?><div class="empty-row">Aucune facture.</div><?php else: foreach ($factures as $f):
+        <h3><i class="fas fa-receipt" style="color:var(--gold)"></i> <?= t('factures') ?> <span class="count">(<?= count($factures) ?>)</span></h3>
+        <?php if (empty($factures)): ?><div class="empty-row"><?= tt('Aucune facture.','لا توجد فاتورة.') ?></div><?php else: foreach ($factures as $f):
           $sc = $statutFacConfig[$f['statut']] ?? $statutFacConfig['brouillon']; ?>
         <div class="hist-row">
           <div class="hist-left"><strong><?= htmlspecialchars($f['numero']) ?></strong><span><?= date('d/m/Y', strtotime($f['created_at'])) ?></span></div>
@@ -235,10 +235,10 @@ $statutFacConfig = [
 
       <!-- Paiements -->
       <div class="panel">
-        <h3><i class="fas fa-credit-card" style="color:var(--gold)"></i> Paiements <span class="count">(<?= count($paiements) ?>)</span></h3>
-        <?php if (empty($paiements)): ?><div class="empty-row">Aucun paiement enregistré.</div><?php else: foreach ($paiements as $p): ?>
+        <h3><i class="fas fa-credit-card" style="color:var(--gold)"></i> <?= t('paiements') ?> <span class="count">(<?= count($paiements) ?>)</span></h3>
+        <?php if (empty($paiements)): ?><div class="empty-row"><?= tt('Aucun paiement enregistré.','لا توجد دفعة مسجلة.') ?></div><?php else: foreach ($paiements as $p): ?>
         <div class="hist-row">
-          <div class="hist-left"><strong><?= htmlspecialchars($p['facture_num'] ?: 'Sans facture') ?></strong><span><?= date('d/m/Y', strtotime($p['date_paiement'])) ?> · <?= htmlspecialchars($p['mode'] ?? '') ?></span></div>
+          <div class="hist-left"><strong><?= htmlspecialchars($p['facture_num'] ?: tt('Sans facture','بدون فاتورة')) ?></strong><span><?= date('d/m/Y', strtotime($p['date_paiement'])) ?> · <?= htmlspecialchars($p['mode'] ?? '') ?></span></div>
           <div class="hist-amount"><?= number_format($p['montant'],0,',',' ') ?> MAD</div>
         </div>
         <?php endforeach; endif; ?>
@@ -246,10 +246,10 @@ $statutFacConfig = [
 
       <!-- Messages -->
       <div class="panel">
-        <h3><i class="fas fa-envelope" style="color:var(--gold)"></i> Messages <span class="count">(<?= count($messages) ?>)</span></h3>
-        <?php if (empty($messages)): ?><div class="empty-row">Aucun message.</div><?php else: foreach ($messages as $m): ?>
+        <h3><i class="fas fa-envelope" style="color:var(--gold)"></i> <?= t('messages') ?> <span class="count">(<?= count($messages) ?>)</span></h3>
+        <?php if (empty($messages)): ?><div class="empty-row"><?= tt('Aucun message.','لا توجد رسالة.') ?></div><?php else: foreach ($messages as $m): ?>
         <a href="messages.php?id=<?= $m['id'] ?>" class="hist-row" style="text-decoration:none;cursor:pointer">
-          <div class="hist-left"><strong><?= htmlspecialchars($m['sujet'] ?: 'Sans sujet') ?></strong><span><?= date('d/m/Y', strtotime($m['created_at'])) ?></span></div>
+          <div class="hist-left"><strong><?= htmlspecialchars($m['sujet'] ?: tt('Sans sujet','بدون موضوع')) ?></strong><span><?= date('d/m/Y', strtotime($m['created_at'])) ?></span></div>
           <span class="badge-mini" style="background:rgba(136,136,136,.15);color:#888"><?= htmlspecialchars($m['statut']) ?></span>
         </a>
         <?php endforeach; endif; ?>

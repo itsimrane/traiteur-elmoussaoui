@@ -128,21 +128,21 @@ try {
 } catch (Exception $e) {}
 
 $statutConfig = [
-    'recu'          => ['label'=>'Reçu',         'color'=>'#FBB724','bg'=>'rgba(251,183,36,.15)'],
-    'en_traitement' => ['label'=>'En traitement', 'color'=>'#60A5FA','bg'=>'rgba(59,130,246,.15)'],
-    'envoye'        => ['label'=>'Envoyé',        'color'=>'#A78BFA','bg'=>'rgba(167,139,250,.15)'],
-    'accepte'       => ['label'=>'Accepté',       'color'=>'#25D366','bg'=>'rgba(37,211,102,.15)'],
-    'refuse'        => ['label'=>'Refusé',        'color'=>'#EF5350','bg'=>'rgba(239,68,68,.15)'],
-    'expire'        => ['label'=>'Expiré',        'color'=>'#888',   'bg'=>'rgba(136,136,136,.15)'],
+    'recu'          => ['label'=>tt('Reçu','مستلم'),         'color'=>'#FBB724','bg'=>'rgba(251,183,36,.15)'],
+    'en_traitement' => ['label'=>tt('En traitement','قيد المعالجة'), 'color'=>'#60A5FA','bg'=>'rgba(59,130,246,.15)'],
+    'envoye'        => ['label'=>tt('Envoyé','مرسل'),        'color'=>'#A78BFA','bg'=>'rgba(167,139,250,.15)'],
+    'accepte'       => ['label'=>tt('Accepté','مقبول'),       'color'=>'#25D366','bg'=>'rgba(37,211,102,.15)'],
+    'refuse'        => ['label'=>tt('Refusé','مرفوض'),        'color'=>'#EF5350','bg'=>'rgba(239,68,68,.15)'],
+    'expire'        => ['label'=>tt('Expiré','منتهي الصلاحية'),        'color'=>'#888',   'bg'=>'rgba(136,136,136,.15)'],
 ];
 ?>
 <!DOCTYPE html>
-<html lang="fr">
+<html lang="<?= adminLang() ?>" dir="<?= adminDir() ?>">
 <head>
   <meta charset="UTF-8">
   <link rel="icon" type="image/png" href="../assets/img/favicon-32.png">
   <meta name="viewport" content="width=device-width,initial-scale=1.0">
-  <title>Devis — Admin EL MOUSSAOUI</title>
+  <title><?= t('devis') ?> — Admin EL MOUSSAOUI</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@600;700&family=Jost:wght@300;400;500;600&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
@@ -172,13 +172,13 @@ $statutConfig = [
 </head>
 <body>
 <div class="sidebar-overlay" id="sidebarOverlay"></div>
-<div class="admin-layout">
+<div class="admin-layout <?= adminRtlClass() ?>">
   <?php $activePage = 'devis'; include_once __DIR__ . '/../includes/admin-sidebar.php'; ?>
   <main class="admin-main">
     <div class="admin-topbar">
       <div style="display:flex;align-items:center;gap:12px">
         <button id="sidebarToggle" class="topbar-btn"><i class="fas fa-bars"></i></button>
-        <div class="topbar-title"><h2>Devis</h2><p>Propositions financières liées aux réservations</p></div>
+        <div class="topbar-title"><h2><?= t('devis') ?></h2><p><?= tt('Propositions financières liées aux réservations','عروض الأسعار المرتبطة بالحجوزات') ?></p></div>
       </div>
     </div>
 
@@ -229,8 +229,8 @@ $statutConfig = [
         <table class="devis-table">
           <thead>
             <tr>
-              <th>N° Devis</th><th>Client</th><th>Réservation</th><th>Événement</th><th>Date</th>
-              <th>Total</th><th>Acompte / Reste</th><th>Expire le</th><th>Statut</th><th>Actions</th>
+              <th><?= tt('N° Devis','رقم العرض') ?></th><th><?= t('clients') ?></th><th><?= t('reservations') ?></th><th><?= tt('Événement','المناسبة') ?></th><th><?= tt('Date','التاريخ') ?></th>
+              <th><?= tt('Total','الإجمالي') ?></th><th><?= tt('Acompte / Reste','الدفعة / المتبقي') ?></th><th><?= tt('Expire le','تنتهي في') ?></th><th><?= tt('Statut','الحالة') ?></th><th><?= tt('Actions','إجراءات') ?></th>
             </tr>
           </thead>
           <tbody>

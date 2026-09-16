@@ -35,10 +35,11 @@ $adminEmail = $_SESSION['admin_email'] ?? 'admin@traiteur-elmoussaoui.ma';
       <span class="logo-name" style="font-size:1.1rem">EL MOUSSAOUI</span>
       <span style="font-size:.65rem;color:var(--text-muted)"><?= t('admin_panel') ?> v1.0</span>
     </div>
+    <?php $currentUrl = urlencode(basename($_SERVER['PHP_SELF'] ?? 'dashboard.php') . (!empty($_SERVER['QUERY_STRING']) ? '?' . $_SERVER['QUERY_STRING'] : '')); ?>
     <div class="lang-switch" style="margin:12px auto 0;width:fit-content">
-      <a href="set_lang.php?lang=fr&redirect=<?= urlencode(basename($_SERVER['PHP_SELF']).($_SERVER['QUERY_STRING']?('?'.$_SERVER['QUERY_STRING']):'')) ?>"
+      <a href="set_lang.php?lang=fr&redirect=<?= $currentUrl ?>"
          class="lang-option <?= adminLang()==='fr'?'active':'' ?>" style="text-decoration:none;display:inline-block">FR</a>
-      <a href="set_lang.php?lang=ar&redirect=<?= urlencode(basename($_SERVER['PHP_SELF']).($_SERVER['QUERY_STRING']?('?'.$_SERVER['QUERY_STRING']):'')) ?>"
+      <a href="set_lang.php?lang=ar&redirect=<?= $currentUrl ?>"
          class="lang-option <?= adminLang()==='ar'?'active':'' ?>" style="text-decoration:none;display:inline-block">العربية</a>
     </div>
   </div>

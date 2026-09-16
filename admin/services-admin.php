@@ -97,7 +97,7 @@ $icones = [
 ];
 ?>
 <!DOCTYPE html>
-<html lang="fr">
+<html lang="<?= adminLang() ?>" dir="<?= adminDir() ?>">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -164,7 +164,7 @@ $icones = [
 </head>
 <body>
 <div class="sidebar-overlay" id="sidebarOverlay"></div>
-<div class="admin-layout">
+<div class="admin-layout <?= adminRtlClass() ?>">
 
   <?php $activePage = 'services'; include_once __DIR__ . '/../includes/admin-sidebar.php'; ?>
 
@@ -172,13 +172,13 @@ $icones = [
     <div class="admin-topbar">
       <div style="display:flex;align-items:center;gap:12px">
         <button id="sidebarToggle" class="topbar-btn"><i class="fas fa-bars"></i></button>
-        <div class="topbar-title"><h2 data-fr="Gestion Services" data-ar="إدارة الخدمات">Gestion Services</h2><p data-fr="Gérez les services proposés sur le site" data-ar="إدارة الخدمات المعروضة على الموقع">Gérez les services proposés sur le site</p></div>
+        <div class="topbar-title"><h2 data-fr="Gestion Services" data-ar="إدارة الخدمات"><?= tt('Gestion Services', 'إدارة الخدمات') ?></h2><p data-fr="Gérez les services proposés sur le site" data-ar="إدارة الخدمات المعروضة على الموقع"><?= tt('Gérez les services proposés sur le site', 'إدارة الخدمات المعروضة على الموقع') ?></p></div>
       </div>
       <div class="topbar-actions">
         <button class="topbar-btn" onclick="location.reload()"><i class="fas fa-sync-alt"></i></button>
         <a href="../pages/services.php" target="_blank" class="topbar-btn" title="Voir les services publics"><i class="fas fa-external-link-alt"></i></a>
         <button class="btn-primary" style="padding:8px 18px;font-size:.82rem" onclick="openAdd()">
-          <i class="fas fa-plus"></i> <span data-fr="Nouveau service" data-ar="خدمة جديدة">Nouveau service</span>
+          <i class="fas fa-plus"></i> <span data-fr="Nouveau service" data-ar="خدمة جديدة"><?= tt('Nouveau service', 'خدمة جديدة') ?></span>
         </button>
         <div class="admin-avatar">A</div>
       </div>
@@ -198,29 +198,29 @@ $icones = [
         <div class="stat-card">
           <div class="stat-card-header"><div class="stat-card-icon gold"><i class="fas fa-concierge-bell"></i></div></div>
           <div class="stat-card-value"><?= $total ?></div>
-          <div class="stat-card-label" data-fr="Total services" data-ar="إجمالي الخدمات">Total services</div>
+          <div class="stat-card-label" data-fr="Total services" data-ar="إجمالي الخدمات"><?= tt('Total services', 'إجمالي الخدمات') ?></div>
         </div>
         <div class="stat-card">
           <div class="stat-card-header"><div class="stat-card-icon" style="background:rgba(37,211,102,.1);color:#25D366"><i class="fas fa-check-circle"></i></div></div>
           <div class="stat-card-value"><?= $actifs ?></div>
-          <div class="stat-card-label" data-fr="Actifs" data-ar="نشطة">Actifs</div>
+          <div class="stat-card-label" data-fr="Actifs" data-ar="نشطة"><?= tt('Actifs', 'نشطة') ?></div>
         </div>
         <div class="stat-card">
           <div class="stat-card-header"><div class="stat-card-icon" style="background:rgba(239,68,68,.1);color:#EF5350"><i class="fas fa-eye-slash"></i></div></div>
           <div class="stat-card-value"><?= $total - $actifs ?></div>
-          <div class="stat-card-label" data-fr="Inactifs" data-ar="غير نشطة">Inactifs</div>
+          <div class="stat-card-label" data-fr="Inactifs" data-ar="غير نشطة"><?= tt('Inactifs', 'غير نشطة') ?></div>
         </div>
         <div class="stat-card">
           <div class="stat-card-header"><div class="stat-card-icon" style="background:rgba(59,130,246,.1);color:#60A5FA"><i class="fas fa-info-circle"></i></div></div>
-          <div class="stat-card-value" style="font-size:.85rem;color:var(--text-muted)" data-fr="Glisser" data-ar="اسحب">Glisser</div>
-          <div class="stat-card-label" data-fr="pour réordonner" data-ar="لإعادة الترتيب">pour réordonner</div>
+          <div class="stat-card-value" style="font-size:.85rem;color:var(--text-muted)" data-fr="Glisser" data-ar="اسحب"><?= tt('Glisser', 'اسحب') ?></div>
+          <div class="stat-card-label" data-fr="pour réordonner" data-ar="لإعادة الترتيب"><?= tt('pour réordonner', 'لإعادة الترتيب') ?></div>
         </div>
       </div>
 
       <!-- Info réordonnancement -->
       <div style="background:rgba(212,175,55,.06);border:1px dashed rgba(212,175,55,.2);border-radius:10px;padding:12px 16px;margin-bottom:20px;font-size:.8rem;color:var(--text-muted);display:flex;align-items:center;gap:8px">
         <i class="fas fa-grip-vertical" style="color:var(--gold)"></i>
-        <span data-fr="Glissez-déposez les cartes pour changer l'ordre d'affichage sur le site public." data-ar="اسحب البطاقات لتغيير ترتيب العرض على الموقع العام.">Glissez-déposez les cartes pour changer l'ordre d'affichage sur le site public.</span>
+        <span data-fr="Glissez-déposez les cartes pour changer l'ordre d'affichage sur le site public." data-ar="اسحب البطاقات لتغيير ترتيب العرض على الموقع العام."><?= tt('Glissez-déposez les cartes pour changer l\'ordre d\'affichage sur le site public.', 'اسحب البطاقات لتغيير ترتيب العرض على الموقع العام.') ?></span>
         <button id="saveOrderBtn" class="btn-primary" style="padding:5px 14px;font-size:.75rem;margin-left:auto;display:none" onclick="saveOrder()">
           <i class="fas fa-save"></i> Sauvegarder l'ordre
         </button>
@@ -230,7 +230,7 @@ $icones = [
       <?php if (empty($services)): ?>
       <div class="empty-state">
         <i class="fas fa-concierge-bell"></i>
-        <p><span data-fr="Aucun service" data-ar="لا توجد خدمات">Aucun service</span> pour l'instant.</p>
+        <p><span data-fr="Aucun service" data-ar="لا توجد خدمات"><?= tt('Aucun service', 'لا توجد خدمات') ?></span> pour l'instant.</p>
         <button class="btn-primary" style="margin-top:16px" onclick="openAdd()">
           <i class="fas fa-plus"></i> Ajouter le premier service
         </button>
@@ -260,19 +260,19 @@ $icones = [
               <?php endif; ?>
               <span class="sc-tag">Ordre : <?= $s['ordre'] ?></span>
               <span class="sc-tag" style="color:<?= $s['actif'] ? '#25D366' : '#EF5350' ?>">
-                <?= $s['actif'] ? '<span data-fr="● Actif" data-ar="● نشط">● Actif</span>' : '<span data-fr="○ Inactif" data-ar="○ غير نشط">○ Inactif</span>' ?>
+                <?= $s['actif'] ? tt('● Actif', '● نشط') : tt('○ Inactif', '○ غير نشط') ?>
               </span>
             </div>
             <div class="sc-actions">
               <button class="sc-btn" onclick='openEdit(<?= json_encode($s) ?>)'>
-                <i class="fas fa-edit"></i> <span data-fr="Modifier" data-ar="تعديل">Modifier</span>
+                <i class="fas fa-edit"></i> <span data-fr="Modifier" data-ar="تعديل"><?= tt('Modifier', 'تعديل') ?></span>
               </button>
               <form method="POST" style="flex:1">
                 <input type="hidden" name="action" value="toggle">
                 <input type="hidden" name="id" value="<?= $s['id'] ?>">
                 <button type="submit" class="sc-btn <?= $s['actif'] ? 'toggle-on' : 'toggle-off' ?>" style="width:100%">
                   <i class="fas fa-<?= $s['actif'] ? 'eye' : 'eye-slash' ?>"></i>
-                  <span data-fr="<?= $s['actif'] ? 'Visible' : 'Masqué' ?>" data-ar="<?= $s['actif'] ? 'مرئي' : 'مخفي' ?>"><?= $s['actif'] ? 'Visible' : 'Masqué' ?></span>
+                  <span data-fr="<?= $s['actif'] ? 'Visible' : 'Masqué' ?>" data-ar="<?= $s['actif'] ? 'مرئي' : 'مخفي' ?>"><?= tt($s['actif'] ? 'Visible' : 'Masqué', $s['actif'] ? 'مرئي' : 'مخفي') ?></span>
                 </button>
               </form>
               <form method="POST" onsubmit="return confirm('Supprimer ce service ?')">
@@ -295,7 +295,7 @@ $icones = [
 <div class="modal-overlay" id="serviceModal">
   <div class="modal-box">
     <div class="modal-header">
-      <h3 id="modalTitle"><i class="fas fa-plus-circle" style="color:var(--gold);margin-right:8px"></i><span data-fr="Nouveau service" data-ar="خدمة جديدة">Nouveau service</span></h3>
+      <h3 id="modalTitle"><i class="fas fa-plus-circle" style="color:var(--gold);margin-right:8px"></i><span data-fr="Nouveau service" data-ar="خدمة جديدة"><?= tt('Nouveau service', 'خدمة جديدة') ?></span></h3>
       <button class="modal-close" onclick="closeModal()"><i class="fas fa-times"></i></button>
     </div>
     <form method="POST">
@@ -327,7 +327,7 @@ $icones = [
             <textarea name="description_ar" id="f_desc_ar" class="form-control" rows="2" dir="rtl" placeholder="وصف الخدمة..."></textarea>
           </div>
           <div class="form-group">
-            <label class="form-label" data-fr="Prix de base (MAD)" data-ar="السعر الأساسي (MAD)">Prix de base (MAD)</label>
+            <label class="form-label" data-fr="Prix de base (MAD)" data-ar="السعر الأساسي (MAD)"><?= tt('Prix de base (MAD)', 'السعر الأساسي (MAD)') ?></label>
             <input type="number" name="prix_base" id="f_prix" class="form-control" placeholder="2000" min="0" step="50">
           </div>
           <div class="form-group">
@@ -341,7 +341,7 @@ $icones = [
             </select>
           </div>
           <div class="form-group">
-            <label class="form-label" data-fr="Ordre d'affichage" data-ar="ترتيب العرض">Ordre d'affichage</label>
+            <label class="form-label" data-fr="Ordre d'affichage" data-ar="ترتيب العرض"><?= tt('Ordre d\'affichage', 'ترتيب العرض') ?></label>
             <input type="number" name="ordre" id="f_ordre" class="form-control" value="0" min="0">
           </div>
           <div class="form-group" style="display:flex;align-items:center;gap:10px;padding-top:24px">
@@ -358,7 +358,7 @@ $icones = [
 
         <!-- Choix icône -->
         <div class="form-group form-full">
-          <label class="form-label" data-fr="Icône Font Awesome" data-ar="أيقونة Font Awesome">Icône Font Awesome</label>
+          <label class="form-label" data-fr="Icône Font Awesome" data-ar="أيقونة Font Awesome"><?= tt('Icône Font Awesome', 'أيقونة Font Awesome') ?></label>
           <div class="icon-grid" id="iconGrid">
             <?php foreach ($icones as $cls => $lbl): ?>
             <div class="icon-opt" data-icon="<?= $cls ?>" onclick="selectIcon('<?= $cls ?>', this)" title="<?= $lbl ?>">
@@ -398,7 +398,7 @@ function selectIcon(cls, el) {
 
 // Ouvrir modal ajouter
 function openAdd() {
-  document.getElementById('modalTitle').innerHTML = '<i class="fas fa-plus-circle" style="color:var(--gold);margin-right:8px"></i><span data-fr="Nouveau service" data-ar="خدمة جديدة">Nouveau service</span>';
+  document.getElementById('modalTitle').innerHTML = '<i class="fas fa-plus-circle" style="color:var(--gold);margin-right:8px"></i><span data-fr="Nouveau service" data-ar="خدمة جديدة"><?= tt('Nouveau service', 'خدمة جديدة') ?></span>';
   document.getElementById('formAction').value = 'add';
   document.getElementById('serviceId').value  = '';
   document.getElementById('saveBtnTxt').textContent = 'Ajouter';
@@ -414,7 +414,7 @@ function openAdd() {
 
 // Ouvrir modal modifier
 function openEdit(s) {
-  document.getElementById('modalTitle').innerHTML = '<i class="fas fa-edit" style="color:var(--gold);margin-right:8px"></i><span data-fr="Modifier le service" data-ar="تعديل الخدمة">Modifier le service</span>';
+  document.getElementById('modalTitle').innerHTML = '<i class="fas fa-edit" style="color:var(--gold);margin-right:8px"></i><span data-fr="Modifier le service" data-ar="تعديل الخدمة"><?= tt('Modifier le service', 'تعديل الخدمة') ?></span>';
   document.getElementById('formAction').value = 'edit';
   document.getElementById('serviceId').value  = s.id;
   document.getElementById('saveBtnTxt').textContent = 'Enregistrer';

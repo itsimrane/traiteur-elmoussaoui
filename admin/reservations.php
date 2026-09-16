@@ -89,20 +89,20 @@ try {
 } catch (Exception $e) {}
 
 $statutConfig = [
-    'en_attente' => ['label'=>'En attente', 'color'=>'#FBB724','bg'=>'rgba(251,183,36,.15)'],
-    'confirmee'  => ['label'=>'Confirmée',  'color'=>'#25D366','bg'=>'rgba(37,211,102,.15)'],
-    'en_cours'   => ['label'=>'En cours',   'color'=>'#60A5FA','bg'=>'rgba(59,130,246,.15)'],
-    'terminee'   => ['label'=>'Terminée',   'color'=>'#888',   'bg'=>'rgba(136,136,136,.15)'],
-    'annulee'    => ['label'=>'Annulée',    'color'=>'#EF5350','bg'=>'rgba(239,68,68,.15)'],
+    'en_attente' => ['label'=>tt('En attente','قيد الانتظار'), 'color'=>'#FBB724','bg'=>'rgba(251,183,36,.15)'],
+    'confirmee'  => ['label'=>tt('Confirmée','مؤكدة'),  'color'=>'#25D366','bg'=>'rgba(37,211,102,.15)'],
+    'en_cours'   => ['label'=>tt('En cours','قيد التنفيذ'),   'color'=>'#60A5FA','bg'=>'rgba(59,130,246,.15)'],
+    'terminee'   => ['label'=>tt('Terminée','منتهية'),   'color'=>'#888',   'bg'=>'rgba(136,136,136,.15)'],
+    'annulee'    => ['label'=>tt('Annulée','ملغاة'),    'color'=>'#EF5350','bg'=>'rgba(239,68,68,.15)'],
 ];
 ?>
 <!DOCTYPE html>
-<html lang="fr">
+<html lang="<?= adminLang() ?>" dir="<?= adminDir() ?>">
 <head>
   <meta charset="UTF-8">
   <link rel="icon" type="image/png" href="../assets/img/favicon-32.png">
   <meta name="viewport" content="width=device-width,initial-scale=1.0">
-  <title>Réservations — Admin EL MOUSSAOUI</title>
+  <title><?= t('reservations') ?> — Admin EL MOUSSAOUI</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@600;700&family=Jost:wght@300;400;500;600&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
@@ -135,13 +135,13 @@ $statutConfig = [
 </head>
 <body>
 <div class="sidebar-overlay" id="sidebarOverlay"></div>
-<div class="admin-layout">
+<div class="admin-layout <?= adminRtlClass() ?>">
   <?php $activePage = 'reservations'; include_once __DIR__ . '/../includes/admin-sidebar.php'; ?>
   <main class="admin-main">
     <div class="admin-topbar">
       <div style="display:flex;align-items:center;gap:12px">
         <button id="sidebarToggle" class="topbar-btn"><i class="fas fa-bars"></i></button>
-        <div class="topbar-title"><h2>Réservations</h2><p>Gestion complète des demandes d'événements</p></div>
+        <div class="topbar-title"><h2><?= t('reservations') ?></h2><p><?= tt("Gestion complète des demandes d'événements", 'الإدارة الكاملة لطلبات المناسبات') ?></p></div>
       </div>
     </div>
 
@@ -153,43 +153,43 @@ $statutConfig = [
       <?php endif; ?>
       <?php if (!empty($erreurBdd)): ?>
       <div class="alert alert-error" style="margin-bottom:20px">
-        <i class="fas fa-exclamation-circle"></i> Erreur base de données : <?= htmlspecialchars($erreurBdd) ?>
+        <i class="fas fa-exclamation-circle"></i> <?= tt('Erreur base de données','خطأ في قاعدة البيانات') ?> : <?= htmlspecialchars($erreurBdd) ?>
       </div>
       <?php endif; ?>
 
       <!-- Compteurs -->
       <div class="stats-grid" style="margin-bottom:20px">
-        <div class="stat-card"><div class="stat-card-value"><?= $compteurs['total'] ?></div><div class="stat-card-label">Total</div></div>
-        <div class="stat-card"><div class="stat-card-value" style="color:#FBB724"><?= $compteurs['en_attente'] ?></div><div class="stat-card-label">En attente</div></div>
-        <div class="stat-card"><div class="stat-card-value" style="color:#25D366"><?= $compteurs['confirmee'] ?></div><div class="stat-card-label">Confirmées</div></div>
-        <div class="stat-card"><div class="stat-card-value" style="color:#EF5350"><?= $compteurs['annulee'] ?></div><div class="stat-card-label">Annulées</div></div>
+        <div class="stat-card"><div class="stat-card-value"><?= $compteurs['total'] ?></div><div class="stat-card-label"><?= t('tous') ?></div></div>
+        <div class="stat-card"><div class="stat-card-value" style="color:#FBB724"><?= $compteurs['en_attente'] ?></div><div class="stat-card-label"><?= t('en_attente') ?></div></div>
+        <div class="stat-card"><div class="stat-card-value" style="color:#25D366"><?= $compteurs['confirmee'] ?></div><div class="stat-card-label"><?= t('confirmees') ?></div></div>
+        <div class="stat-card"><div class="stat-card-value" style="color:#EF5350"><?= $compteurs['annulee'] ?></div><div class="stat-card-label"><?= tt('Annulées','ملغاة') ?></div></div>
       </div>
 
       <!-- Filtres statut -->
       <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px">
-        <a href="?statut=" class="tfilter <?= $filtreStatut==='' ? 'active':'' ?>">Toutes</a>
-        <a href="?statut=en_attente" class="tfilter <?= $filtreStatut==='en_attente' ? 'active':'' ?>">En attente</a>
-        <a href="?statut=confirmee" class="tfilter <?= $filtreStatut==='confirmee' ? 'active':'' ?>">Confirmées</a>
-        <a href="?statut=en_cours" class="tfilter <?= $filtreStatut==='en_cours' ? 'active':'' ?>">En cours</a>
-        <a href="?statut=terminee" class="tfilter <?= $filtreStatut==='terminee' ? 'active':'' ?>">Terminées</a>
-        <a href="?statut=annulee" class="tfilter <?= $filtreStatut==='annulee' ? 'active':'' ?>">Annulées</a>
+        <a href="?statut=" class="tfilter <?= $filtreStatut==='' ? 'active':'' ?>"><?= tt('Toutes','الكل') ?></a>
+        <a href="?statut=en_attente" class="tfilter <?= $filtreStatut==='en_attente' ? 'active':'' ?>"><?= t('en_attente') ?></a>
+        <a href="?statut=confirmee" class="tfilter <?= $filtreStatut==='confirmee' ? 'active':'' ?>"><?= t('confirmees') ?></a>
+        <a href="?statut=en_cours" class="tfilter <?= $filtreStatut==='en_cours' ? 'active':'' ?>"><?= tt('En cours','قيد التنفيذ') ?></a>
+        <a href="?statut=terminee" class="tfilter <?= $filtreStatut==='terminee' ? 'active':'' ?>"><?= tt('Terminées','منتهية') ?></a>
+        <a href="?statut=annulee" class="tfilter <?= $filtreStatut==='annulee' ? 'active':'' ?>"><?= tt('Annulées','ملغاة') ?></a>
       </div>
 
       <!-- Recherche / filtres avancés -->
       <div class="filters-bar">
         <form method="GET" style="display:contents">
           <input type="hidden" name="statut" value="<?= htmlspecialchars($filtreStatut) ?>">
-          <input type="search" name="q" placeholder="🔍 Nom ou téléphone..." value="<?= htmlspecialchars($recherche) ?>">
+          <input type="search" name="q" placeholder="🔍 <?= tt('Nom ou téléphone...','الاسم أو الهاتف...') ?>" value="<?= htmlspecialchars($recherche) ?>">
           <input type="date" name="date" value="<?= htmlspecialchars($filtreDate) ?>">
           <select name="evt_type">
-            <option value="">Tous types d'événement</option>
+            <option value=""><?= tt("Tous types d'événement",'كل أنواع المناسبات') ?></option>
             <?php foreach ($typesEvenements as $t): ?>
             <option value="<?= $t['id'] ?>" <?= $filtreType == $t['id'] ? 'selected':'' ?>><?= htmlspecialchars($t['nom']) ?></option>
             <?php endforeach; ?>
           </select>
-          <button type="submit"><i class="fas fa-filter"></i> Filtrer</button>
+          <button type="submit"><i class="fas fa-filter"></i> <?= t('filtrer') ?></button>
           <?php if ($recherche || $filtreDate || $filtreType): ?>
-          <a href="?statut=<?= htmlspecialchars($filtreStatut) ?>" style="font-size:.78rem;color:var(--text-muted)">✕ Réinitialiser</a>
+          <a href="?statut=<?= htmlspecialchars($filtreStatut) ?>" style="font-size:.78rem;color:var(--text-muted)">✕ <?= tt('Réinitialiser','إعادة تعيين') ?></a>
           <?php endif; ?>
         </form>
       </div>
@@ -199,20 +199,20 @@ $statutConfig = [
         <?php if (empty($reservations)): ?>
         <div style="padding:60px 20px;text-align:center;color:#555">
           <i class="fas fa-calendar-times" style="font-size:2.5rem;opacity:.2;display:block;margin-bottom:14px"></i>
-          Aucune réservation ne correspond à ces critères.
+          <?= tt('Aucune réservation ne correspond à ces critères.','لا يوجد حجز مطابق لهذه المعايير.') ?>
         </div>
         <?php else: ?>
         <table class="resa-table">
           <thead>
             <tr>
-              <th>#</th><th>Client</th><th>Événement</th><th>Date</th><th>Invités</th>
-              <th>Lieu</th><th>Services</th><th>Statut</th><th>Reçu le</th><th>Actions</th>
+              <th>#</th><th><?= t('clients') ?></th><th><?= tt('Événement','المناسبة') ?></th><th><?= tt('Date','التاريخ') ?></th><th><?= t('invites') ?></th>
+              <th><?= tt('Lieu','المكان') ?></th><th><?= t('services') ?></th><th><?= tt('Statut','الحالة') ?></th><th><?= tt('Reçu le','تاريخ الاستلام') ?></th><th><?= tt('Actions','إجراءات') ?></th>
             </tr>
           </thead>
           <tbody>
             <?php foreach ($reservations as $r):
               $sc = $statutConfig[$r['statut']] ?? $statutConfig['en_attente'];
-              $nomClient = trim(($r['c_prenom'] ?? '').' '.($r['c_nom'] ?? '')) ?: 'Client #'.$r['client_id'];
+              $nomClient = trim(($r['c_prenom'] ?? '').' '.($r['c_nom'] ?? '')) ?: tt('Client','عميل').' #'.$r['client_id'];
             ?>
             <tr>
               <td>#<?= $r['id'] ?></td>
@@ -221,31 +221,31 @@ $statutConfig = [
                 <span style="font-size:.72rem;color:#666"><?= htmlspecialchars($r['c_tel'] ?? '—') ?></span>
               </td>
               <td><?= htmlspecialchars($r['type_nom'] ?? '—') ?></td>
-              <td><?= $r['date_evenement'] ? date('d/m/Y', strtotime($r['date_evenement'])) : '—' ?><br><span style="font-size:.72rem;color:#666"><?= substr($r['heure_debut'],0,5) ?></span></td>
+              <td><span dir="ltr"><?= $r['date_evenement'] ? date('d/m/Y', strtotime($r['date_evenement'])) : '—' ?></span><br><span style="font-size:.72rem;color:#666" dir="ltr"><?= substr($r['heure_debut'],0,5) ?></span></td>
               <td><?= (int)$r['nbr_invites'] ?></td>
               <td><?= htmlspecialchars($r['lieu'] ?: '—') ?></td>
               <td><span class="svc-resume" title="<?= htmlspecialchars($r['services_resume'] ?? '') ?>"><?= htmlspecialchars($r['services_resume'] ?: '—') ?></span></td>
               <td><span class="badge-statut" style="background:<?= $sc['bg'] ?>;color:<?= $sc['color'] ?>"><?= $sc['label'] ?></span></td>
-              <td><?= date('d/m/Y', strtotime($r['created_at'])) ?></td>
+              <td dir="ltr"><?= date('d/m/Y', strtotime($r['created_at'])) ?></td>
               <td>
                 <div class="act-icons">
-                  <a href="reservation_details.php?id=<?= $r['id'] ?>" title="Voir le détail"><i class="fas fa-eye"></i></a>
+                  <a href="reservation_details.php?id=<?= $r['id'] ?>" title="<?= tt('Voir le détail','عرض التفاصيل') ?>"><i class="fas fa-eye"></i></a>
                   <form method="POST" style="display:contents">
                     <input type="hidden" name="action" value="update_statut">
                     <input type="hidden" name="id" value="<?= $r['id'] ?>">
                     <input type="hidden" name="statut" value="confirmee">
-                    <button type="submit" class="ok" title="Confirmer"><i class="fas fa-check"></i></button>
+                    <button type="submit" class="ok" title="<?= t('confirmer') ?>"><i class="fas fa-check"></i></button>
                   </form>
                   <form method="POST" style="display:contents">
                     <input type="hidden" name="action" value="update_statut">
                     <input type="hidden" name="id" value="<?= $r['id'] ?>">
                     <input type="hidden" name="statut" value="annulee">
-                    <button type="submit" class="no" title="Annuler"><i class="fas fa-times"></i></button>
+                    <button type="submit" class="no" title="<?= t('annuler') ?>"><i class="fas fa-times"></i></button>
                   </form>
-                  <form method="POST" style="display:contents" onsubmit="return confirm('Supprimer cette réservation ? Cette action est irréversible.')">
+                  <form method="POST" style="display:contents" onsubmit="return confirm('<?= tt('Supprimer cette réservation ? Cette action est irréversible.','هل تريد حذف هذا الحجز؟ هذا الإجراء نهائي.') ?>')">
                     <input type="hidden" name="action" value="delete">
                     <input type="hidden" name="id" value="<?= $r['id'] ?>">
-                    <button type="submit" class="no" title="Supprimer"><i class="fas fa-trash"></i></button>
+                    <button type="submit" class="no" title="<?= t('supprimer') ?>"><i class="fas fa-trash"></i></button>
                   </form>
                 </div>
               </td>

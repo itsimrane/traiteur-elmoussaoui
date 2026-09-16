@@ -5,7 +5,7 @@ requireAdmin();
 $packages = $pdo->query("SELECT * FROM packages WHERE actif = 1 ORDER BY ordre ASC")->fetchAll();
 ?>
 <!DOCTYPE html>
-<html lang="fr">
+<html lang="<?= adminLang() ?>" dir="<?= adminDir() ?>">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -100,7 +100,7 @@ $packages = $pdo->query("SELECT * FROM packages WHERE actif = 1 ORDER BY ordre A
 </head>
 <body>
 <div class="sidebar-overlay" id="sidebarOverlay"></div>
-<div class="admin-layout">
+<div class="admin-layout <?= adminRtlClass() ?>">
 
 <?php $activePage = 'packages'; include_once __DIR__ . '/../includes/admin-sidebar.php'; ?>
 
@@ -109,8 +109,8 @@ $packages = $pdo->query("SELECT * FROM packages WHERE actif = 1 ORDER BY ordre A
       <div style="display:flex;align-items:center;gap:12px">
         <button id="sidebarToggle" class="topbar-btn"><i class="fas fa-bars"></i></button>
         <div class="topbar-title">
-          <h2 data-fr="Gestion Packages" data-ar="إدارة الباقات">Gestion Packages</h2>
-          <p data-fr="Modifiez le contenu, les inclusions et les paramètres de chaque formule" data-ar="عدّل المحتوى والمميزات وإعدادات كل باقة">Modifiez le contenu, les inclusions et les paramètres de chaque formule</p>
+          <h2 data-fr="Gestion Packages" data-ar="إدارة الباقات"><?= tt('Gestion Packages', 'إدارة الباقات') ?></h2>
+          <p data-fr="Modifiez le contenu, les inclusions et les paramètres de chaque formule" data-ar="عدّل المحتوى والمميزات وإعدادات كل باقة"><?= tt('Modifiez le contenu, les inclusions et les paramètres de chaque formule', 'عدّل المحتوى والمميزات وإعدادات كل باقة') ?></p>
         </div>
       </div>
       <div class="topbar-actions">
@@ -133,10 +133,9 @@ $packages = $pdo->query("SELECT * FROM packages WHERE actif = 1 ORDER BY ordre A
       <div class="info-banner">
         <i class="fas fa-eye-slash"></i>
         <div>
-          <strong data-fr="Prix masqués côté public" data-ar="الأسعار مخفية عن العملاء">Prix masqués côté public</strong><br>
-          <span data-fr="Les prix des packages ne sont pas affichés aux clients — ils voient uniquement le badge" data-ar="لا تُعرض أسعار الباقات للعملاء — يرون فقط شارة">Les prix des packages ne sont pas affichés aux clients — ils voient uniquement le badge</span>
-          <em>"Sur devis personnalisé"</em><span data-fr=". Vous pouvez quand même gérer les prix ici pour usage interne (devis, factures)." data-ar=". يمكنك إدارة الأسعار هنا للاستخدام الداخلي (عروض الأسعار، الفواتير).">
-              . Vous pouvez quand même gérer les prix ici pour usage interne (devis, factures).</span>
+          <strong data-fr="Prix masqués côté public" data-ar="الأسعار مخفية عن العملاء"><?= tt('Prix masqués côté public', 'الأسعار مخفية عن العملاء') ?></strong><br>
+          <span data-fr="Les prix des packages ne sont pas affichés aux clients — ils voient uniquement le badge" data-ar="لا تُعرض أسعار الباقات للعملاء — يرون فقط شارة"><?= tt('Les prix des packages ne sont pas affichés aux clients — ils voient uniquement le badge', 'لا تُعرض أسعار الباقات للعملاء — يرون فقط شارة') ?></span>
+          <em>"Sur devis personnalisé"</em><span data-fr=". Vous pouvez quand même gérer les prix ici pour usage interne (devis, factures)." data-ar=". يمكنك إدارة الأسعار هنا للاستخدام الداخلي (عروض الأسعار، الفواتير)."><?= tt('. Vous pouvez quand même gérer les prix ici pour usage interne (devis, factures).', '. يمكنك إدارة الأسعار هنا للاستخدام الداخلي (عروض الأسعار، الفواتير).') ?></span>
         </div>
       </div>
 
@@ -170,7 +169,7 @@ $packages = $pdo->query("SELECT * FROM packages WHERE actif = 1 ORDER BY ordre A
             </div>
             <!-- Aperçu public : badge devis à la place du prix -->
             <div class="pkg-devis-badge">
-              <i class="fas fa-file-invoice"></i> <span data-fr="Sur devis personnalisé" data-ar="بعرض أسعار مخصص">Sur devis personnalisé</span>
+              <i class="fas fa-file-invoice"></i> <span data-fr="Sur devis personnalisé" data-ar="بعرض أسعار مخصص"><?= tt('Sur devis personnalisé', 'بعرض أسعار مخصص') ?></span>
             </div>
             <div class="pkg-live-guests" id="lg-<?= $pkg['id'] ?>">
               <?= $pkg['min_personnes'] ?>–<?= $pkg['max_personnes'] ?> invités · <?= $pkg['duree_heures'] ?>h
@@ -184,18 +183,18 @@ $packages = $pdo->query("SELECT * FROM packages WHERE actif = 1 ORDER BY ordre A
               <!-- Note prix interne -->
               <div class="prix-interne-note">
                 <i class="fas fa-lock"></i>
-                <span data-fr="Prix interne (non affiché au public) :" data-ar="السعر الداخلي (غير معروض للعملاء) :">Prix interne (non affiché au public) :</span><span>
+                <span data-fr="Prix interne (non affiché au public) :" data-ar="السعر الداخلي (غير معروض للعملاء) :"><?= tt('Prix interne (non affiché au public) :', 'السعر الداخلي (غير معروض للعملاء) :') ?></span><span>
                   <strong id="lp-<?= $pkg['id'] ?>"><?= $prixF ?> MAD</strong>
-                  </span><span data-fr="— utilisé pour vos devis et factures uniquement." data-ar="— للاستخدام الداخلي فقط.">— utilisé pour vos devis et factures uniquement.</span>
+                  </span><span data-fr="— utilisé pour vos devis et factures uniquement." data-ar="— للاستخدام الداخلي فقط."><?= tt('— utilisé pour vos devis et factures uniquement.', '— للاستخدام الداخلي فقط.') ?></span>
                 </span>
               </div>
 
               <!-- Prix & Capacité -->
               <div style="margin-bottom:18px">
-                <div class="section-hd"><i class="fas fa-tag"></i> <span data-fr="Prix interne & Capacité" data-ar="السعر الداخلي والطاقة">Prix interne & Capacité</span></div>
+                <div class="section-hd"><i class="fas fa-tag"></i> <span data-fr="Prix interne & Capacité" data-ar="السعر الداخلي والطاقة"><?= tt('Prix interne & Capacité', 'السعر الداخلي والطاقة') ?></span></div>
                 <div class="form-row-2">
                   <div class="form-group">
-                    <label class="form-label" data-fr="Prix interne (MAD)" data-ar="السعر الداخلي (MAD)">Prix interne (MAD)</label>
+                    <label class="form-label" data-fr="Prix interne (MAD)" data-ar="السعر الداخلي (MAD)"><?= tt('Prix interne (MAD)', 'السعر الداخلي (MAD)') ?></label>
                     <div class="price-wrap">
                       <input type="number" name="prix" class="form-control"
                              value="<?= (int)$pkg['prix'] ?>" min="100" step="100" required
@@ -204,19 +203,19 @@ $packages = $pdo->query("SELECT * FROM packages WHERE actif = 1 ORDER BY ordre A
                     </div>
                   </div>
                   <div class="form-group">
-                    <label class="form-label" data-fr="Durée (heures)" data-ar="المدة (ساعات)">Durée (heures)</label>
+                    <label class="form-label" data-fr="Durée (heures)" data-ar="المدة (ساعات)"><?= tt('Durée (heures)', 'المدة (ساعات)') ?></label>
                     <input type="number" name="duree_heures" class="form-control"
                            value="<?= $pkg['duree_heures'] ?>" min="1" max="24" step="0.5"
                            oninput="livePreview(<?= $pkg['id'] ?>)">
                   </div>
                   <div class="form-group">
-                    <label class="form-label" data-fr="Invités min" data-ar="أدنى عدد ضيوف">Invités min</label>
+                    <label class="form-label" data-fr="Invités min" data-ar="أدنى عدد ضيوف"><?= tt('Invités min', 'أدنى عدد ضيوف') ?></label>
                     <input type="number" name="min_personnes" class="form-control"
                            value="<?= $pkg['min_personnes'] ?>" min="1"
                            oninput="livePreview(<?= $pkg['id'] ?>)">
                   </div>
                   <div class="form-group">
-                    <label class="form-label" data-fr="Invités max" data-ar="أقصى عدد ضيوف">Invités max</label>
+                    <label class="form-label" data-fr="Invités max" data-ar="أقصى عدد ضيوف"><?= tt('Invités max', 'أقصى عدد ضيوف') ?></label>
                     <input type="number" name="max_personnes" class="form-control"
                            value="<?= $pkg['max_personnes'] ?>" min="1"
                            oninput="livePreview(<?= $pkg['id'] ?>)">
@@ -226,7 +225,7 @@ $packages = $pdo->query("SELECT * FROM packages WHERE actif = 1 ORDER BY ordre A
 
               <!-- Description -->
               <div style="margin-bottom:18px">
-                <div class="section-hd"><i class="fas fa-align-left"></i> <span data-fr="Description" data-ar="الوصف">Description</span></div>
+                <div class="section-hd"><i class="fas fa-align-left"></i> <span data-fr="Description" data-ar="الوصف"><?= tt('Description', 'الوصف') ?></span></div>
                 <div class="form-group">
                   <textarea name="description" class="form-control" rows="2"
                             placeholder="Description courte affichée sous le nom du package..." data-fr-placeholder="Description courte affichée sous le nom du package..." data-ar-placeholder="وصف قصير يظهر تحت اسم الباقة..."><?= htmlspecialchars($pkg['description'] ?? '') ?></textarea>
@@ -236,8 +235,8 @@ $packages = $pdo->query("SELECT * FROM packages WHERE actif = 1 ORDER BY ordre A
               <!-- Inclusions -->
               <div style="margin-bottom:18px">
                 <div class="section-hd">
-                  <i class="fas fa-list-check"></i> <span data-fr="Inclusions" data-ar="المحتويات">Inclusions</span>
-                  <span style="color:#555;font-size:.65rem;margin-left:4px" data-fr="(glisser pour réordonner)" data-ar="(اسحب لإعادة الترتيب)">(glisser pour réordonner)</span>
+                  <i class="fas fa-list-check"></i> <span data-fr="Inclusions" data-ar="المحتويات"><?= tt('Inclusions', 'المحتويات') ?></span>
+                  <span style="color:#555;font-size:.65rem;margin-left:4px" data-fr="(glisser pour réordonner)" data-ar="(اسحب لإعادة الترتيب)"><?= tt('(glisser pour réordonner)', '(اسحب لإعادة الترتيب)') ?></span>
                 </div>
                 <ul class="items-list" id="il-<?= $pkg['id'] ?>">
                   <?php foreach ($contenu as $item): ?>
@@ -249,7 +248,7 @@ $packages = $pdo->query("SELECT * FROM packages WHERE actif = 1 ORDER BY ordre A
                   <?php endforeach; ?>
                 </ul>
                 <button type="button" class="btn-add-row" onclick="addRow(<?= $pkg['id'] ?>)">
-                  <i class="fas fa-plus"></i> <span data-fr="Ajouter une inclusion" data-ar="إضافة ميزة">Ajouter une inclusion</span>
+                  <i class="fas fa-plus"></i> <span data-fr="Ajouter une inclusion" data-ar="إضافة ميزة"><?= tt('Ajouter une inclusion', 'إضافة ميزة') ?></span>
                 </button>
               </div>
 
@@ -265,7 +264,7 @@ $packages = $pdo->query("SELECT * FROM packages WHERE actif = 1 ORDER BY ordre A
               <div class="save-row">
                 <span class="save-msg" id="sm-<?= $pkg['id'] ?>"></span>
                 <button type="submit" class="btn-primary btn-sm">
-                  <i class="fas fa-save"></i> <span data-fr="Enregistrer" data-ar="حفظ">Enregistrer</span>
+                  <i class="fas fa-save"></i> <span data-fr="Enregistrer" data-ar="حفظ"><?= tt('Enregistrer', 'حفظ') ?></span>
                 </button>
               </div>
 
@@ -383,7 +382,7 @@ document.querySelectorAll('.pkg-form').forEach(form => {
       sm.textContent = 'Erreur r\u00e9seau';
     }
     btn.disabled = false;
-    btn.innerHTML = '<i class="fas fa-save"></i> <span data-fr="Enregistrer" data-ar="حفظ">Enregistrer</span>';
+    btn.innerHTML = '<i class="fas fa-save"></i> <span data-fr="Enregistrer" data-ar="حفظ"><?= tt('Enregistrer', 'حفظ') ?></span>';
   });
 });
 

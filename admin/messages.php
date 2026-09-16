@@ -69,7 +69,7 @@ if ($selectedId) {
 }
 ?>
 <!DOCTYPE html>
-<html lang="fr">
+<html lang="<?= adminLang() ?>" dir="<?= adminDir() ?>">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -140,7 +140,7 @@ if ($selectedId) {
 </head>
 <body>
 <div class="sidebar-overlay" id="sidebarOverlay"></div>
-<div class="admin-layout">
+<div class="admin-layout <?= adminRtlClass() ?>">
 
   <?php $activePage = 'messages'; include_once __DIR__ . '/../includes/admin-sidebar.php'; ?>
 
@@ -149,7 +149,7 @@ if ($selectedId) {
       <div style="display:flex;align-items:center;gap:12px">
         <button id="sidebarToggle" class="topbar-btn"><i class="fas fa-bars"></i></button>
         <div class="topbar-title">
-          <h2 data-fr="Boîte de réception" data-ar="صندوق الوارد">Boîte de réception</h2>
+          <h2 data-fr="Boîte de réception" data-ar="صندوق الوارد"><?= tt('Boîte de réception', 'صندوق الوارد') ?></h2>
           <p><?= $nouveaux > 0 ? "<span style='color:#EF5350;font-weight:700'>$nouveaux nouveau(x) message(s)</span>" : 'Tous les messages lus' ?></p>
         </div>
       </div>
@@ -181,22 +181,22 @@ if ($selectedId) {
         <div class="stat-card">
           <div class="stat-card-header"><div class="stat-card-icon gold"><i class="fas fa-envelope"></i></div></div>
           <div class="stat-card-value"><?= $total ?></div>
-          <div class="stat-card-label" data-fr="Total messages" data-ar="إجمالي الرسائل">Total messages</div>
+          <div class="stat-card-label" data-fr="Total messages" data-ar="إجمالي الرسائل"><?= tt('Total messages', 'إجمالي الرسائل') ?></div>
         </div>
         <div class="stat-card">
           <div class="stat-card-header"><div class="stat-card-icon" style="background:rgba(239,68,68,.1);color:#EF5350"><i class="fas fa-circle"></i></div></div>
           <div class="stat-card-value"><?= $nouveaux ?></div>
-          <div class="stat-card-label" data-fr="Non lus" data-ar="غير مقروءة">Non lus</div>
+          <div class="stat-card-label" data-fr="Non lus" data-ar="غير مقروءة"><?= tt('Non lus', 'غير مقروءة') ?></div>
         </div>
         <div class="stat-card">
           <div class="stat-card-header"><div class="stat-card-icon" style="background:rgba(251,183,36,.1);color:#FBB724"><i class="fas fa-envelope-open"></i></div></div>
           <div class="stat-card-value"><?= $lus ?></div>
-          <div class="stat-card-label" data-fr="Lus" data-ar="مقروءة" data-fr="Lus" data-ar="مقروءة">Lus</div>
+          <div class="stat-card-label" data-fr="Lus" data-ar="مقروءة" data-fr="Lus" data-ar="مقروءة"><?= tt('Lus', 'مقروءة') ?></div>
         </div>
         <div class="stat-card">
           <div class="stat-card-header"><div class="stat-card-icon" style="background:rgba(37,211,102,.1);color:#25D366"><i class="fas fa-check-circle"></i></div></div>
           <div class="stat-card-value"><?= $traites ?></div>
-          <div class="stat-card-label" data-fr="Traités" data-ar="معالجة" data-fr="Traités" data-ar="معالجة">Traités</div>
+          <div class="stat-card-label" data-fr="Traités" data-ar="معالجة" data-fr="Traités" data-ar="معالجة"><?= tt('Traités', 'معالجة') ?></div>
         </div>
       </div>
 
@@ -209,16 +209,16 @@ if ($selectedId) {
             <input type="text" class="inbox-search" id="inboxSearch" placeholder="🔍 Rechercher..." data-fr-placeholder="🔍 Rechercher..." data-ar-placeholder="🔍 البحث..." oninput="filterInbox()">
           </div>
           <div class="filter-tabs">
-            <button class="ftab active" onclick="setTab('all',this)" data-fr="Tous" data-ar="الكل" data-fr="Tous" data-ar="الكل">Tous</button>
-            <button class="ftab" onclick="setTab('nouveau',this)" data-fr="Nouveaux" data-ar="جديدة">Nouveaux</button>
-            <button class="ftab" onclick="setTab('lu',this)" data-fr="Lus" data-ar="مقروءة">Lus</button>
-            <button class="ftab" onclick="setTab('traite',this)" data-fr="Traités" data-ar="معالجة">Traités</button>
+            <button class="ftab active" onclick="setTab('all',this)" data-fr="Tous" data-ar="الكل" data-fr="Tous" data-ar="الكل"><?= tt('Tous', 'الكل') ?></button>
+            <button class="ftab" onclick="setTab('nouveau',this)" data-fr="Nouveaux" data-ar="جديدة"><?= tt('Nouveaux', 'جديدة') ?></button>
+            <button class="ftab" onclick="setTab('lu',this)" data-fr="Lus" data-ar="مقروءة"><?= tt('Lus', 'مقروءة') ?></button>
+            <button class="ftab" onclick="setTab('traite',this)" data-fr="Traités" data-ar="معالجة"><?= tt('Traités', 'معالجة') ?></button>
           </div>
 
           <?php if (empty($messages)): ?>
           <div class="empty-inbox">
             <i class="fas fa-inbox"></i>
-            <p><span data-fr="Aucun message" data-ar="لا توجد رسائل">Aucun message</span></p>
+            <p><span data-fr="Aucun message" data-ar="لا توجد رسائل"><?= tt('Aucun message', 'لا توجد رسائل') ?></span></p>
           </div>
           <?php else: ?>
           <?php foreach ($messages as $m):

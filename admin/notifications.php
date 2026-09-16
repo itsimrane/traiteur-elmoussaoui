@@ -177,7 +177,7 @@ function timeAgo(string $time): string
 }
 ?>
 <!DOCTYPE html>
-<html lang="fr">
+<html lang="<?= adminLang() ?>" dir="<?= adminDir() ?>">
 
 <head>
   <meta charset="UTF-8">
@@ -450,7 +450,7 @@ function timeAgo(string $time): string
 
 <body>
   <div class="sidebar-overlay" id="sidebarOverlay"></div>
-  <div class="admin-layout">
+  <div class="admin-layout <?= adminRtlClass() ?>">
 
     <?php $activePage = 'notifications';
     include_once __DIR__ . '/../includes/admin-sidebar.php'; ?>
@@ -460,9 +460,9 @@ function timeAgo(string $time): string
         <div style="display:flex;align-items:center;gap:12px">
           <button id="sidebarToggle" class="topbar-btn"><i class="fas fa-bars"></i></button>
           <div class="topbar-title">
-            <h2 data-fr="Notifications" data-ar="الإشعارات">Notifications</h2>
+            <h2 data-fr="Notifications" data-ar="الإشعارات"><?= tt('Notifications', 'الإشعارات') ?></h2>
             <p>
-              <?= $total > 0 ? "$total alertes actives" : '<span data-fr="Aucune notification" data-ar="لا توجد إشعارات">Aucune notification</span>' ?>
+              <?= $total > 0 ? "$total " . tt('alertes actives', 'تنبيهات نشطة') : '<span>' . tt('Aucune notification', 'لا توجد إشعارات') . '</span>' ?>
             </p>
           </div>
         </div>
@@ -497,7 +497,7 @@ function timeAgo(string $time): string
               <div class="stat-card-icon gold"><i class="fas fa-bell"></i></div>
             </div>
             <div class="stat-card-value"><?= $total ?></div>
-            <div class="stat-card-label" data-fr="Total alertes" data-ar="إجمالي التنبيهات">Total alertes</div>
+            <div class="stat-card-label" data-fr="Total alertes" data-ar="إجمالي التنبيهات"><?= tt('Total alertes', 'إجمالي التنبيهات') ?></div>
           </div>
           <?php foreach ($typeStats as $type => $ts):
             $cnt = count($byType[$type] ?? []);
@@ -524,8 +524,7 @@ function timeAgo(string $time): string
               <i class="fas fa-check-circle"></i>
             </div>
             <h3 style="color:var(--white);margin-bottom:8px">Tout est à jour !</h3>
-            <p style="color:var(--text-muted);font-size:.88rem"><span data-fr="Aucune notification"
-                data-ar="لا توجد إشعارات">Aucune notification</span> en attente. Votre site fonctionne parfaitement.</p>
+            <p style="color:var(--text-muted);font-size:.88rem"><span data-fr="Aucune notification" data-ar="لا توجد إشعارات"><?= tt('Aucune notification', 'لا توجد إشعارات') ?></span> en attente. Votre site fonctionne parfaitement.</p>
           </div>
 
         <?php else: ?>
@@ -536,7 +535,7 @@ function timeAgo(string $time): string
               <div class="notif-sidebar-header">Filtrer par type</div>
               <div class="notif-filter active" onclick="filterNotif('all',this)">
                 <i class="fas fa-bell" style="color:var(--gold)"></i>
-                <span data-fr="Toutes" data-ar="الكل">Toutes</span>
+                <span data-fr="Toutes" data-ar="الكل"><?= tt('Toutes', 'الكل') ?></span>
                 <span class="notif-count red"><?= $total ?></span>
               </div>
               <?php foreach ($typeStats as $type => $ts):

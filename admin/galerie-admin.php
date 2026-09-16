@@ -16,11 +16,11 @@ $totalVedette = count(array_filter($medias, fn($m) => $m['en_vedette'] == 1));
 $totalAll     = count($medias);
 ?>
 <!DOCTYPE html>
-<html lang="fr">
+<html lang="<?= adminLang() ?>" dir="<?= adminDir() ?>">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Galerie — Admin EL MOUSSAOUI</title>
+  <title><?= t('galerie') ?> — Admin EL MOUSSAOUI</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@600;700&family=Jost:wght@300;400;500;600&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
@@ -80,7 +80,7 @@ $totalAll     = count($medias);
 </head>
 <body>
 <div class="sidebar-overlay" id="sidebarOverlay"></div>
-<div class="admin-layout">
+<div class="admin-layout <?= adminRtlClass() ?>">
 
   <!-- SIDEBAR -->
   <?php $activePage = 'galerie'; include_once __DIR__ . '/../includes/admin-sidebar.php'; ?>
@@ -92,8 +92,8 @@ $totalAll     = count($medias);
       <div style="display:flex;align-items:center;gap:12px">
         <button id="sidebarToggle" class="topbar-btn"><i class="fas fa-bars"></i></button>
         <div class="topbar-title">
-          <h2>Gestion Galerie</h2>
-          <p>Ajoutez et gérez vos photos et vidéos</p>
+          <h2><?= t('galerie') ?></h2>
+          <p><?= tt('Ajoutez et gérez vos photos et vidéos','أضف وأدر صورك وفيديوهاتك') ?></p>
         </div>
       </div>
       <div class="topbar-actions">
@@ -331,15 +331,15 @@ $totalAll     = count($medias);
 <!-- Modal édition -->
 <div class="modal-overlay" id="editModal">
   <div class="modal-box" style="max-width:460px">
-    <h3><i class="fas fa-pen" style="color:var(--gold);margin-right:8px"></i>Modifier le média</h3>
+    <h3><i class="fas fa-pen" style="color:var(--gold);margin-right:8px"></i><?= tt('Modifier le média','تعديل الوسائط') ?></h3>
     <form id="editForm" enctype="multipart/form-data">
       <input type="hidden" name="id" id="edit_id">
       <div class="form-group">
-        <label class="form-label">Titre *</label>
+        <label class="form-label"><?= tt('Titre','العنوان') ?> *</label>
         <input type="text" name="titre" id="edit_titre" class="form-control" required>
       </div>
       <div class="form-group">
-        <label class="form-label">Catégorie</label>
+        <label class="form-label"><?= tt('Catégorie','التصنيف') ?></label>
         <select name="categorie_id" id="edit_categorie" class="form-control">
           <?php foreach ($categories as $cat): ?>
           <option value="<?= $cat['id'] ?>"><?= htmlspecialchars($cat['nom']) ?></option>
@@ -347,23 +347,23 @@ $totalAll     = count($medias);
         </select>
       </div>
       <div class="form-group">
-        <label class="form-label">Texte alternatif (SEO)</label>
+        <label class="form-label"><?= tt('Texte alternatif (SEO)','نص بديل (SEO)') ?></label>
         <input type="text" name="alt_text" id="edit_alt" class="form-control">
       </div>
       <div class="form-group">
         <label class="form-label" style="display:flex;align-items:center;gap:8px">
           <input type="checkbox" name="en_vedette" id="edit_vedette" value="1" style="width:auto">
-          En vedette sur la page d'accueil
+          <?= tt("En vedette sur la page d'accueil",'مميزة في الصفحة الرئيسية') ?>
         </label>
       </div>
       <div class="form-group" id="editCurrentPhotoWrap" style="display:none">
-        <label class="form-label">Photo actuelle</label>
+        <label class="form-label"><?= tt('Photo actuelle','الصورة الحالية') ?></label>
         <img id="editCurrentPhoto" src="" alt="" style="max-width:140px;border-radius:8px;display:block;margin-bottom:10px">
       </div>
       <div class="upload-zone" id="editPhotoZone">
         <i class="fas fa-cloud-upload-alt"></i>
-        <p>Cliquez pour remplacer la photo (optionnel)</p>
-        <p style="font-size:.72rem;color:#444;margin-top:4px">JPG, PNG, WEBP — max 5 Mo</p>
+        <p><?= tt('Cliquez pour remplacer la photo (optionnel)','انقر لاستبدال الصورة (اختياري)') ?></p>
+        <p style="font-size:.72rem;color:#444;margin-top:4px">JPG, PNG, WEBP — <?= tt('max 5 Mo','الحد الأقصى 5 م.ب') ?></p>
         <input type="file" name="fichier" accept="image/*" onchange="showFile(this,'editPhotoZone','editPhotoName')">
         <div class="file-chosen" id="editPhotoName"></div>
       </div>
@@ -372,8 +372,8 @@ $totalAll     = count($medias);
         <div class="progress-pct" id="editProgressPct">0%</div>
       </div>
       <div class="modal-btns" style="margin-top:18px">
-        <button type="button" class="btn-secondary" onclick="closeEdit()">Annuler</button>
-        <button type="submit" class="btn-primary" id="editSubmitBtn"><i class="fas fa-save"></i> Enregistrer</button>
+        <button type="button" class="btn-secondary" onclick="closeEdit()"><?= t('annuler') ?></button>
+        <button type="submit" class="btn-primary" id="editSubmitBtn"><i class="fas fa-save"></i> <?= t('enregistrer') ?></button>
       </div>
     </form>
   </div>

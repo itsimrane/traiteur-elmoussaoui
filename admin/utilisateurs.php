@@ -104,7 +104,7 @@ $roleColors = [
 $langueLabels = ['fr'=>'🇫🇷 Français','ar'=>'🇲🇦 Arabe','en'=>'🇬🇧 Anglais'];
 ?>
 <!DOCTYPE html>
-<html lang="fr">
+<html lang="<?= adminLang() ?>" dir="<?= adminDir() ?>">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -180,7 +180,7 @@ $langueLabels = ['fr'=>'🇫🇷 Français','ar'=>'🇲🇦 Arabe','en'=>'🇬�
 </head>
 <body>
 <div class="sidebar-overlay" id="sidebarOverlay"></div>
-<div class="admin-layout">
+<div class="admin-layout <?= adminRtlClass() ?>">
 
   <?php $activePage = 'utilisateurs'; include_once __DIR__ . '/../includes/admin-sidebar.php'; ?>
 
@@ -188,12 +188,12 @@ $langueLabels = ['fr'=>'🇫🇷 Français','ar'=>'🇲🇦 Arabe','en'=>'🇬�
     <div class="admin-topbar">
       <div style="display:flex;align-items:center;gap:12px">
         <button id="sidebarToggle" class="topbar-btn"><i class="fas fa-bars"></i></button>
-        <div class="topbar-title"><h2 data-fr="Gestion Utilisateurs" data-ar="إدارة المستخدمين">Gestion Utilisateurs</h2><p data-fr="Comptes et permissions d'accès" data-ar="الحسابات وصلاحيات الوصول">Comptes et permissions d'accès</p></div>
+        <div class="topbar-title"><h2 data-fr="Gestion Utilisateurs" data-ar="إدارة المستخدمين"><?= tt('Gestion Utilisateurs', 'إدارة المستخدمين') ?></h2><p data-fr="Comptes et permissions d'accès" data-ar="الحسابات وصلاحيات الوصول"><?= tt('Comptes et permissions d\'accès', 'الحسابات وصلاحيات الوصول') ?></p></div>
       </div>
       <div class="topbar-actions">
         <button class="topbar-btn" onclick="location.reload()"><i class="fas fa-sync-alt"></i></button>
         <button class="btn-primary" style="padding:8px 18px;font-size:.82rem" onclick="openAdd()">
-          <i class="fas fa-user-plus"></i> <span data-fr="Nouvel utilisateur" data-ar="مستخدم جديد">Nouvel utilisateur</span>
+          <i class="fas fa-user-plus"></i> <span data-fr="Nouvel utilisateur" data-ar="مستخدم جديد"><?= tt('Nouvel utilisateur', 'مستخدم جديد') ?></span>
         </button>
         <div class="admin-avatar">A</div>
       </div>
@@ -213,29 +213,29 @@ $langueLabels = ['fr'=>'🇫🇷 Français','ar'=>'🇲🇦 Arabe','en'=>'🇬�
         <div class="stat-card">
           <div class="stat-card-header"><div class="stat-card-icon gold"><i class="fas fa-users"></i></div></div>
           <div class="stat-card-value"><?= $total ?></div>
-          <div class="stat-card-label" data-fr="Total utilisateurs" data-ar="إجمالي المستخدمين">Total utilisateurs</div>
+          <div class="stat-card-label" data-fr="Total utilisateurs" data-ar="إجمالي المستخدمين"><?= tt('Total utilisateurs', 'إجمالي المستخدمين') ?></div>
         </div>
         <div class="stat-card">
           <div class="stat-card-header"><div class="stat-card-icon" style="background:rgba(37,211,102,.1);color:#25D366"><i class="fas fa-user-check"></i></div></div>
           <div class="stat-card-value"><?= $actifs ?></div>
-          <div class="stat-card-label" data-fr="Actifs" data-ar="نشطون">Actifs</div>
+          <div class="stat-card-label" data-fr="Actifs" data-ar="نشطون"><?= tt('Actifs', 'نشطون') ?></div>
         </div>
         <div class="stat-card">
           <div class="stat-card-header"><div class="stat-card-icon" style="background:rgba(212,175,55,.1);color:var(--gold)"><i class="fas fa-user-shield"></i></div></div>
           <div class="stat-card-value"><?= $admins ?></div>
-          <div class="stat-card-label" data-fr="Administrateurs" data-ar="المديرون">Administrateurs</div>
+          <div class="stat-card-label" data-fr="Administrateurs" data-ar="المديرون"><?= tt('Administrateurs', 'المديرون') ?></div>
         </div>
         <div class="stat-card">
           <div class="stat-card-header"><div class="stat-card-icon" style="background:rgba(136,136,136,.1);color:#888"><i class="fas fa-user"></i></div></div>
           <div class="stat-card-value"><?= $total - $admins ?></div>
-          <div class="stat-card-label" data-fr="Clients / Autres" data-ar="العملاء / أخرى">Clients / Autres</div>
+          <div class="stat-card-label" data-fr="Clients / Autres" data-ar="العملاء / أخرى"><?= tt('Clients / Autres', 'العملاء / أخرى') ?></div>
         </div>
       </div>
 
       <!-- Filtres -->
       <div style="display:flex;gap:10px;align-items:center;margin-bottom:20px;flex-wrap:wrap">
         <input type="text" class="search-input" id="searchUser" placeholder="🔍 Nom, email..." data-fr-placeholder="🔍 Nom, email..." data-ar-placeholder="🔍 الاسم، البريد..." oninput="filterUsers()">
-        <button class="tfilter active" onclick="setFilter('all',this)" data-fr="Tous" data-ar="الكل">Tous</button>
+        <button class="tfilter active" onclick="setFilter('all',this)" data-fr="Tous" data-ar="الكل"><?= tt('Tous', 'الكل') ?></button>
         <?php foreach ($roles as $r): ?>
         <button class="tfilter" onclick="setFilter('<?= $r['nom'] ?>',this)"><?= htmlspecialchars($r['label']) ?></button>
         <?php endforeach; ?>
@@ -343,7 +343,7 @@ $langueLabels = ['fr'=>'🇫🇷 Français','ar'=>'🇲🇦 Arabe','en'=>'🇬�
 <div class="modal-overlay" id="addModal">
   <div class="modal-box">
     <div class="modal-header">
-      <h3><i class="fas fa-user-plus" style="color:var(--gold);margin-right:8px"></i><span data-fr="Nouvel utilisateur" data-ar="مستخدم جديد">Nouvel utilisateur</span></h3>
+      <h3><i class="fas fa-user-plus" style="color:var(--gold);margin-right:8px"></i><span data-fr="Nouvel utilisateur" data-ar="مستخدم جديد"><?= tt('Nouvel utilisateur', 'مستخدم جديد') ?></span></h3>
       <button class="modal-close" onclick="closeModal('addModal')"><i class="fas fa-times"></i></button>
     </div>
     <form method="POST">
@@ -351,19 +351,19 @@ $langueLabels = ['fr'=>'🇫🇷 Français','ar'=>'🇲🇦 Arabe','en'=>'🇬�
       <div class="modal-body">
         <div class="form-grid" style="margin-bottom:12px">
           <div class="form-group">
-            <label class="form-label" data-fr="Prénom *" data-ar="الاسم الأول *">Prénom *</label>
+            <label class="form-label" data-fr="Prénom *" data-ar="الاسم الأول *"><?= tt('Prénom *', 'الاسم الأول *') ?></label>
             <input type="text" name="prenom" class="form-control" required>
           </div>
           <div class="form-group">
-            <label class="form-label" data-fr="Nom *" data-ar="الاسم العائلي *">Nom *</label>
+            <label class="form-label" data-fr="Nom *" data-ar="الاسم العائلي *"><?= tt('Nom *', 'الاسم العائلي *') ?></label>
             <input type="text" name="nom" class="form-control" required>
           </div>
           <div class="form-group form-full">
-            <label class="form-label" data-fr="Email *" data-ar="البريد الإلكتروني *">Email *</label>
+            <label class="form-label" data-fr="Email *" data-ar="البريد الإلكتروني *"><?= tt('Email *', 'البريد الإلكتروني *') ?></label>
             <input type="email" name="email" class="form-control" required>
           </div>
           <div class="form-group">
-            <label class="form-label" data-fr="Téléphone" data-ar="الهاتف">Téléphone</label>
+            <label class="form-label" data-fr="Téléphone" data-ar="الهاتف"><?= tt('Téléphone', 'الهاتف') ?></label>
             <input type="tel" name="telephone" class="form-control" placeholder="06XXXXXXXX" data-fr-placeholder="06XXXXXXXX" data-ar-placeholder="06XXXXXXXX">
           </div>
           <div class="form-group">
@@ -375,7 +375,7 @@ $langueLabels = ['fr'=>'🇫🇷 Français','ar'=>'🇲🇦 Arabe','en'=>'🇬�
             </select>
           </div>
           <div class="form-group">
-            <label class="form-label" data-fr="Rôle *" data-ar="الدور *">Rôle *</label>
+            <label class="form-label" data-fr="Rôle *" data-ar="الدور *"><?= tt('Rôle *', 'الدور *') ?></label>
             <select name="role_id" class="form-control">
               <?php foreach ($roles as $r): if ($r['nom'] === 'super_admin') continue; ?>
               <option value="<?= $r['id'] ?>"><?= htmlspecialchars($r['label']) ?></option>
@@ -383,7 +383,7 @@ $langueLabels = ['fr'=>'🇫🇷 Français','ar'=>'🇲🇦 Arabe','en'=>'🇬�
             </select>
           </div>
           <div class="form-group form-full">
-            <label class="form-label" data-fr="Mot de passe *" data-ar="كلمة المرور *">Mot de passe *</label>
+            <label class="form-label" data-fr="Mot de passe *" data-ar="كلمة المرور *"><?= tt('Mot de passe *', 'كلمة المرور *') ?></label>
             <div class="pw-wrap">
               <input type="password" name="password" id="addPw" class="form-control" placeholder="Min. 8 caractères" required>
               <button type="button" class="pw-toggle" onclick="togglePw('addPw','addPwEye')">
@@ -409,7 +409,7 @@ $langueLabels = ['fr'=>'🇫🇷 Français','ar'=>'🇲🇦 Arabe','en'=>'🇬�
 <div class="modal-overlay" id="editModal">
   <div class="modal-box">
     <div class="modal-header">
-      <h3><i class="fas fa-user-edit" style="color:var(--gold);margin-right:8px"></i><span data-fr="Modifier l'utilisateur" data-ar="تعديل المستخدم">Modifier l'utilisateur</span></h3>
+      <h3><i class="fas fa-user-edit" style="color:var(--gold);margin-right:8px"></i><span data-fr="Modifier l'utilisateur" data-ar="تعديل المستخدم"><?= tt('Modifier l\'utilisateur', 'تعديل المستخدم') ?></span></h3>
       <button class="modal-close" onclick="closeModal('editModal')"><i class="fas fa-times"></i></button>
     </div>
     <form method="POST">
@@ -418,19 +418,19 @@ $langueLabels = ['fr'=>'🇫🇷 Français','ar'=>'🇲🇦 Arabe','en'=>'🇬�
       <div class="modal-body">
         <div class="form-grid" style="margin-bottom:12px">
           <div class="form-group">
-            <label class="form-label" data-fr="Prénom *" data-ar="الاسم الأول *">Prénom *</label>
+            <label class="form-label" data-fr="Prénom *" data-ar="الاسم الأول *"><?= tt('Prénom *', 'الاسم الأول *') ?></label>
             <input type="text" name="prenom" id="e_prenom" class="form-control" required>
           </div>
           <div class="form-group">
-            <label class="form-label" data-fr="Nom *" data-ar="الاسم العائلي *">Nom *</label>
+            <label class="form-label" data-fr="Nom *" data-ar="الاسم العائلي *"><?= tt('Nom *', 'الاسم العائلي *') ?></label>
             <input type="text" name="nom" id="e_nom" class="form-control" required>
           </div>
           <div class="form-group form-full">
-            <label class="form-label" data-fr="Email *" data-ar="البريد الإلكتروني *">Email *</label>
+            <label class="form-label" data-fr="Email *" data-ar="البريد الإلكتروني *"><?= tt('Email *', 'البريد الإلكتروني *') ?></label>
             <input type="email" name="email" id="e_email" class="form-control" required>
           </div>
           <div class="form-group">
-            <label class="form-label" data-fr="Téléphone" data-ar="الهاتف">Téléphone</label>
+            <label class="form-label" data-fr="Téléphone" data-ar="الهاتف"><?= tt('Téléphone', 'الهاتف') ?></label>
             <input type="tel" name="telephone" id="e_telephone" class="form-control">
           </div>
           <div class="form-group">

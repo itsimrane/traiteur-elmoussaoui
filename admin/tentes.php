@@ -96,12 +96,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 $tentes = $pdo->query("SELECT * FROM tentes ORDER BY ordre ASC, id ASC")->fetchAll();
 ?>
 <!DOCTYPE html>
-<html lang="fr">
+<html lang="<?= adminLang() ?>" dir="<?= adminDir() ?>">
 <head>
   <meta charset="UTF-8">
   <link rel="icon" type="image/png" href="../assets/img/favicon-32.png">
   <meta name="viewport" content="width=device-width,initial-scale=1.0">
-  <title>Tentes — Admin EL MOUSSAOUI</title>
+  <title><?= t('tentes') ?> — Admin EL MOUSSAOUI</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@600;700&family=Jost:wght@300;400;500;600&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
@@ -132,15 +132,15 @@ $tentes = $pdo->query("SELECT * FROM tentes ORDER BY ordre ASC, id ASC")->fetchA
 </head>
 <body>
 <div class="sidebar-overlay" id="sidebarOverlay"></div>
-<div class="admin-layout">
+<div class="admin-layout <?= adminRtlClass() ?>">
   <?php $activePage = 'tentes'; include_once __DIR__ . '/../includes/admin-sidebar.php'; ?>
   <main class="admin-main">
     <div class="admin-topbar">
       <div style="display:flex;align-items:center;gap:12px">
         <button id="sidebarToggle" class="topbar-btn"><i class="fas fa-bars"></i></button>
-        <div class="topbar-title"><h2>Tentes</h2><p>Gestion des fiches tentes proposées lors du traitement des réservations</p></div>
+        <div class="topbar-title"><h2><?= t('tentes') ?></h2><p><?= tt('Gestion des fiches tentes proposées lors du traitement des réservations','إدارة بطاقات الخيام المقترحة عند معالجة الحجوزات') ?></p></div>
       </div>
-      <button class="topbar-btn" onclick="openModal()"><i class="fas fa-plus"></i> Nouvelle tente</button>
+      <button class="topbar-btn" onclick="openModal()"><i class="fas fa-plus"></i> <?= tt('Nouvelle tente','خيمة جديدة') ?></button>
     </div>
 
     <div class="admin-content">
@@ -150,7 +150,7 @@ $tentes = $pdo->query("SELECT * FROM tentes ORDER BY ordre ASC, id ASC")->fetchA
 
       <?php if (count($tentes) < 4): ?>
       <div class="alert alert-error" style="margin-bottom:20px">
-        <i class="fas fa-exclamation-circle"></i> Il n'y a que <?= count($tentes) ?> tente(s) configurée(s) sur les 4 attendues. Ajoute les fiches manquantes.
+        <i class="fas fa-exclamation-circle"></i> <?= tt('Il n\'y a que','يوجد فقط') ?> <?= count($tentes) ?> <?= tt('tente(s) configurée(s) sur les 4 attendues. Ajoute les fiches manquantes.','خيمة/خيام مهيأة من أصل 4 متوقعة. أضف البطاقات الناقصة.') ?>
       </div>
       <?php endif; ?>
 
@@ -163,19 +163,19 @@ $tentes = $pdo->query("SELECT * FROM tentes ORDER BY ordre ASC, id ASC")->fetchA
           <div class="tente-body">
             <div class="tente-name"><?= htmlspecialchars($t['nom']) ?></div>
             <div class="tente-meta">
-              <span class="tente-tag">Long. <?= $t['longueur'] !== null ? $t['longueur'].' m' : '—' ?></span>
-              <span class="tente-tag">Larg. <?= $t['largeur'] !== null ? $t['largeur'].' m' : '—' ?></span>
-              <span class="tente-tag">Cap. <?= $t['capacite_max'] !== null ? $t['capacite_max'].' pers.' : '—' ?></span>
+              <span class="tente-tag" dir="ltr"><?= tt('Long.','الطول') ?> <?= $t['longueur'] !== null ? $t['longueur'].' m' : '—' ?></span>
+              <span class="tente-tag" dir="ltr"><?= tt('Larg.','العرض') ?> <?= $t['largeur'] !== null ? $t['largeur'].' m' : '—' ?></span>
+              <span class="tente-tag"><?= tt('Cap.','السعة') ?> <?= $t['capacite_max'] !== null ? $t['capacite_max'].' '.tt('pers.','شخص') : '—' ?></span>
             </div>
-            <div class="tente-desc"><?= $t['description'] ? htmlspecialchars($t['description']) : '<em style="color:#555">Aucune description</em>' ?></div>
+            <div class="tente-desc"><?= $t['description'] ? htmlspecialchars($t['description']) : '<em style="color:#555">' . tt('Aucune description','لا يوجد وصف') . '</em>' ?></div>
             <div class="tente-actions">
-              <a href="#" onclick='openModal(<?= json_encode($t, JSON_HEX_APOS|JSON_HEX_QUOT) ?>);return false;'><i class="fas fa-edit"></i> Modifier</a>
+              <a href="#" onclick='openModal(<?= json_encode($t, JSON_HEX_APOS|JSON_HEX_QUOT) ?>);return false;'><i class="fas fa-edit"></i> <?= t('modifier') ?></a>
               <form method="POST" style="flex:1;display:contents">
                 <input type="hidden" name="action" value="toggle">
                 <input type="hidden" name="id" value="<?= $t['id'] ?>">
-                <button type="submit"><i class="fas <?= $t['actif']?'fa-eye-slash':'fa-eye' ?>"></i> <?= $t['actif']?'Désactiver':'Activer' ?></button>
+                <button type="submit"><i class="fas <?= $t['actif']?'fa-eye-slash':'fa-eye' ?>"></i> <?= $t['actif']?tt('Désactiver','تعطيل'):tt('Activer','تفعيل') ?></button>
               </form>
-              <form method="POST" style="flex:1;display:contents" onsubmit="return confirm('Supprimer cette tente ?')">
+              <form method="POST" style="flex:1;display:contents" onsubmit="return confirm('<?= tt('Supprimer cette tente ?','هل تريد حذف هذه الخيمة؟') ?>')">
                 <input type="hidden" name="action" value="delete">
                 <input type="hidden" name="id" value="<?= $t['id'] ?>">
                 <button type="submit"><i class="fas fa-trash"></i></button>
@@ -192,35 +192,35 @@ $tentes = $pdo->query("SELECT * FROM tentes ORDER BY ordre ASC, id ASC")->fetchA
 <!-- Modal ajout/édition -->
 <div class="modal-overlay" id="modalOverlay">
   <div class="modal-box">
-    <h3 id="modalTitle">Nouvelle tente</h3>
+    <h3 id="modalTitle"><?= tt('Nouvelle tente','خيمة جديدة') ?></h3>
     <form method="POST" enctype="multipart/form-data">
       <input type="hidden" name="action" value="save">
       <input type="hidden" name="id" id="f_id" value="">
-      <div class="form-group"><label class="form-label">Nom de la tente *</label>
+      <div class="form-group"><label class="form-label"><?= tt('Nom de la tente','اسم الخيمة') ?> *</label>
         <input type="text" name="nom" id="f_nom" class="form-control" required></div>
       <div class="form-row">
-        <div class="form-group"><label class="form-label">Longueur (m)</label>
+        <div class="form-group"><label class="form-label"><?= tt('Longueur (m)','الطول (م)') ?></label>
           <input type="number" step="0.1" name="longueur" id="f_longueur" class="form-control"></div>
-        <div class="form-group"><label class="form-label">Largeur (m)</label>
+        <div class="form-group"><label class="form-label"><?= tt('Largeur (m)','العرض (م)') ?></label>
           <input type="number" step="0.1" name="largeur" id="f_largeur" class="form-control"></div>
       </div>
-      <div class="form-group"><label class="form-label">Capacité maximale (personnes)</label>
+      <div class="form-group"><label class="form-label"><?= tt('Capacité maximale (personnes)','السعة القصوى (أشخاص)') ?></label>
         <input type="number" name="capacite_max" id="f_capacite" class="form-control"></div>
-      <div class="form-group"><label class="form-label">Description</label>
+      <div class="form-group"><label class="form-label"><?= tt('Description','الوصف') ?></label>
         <textarea name="description" id="f_description" class="form-control" rows="3"></textarea></div>
-      <div class="form-group"><label class="form-label">Photo</label>
+      <div class="form-group"><label class="form-label"><?= tt('Photo','الصورة') ?></label>
         <input type="file" name="photo" accept="image/*" class="form-control"></div>
       <div class="form-row">
-        <div class="form-group"><label class="form-label">Ordre d'affichage</label>
+        <div class="form-group"><label class="form-label"><?= tt("Ordre d'affichage",'ترتيب العرض') ?></label>
           <input type="number" name="ordre" id="f_ordre" class="form-control" value="0"></div>
         <div class="form-group" style="display:flex;align-items:end;gap:8px">
           <label style="display:flex;align-items:center;gap:8px;font-size:.85rem;color:var(--text-muted)">
-            <input type="checkbox" name="actif" id="f_actif" checked> Tente active</label>
+            <input type="checkbox" name="actif" id="f_actif" checked> <?= tt('Tente active','خيمة نشطة') ?></label>
         </div>
       </div>
       <div style="display:flex;gap:10px;margin-top:16px">
-        <button type="button" class="btn-back" onclick="closeModal()" style="flex:1">Annuler</button>
-        <button type="submit" class="btn-primary" style="flex:1">Enregistrer</button>
+        <button type="button" class="btn-back" onclick="closeModal()" style="flex:1"><?= t('annuler') ?></button>
+        <button type="submit" class="btn-primary" style="flex:1"><?= t('enregistrer') ?></button>
       </div>
     </form>
   </div>

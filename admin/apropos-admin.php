@@ -109,12 +109,12 @@ $jalons = [];
 try { $jalons = $pdo->query("SELECT * FROM apropos_timeline ORDER BY ordre ASC, annee ASC")->fetchAll(); } catch(Exception $e) {}
 ?>
 <!DOCTYPE html>
-<html lang="fr">
+<html lang="<?= adminLang() ?>" dir="<?= adminDir() ?>">
 <head>
   <meta charset="UTF-8">
   <link rel="icon" type="image/png" href="../assets/img/favicon-32.png">
   <meta name="viewport" content="width=device-width,initial-scale=1.0">
-  <title>Contenu À Propos — Admin EL MOUSSAOUI</title>
+  <title><?= t('contenu_apropos') ?> — Admin EL MOUSSAOUI</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@600;700&family=Jost:wght@300;400;500;600&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
@@ -154,15 +154,15 @@ try { $jalons = $pdo->query("SELECT * FROM apropos_timeline ORDER BY ordre ASC, 
 </head>
 <body>
 <div class="sidebar-overlay" id="sidebarOverlay"></div>
-<div class="admin-layout">
+<div class="admin-layout <?= adminRtlClass() ?>">
   <?php $activePage = 'apropos'; include_once __DIR__ . '/../includes/admin-sidebar.php'; ?>
   <main class="admin-main">
     <div class="admin-topbar">
       <div style="display:flex;align-items:center;gap:12px">
         <button id="sidebarToggle" class="topbar-btn"><i class="fas fa-bars"></i></button>
-        <div class="topbar-title"><h2>Contenu « À propos »</h2><p>Année de fondation, équipe, frise chronologique</p></div>
+        <div class="topbar-title"><h2><?= tt('Contenu « À propos »','محتوى « من نحن »') ?></h2><p><?= tt('Année de fondation, équipe, frise chronologique','سنة التأسيس، الفريق، الجدول الزمني') ?></p></div>
       </div>
-      <a href="../pages/apropos.php" target="_blank" class="topbar-btn" title="Voir la page publique"><i class="fas fa-external-link-alt"></i></a>
+      <a href="../pages/apropos.php" target="_blank" class="topbar-btn" title="<?= tt('Voir la page publique','عرض الصفحة العامة') ?>"><i class="fas fa-external-link-alt"></i></a>
     </div>
 
     <div class="admin-content">
@@ -174,24 +174,24 @@ try { $jalons = $pdo->query("SELECT * FROM apropos_timeline ORDER BY ordre ASC, 
 
       <!-- Année de fondation -->
       <div class="panel">
-        <h3><i class="fas fa-flag" style="color:var(--gold);margin-right:8px"></i>Année de fondation</h3>
-        <p class="sub">Affichée sur la page À propos (calcule automatiquement le nombre d'années d'expérience). Laisse vide pour ne rien afficher.</p>
+        <h3><i class="fas fa-flag" style="color:var(--gold);margin-right:8px"></i><?= tt('Année de fondation','سنة التأسيس') ?></h3>
+        <p class="sub"><?= tt("Affichée sur la page À propos (calcule automatiquement le nombre d'années d'expérience). Laisse vide pour ne rien afficher.",'تُعرض في صفحة من نحن (تحسب تلقائياً عدد سنوات الخبرة). اتركها فارغة لعدم العرض.') ?></p>
         <form method="POST" style="display:flex;gap:12px;align-items:center">
           <input type="hidden" name="action" value="save_fondation">
           <input type="number" name="annee_fondation" value="<?= htmlspecialchars($anneeFondation) ?>"
                  placeholder="Ex: 2015" min="1990" max="<?= date('Y') ?>"
                  style="background:var(--dark-3);border:1px solid var(--border);border-radius:8px;padding:9px 12px;color:var(--white);font-size:.85rem;width:140px">
-          <button type="submit" style="background:var(--gold);color:var(--dark);border:none;border-radius:8px;padding:10px 20px;font-weight:700;font-size:.82rem;cursor:pointer">Enregistrer</button>
+          <button type="submit" style="background:var(--gold);color:var(--dark);border:none;border-radius:8px;padding:10px 20px;font-weight:700;font-size:.82rem;cursor:pointer"><?= t('enregistrer') ?></button>
         </form>
       </div>
 
       <!-- Équipe -->
       <div class="panel">
-        <h3><i class="fas fa-users" style="color:var(--gold);margin-right:8px"></i>Équipe (<?= count($membres) ?>)</h3>
-        <p class="sub">Les membres inactifs n'apparaissent pas sur la page publique.</p>
+        <h3><i class="fas fa-users" style="color:var(--gold);margin-right:8px"></i><?= tt('Équipe','الفريق') ?> (<?= count($membres) ?>)</h3>
+        <p class="sub"><?= tt("Les membres inactifs n'apparaissent pas sur la page publique.",'الأعضاء غير النشطين لا يظهرون في الصفحة العامة.') ?></p>
 
         <?php if (empty($membres)): ?>
-        <div class="empty-note">Aucun membre pour l'instant — la section équipe restera masquée sur le site.</div>
+        <div class="empty-note"><?= tt('Aucun membre pour l\'instant — la section équipe restera masquée sur le site.','لا يوجد عضو حالياً — سيبقى قسم الفريق مخفياً في الموقع.') ?></div>
         <?php else: foreach ($membres as $m): ?>
         <div class="item-row <?= $m['actif'] ? '' : 'inactive' ?>">
           <div class="item-icon"><i class="fas <?= htmlspecialchars($m['icone']) ?>"></i></div>
@@ -203,12 +203,12 @@ try { $jalons = $pdo->query("SELECT * FROM apropos_timeline ORDER BY ordre ASC, 
             <form method="POST" style="display:contents">
               <input type="hidden" name="action" value="toggle_membre">
               <input type="hidden" name="id" value="<?= $m['id'] ?>">
-              <button type="submit" title="<?= $m['actif'] ? 'Masquer' : 'Afficher' ?>"><i class="fas fa-<?= $m['actif'] ? 'eye' : 'eye-slash' ?>"></i></button>
+              <button type="submit" title="<?= $m['actif'] ? tt('Masquer','إخفاء') : tt('Afficher','إظهار') ?>"><i class="fas fa-<?= $m['actif'] ? 'eye' : 'eye-slash' ?>"></i></button>
             </form>
-            <form method="POST" style="display:contents" onsubmit="return confirm('Supprimer ce membre ?')">
+            <form method="POST" style="display:contents" onsubmit="return confirm('<?= tt('Supprimer ce membre ?','هل تريد حذف هذا العضو؟') ?>')">
               <input type="hidden" name="action" value="delete_membre">
               <input type="hidden" name="id" value="<?= $m['id'] ?>">
-              <button type="submit" class="danger" title="Supprimer"><i class="fas fa-trash"></i></button>
+              <button type="submit" class="danger" title="<?= t('supprimer') ?>"><i class="fas fa-trash"></i></button>
             </form>
           </div>
         </div>
@@ -217,24 +217,24 @@ try { $jalons = $pdo->query("SELECT * FROM apropos_timeline ORDER BY ordre ASC, 
         <form method="POST" class="inline-form">
           <input type="hidden" name="action" value="add_membre">
           <div class="row-2">
-            <input type="text" name="nom" placeholder="Nom complet" required>
-            <input type="text" name="icone" placeholder="Icône (ex: fa-user-tie)" value="fa-user">
+            <input type="text" name="nom" placeholder="<?= tt('Nom complet','الاسم الكامل') ?>" required>
+            <input type="text" name="icone" placeholder="<?= tt('Icône (ex: fa-user-tie)','أيقونة (مثال: fa-user-tie)') ?>" value="fa-user">
           </div>
           <div class="row-2">
-            <input type="text" name="role" placeholder="Rôle (ex: Chef de cuisine)" required>
-            <input type="text" name="role_ar" placeholder="Rôle en arabe (optionnel)">
+            <input type="text" name="role" placeholder="<?= tt('Rôle (ex: Chef de cuisine)','الدور (مثال: رئيس الطهاة)') ?>" required>
+            <input type="text" name="role_ar" placeholder="<?= tt('Rôle en arabe (optionnel)','الدور بالعربية (اختياري)') ?>">
           </div>
-          <button type="submit"><i class="fas fa-plus"></i> Ajouter ce membre</button>
+          <button type="submit"><i class="fas fa-plus"></i> <?= tt('Ajouter ce membre','إضافة هذا العضو') ?></button>
         </form>
       </div>
 
       <!-- Frise chronologique -->
       <div class="panel">
-        <h3><i class="fas fa-history" style="color:var(--gold);margin-right:8px"></i>Frise chronologique (<?= count($jalons) ?>)</h3>
-        <p class="sub">Les grandes dates de l'histoire du traiteur, affichées dans l'ordre choisi.</p>
+        <h3><i class="fas fa-history" style="color:var(--gold);margin-right:8px"></i><?= tt('Frise chronologique','الجدول الزمني') ?> (<?= count($jalons) ?>)</h3>
+        <p class="sub"><?= tt("Les grandes dates de l'histoire du traiteur, affichées dans l'ordre choisi.",'أهم التواريخ في مسيرة المطعم، تُعرض بالترتيب المختار.') ?></p>
 
         <?php if (empty($jalons)): ?>
-        <div class="empty-note">Aucun jalon pour l'instant — la frise restera masquée sur le site.</div>
+        <div class="empty-note"><?= tt('Aucun jalon pour l\'instant — la frise restera masquée sur le site.','لا يوجد حدث حالياً — سيبقى الجدول الزمني مخفياً في الموقع.') ?></div>
         <?php else: foreach ($jalons as $j): ?>
         <div class="item-row <?= $j['actif'] ? '' : 'inactive' ?>">
           <div class="item-icon"><?= htmlspecialchars($j['annee']) ?></div>
@@ -246,12 +246,12 @@ try { $jalons = $pdo->query("SELECT * FROM apropos_timeline ORDER BY ordre ASC, 
             <form method="POST" style="display:contents">
               <input type="hidden" name="action" value="toggle_jalon">
               <input type="hidden" name="id" value="<?= $j['id'] ?>">
-              <button type="submit" title="<?= $j['actif'] ? 'Masquer' : 'Afficher' ?>"><i class="fas fa-<?= $j['actif'] ? 'eye' : 'eye-slash' ?>"></i></button>
+              <button type="submit" title="<?= $j['actif'] ? tt('Masquer','إخفاء') : tt('Afficher','إظهار') ?>"><i class="fas fa-<?= $j['actif'] ? 'eye' : 'eye-slash' ?>"></i></button>
             </form>
-            <form method="POST" style="display:contents" onsubmit="return confirm('Supprimer ce jalon ?')">
+            <form method="POST" style="display:contents" onsubmit="return confirm('<?= tt('Supprimer ce jalon ?','هل تريد حذف هذا الحدث؟') ?>')">
               <input type="hidden" name="action" value="delete_jalon">
               <input type="hidden" name="id" value="<?= $j['id'] ?>">
-              <button type="submit" class="danger" title="Supprimer"><i class="fas fa-trash"></i></button>
+              <button type="submit" class="danger" title="<?= t('supprimer') ?>"><i class="fas fa-trash"></i></button>
             </form>
           </div>
         </div>
@@ -260,11 +260,11 @@ try { $jalons = $pdo->query("SELECT * FROM apropos_timeline ORDER BY ordre ASC, 
         <form method="POST" class="inline-form">
           <input type="hidden" name="action" value="add_jalon">
           <div class="row-2">
-            <input type="text" name="annee" placeholder="Année (ex: 2015)" required>
-            <input type="text" name="titre" placeholder="Titre (ex: Fondation)" required>
+            <input type="text" name="annee" placeholder="<?= tt('Année (ex: 2015)','السنة (مثال: 2015)') ?>" required>
+            <input type="text" name="titre" placeholder="<?= tt('Titre (ex: Fondation)','العنوان (مثال: التأسيس)') ?>" required>
           </div>
-          <textarea name="description" placeholder="Description courte"></textarea>
-          <button type="submit"><i class="fas fa-plus"></i> Ajouter ce jalon</button>
+          <textarea name="description" placeholder="<?= tt('Description courte','وصف مختصر') ?>"></textarea>
+          <button type="submit"><i class="fas fa-plus"></i> <?= tt('Ajouter ce jalon','إضافة هذا الحدث') ?></button>
         </form>
       </div>
 

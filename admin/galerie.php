@@ -103,12 +103,12 @@ try {
 } catch (Exception $e) {}
 ?>
 <!DOCTYPE html>
-<html lang="fr">
+<html lang="<?= adminLang() ?>" dir="<?= adminDir() ?>">
 <head>
   <meta charset="UTF-8">
   <link rel="icon" type="image/png" href="../assets/img/favicon-32.png">
   <meta name="viewport" content="width=device-width,initial-scale=1.0">
-  <title>Galerie — Admin EL MOUSSAOUI</title>
+  <title><?= t('galerie') ?> — Admin EL MOUSSAOUI</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@600;700&family=Jost:wght@300;400;500;600&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
@@ -164,15 +164,15 @@ try {
 </head>
 <body>
 <div class="sidebar-overlay" id="sidebarOverlay"></div>
-<div class="admin-layout">
+<div class="admin-layout <?= adminRtlClass() ?>">
   <?php $activePage = 'galerie'; include_once __DIR__ . '/../includes/admin-sidebar.php'; ?>
   <main class="admin-main">
     <div class="admin-topbar">
       <div style="display:flex;align-items:center;gap:12px">
         <button id="sidebarToggle" class="topbar-btn"><i class="fas fa-bars"></i></button>
-        <div class="topbar-title"><h2>Galerie</h2><p>Gestion complète des photos et vidéos</p></div>
+        <div class="topbar-title"><h2><?= t('galerie') ?></h2><p><?= tt('Gestion complète des photos et vidéos','إدارة كاملة للصور والفيديوهات') ?></p></div>
       </div>
-      <a href="../pages/galerie.php" target="_blank" class="topbar-btn" title="Voir sur le site"><i class="fas fa-external-link-alt"></i></a>
+      <a href="../pages/galerie.php" target="_blank" class="topbar-btn" title="<?= tt('Voir sur le site','عرض على الموقع') ?>"><i class="fas fa-external-link-alt"></i></a>
     </div>
 
     <div class="admin-content">
@@ -184,23 +184,23 @@ try {
 
       <!-- Stats -->
       <div class="stats-grid" style="margin-bottom:20px">
-        <div class="stat-card"><div class="stat-card-value"><?= $totalPhotos ?></div><div class="stat-card-label">Photos actives</div></div>
-        <div class="stat-card"><div class="stat-card-value"><?= $totalVideos ?></div><div class="stat-card-label">Vidéos actives</div></div>
-        <div class="stat-card"><div class="stat-card-value" style="color:var(--gold)"><?= $totalVedette ?></div><div class="stat-card-label">Mises en avant</div></div>
-        <div class="stat-card"><div class="stat-card-value" style="color:#888"><?= $totalInactifs ?></div><div class="stat-card-label">Masquées</div></div>
+        <div class="stat-card"><div class="stat-card-value"><?= $totalPhotos ?></div><div class="stat-card-label"><?= tt('Photos actives','صور نشطة') ?></div></div>
+        <div class="stat-card"><div class="stat-card-value"><?= $totalVideos ?></div><div class="stat-card-label"><?= tt('Vidéos actives','فيديوهات نشطة') ?></div></div>
+        <div class="stat-card"><div class="stat-card-value" style="color:var(--gold)"><?= $totalVedette ?></div><div class="stat-card-label"><?= tt('Mises en avant','مميزة') ?></div></div>
+        <div class="stat-card"><div class="stat-card-value" style="color:#888"><?= $totalInactifs ?></div><div class="stat-card-label"><?= tt('Masquées','مخفية') ?></div></div>
       </div>
 
       <!-- Upload rapide -->
       <div class="upload-panel">
-        <h3><i class="fas fa-upload" style="color:var(--gold);margin-right:8px"></i>Ajouter une photo</h3>
+        <h3><i class="fas fa-upload" style="color:var(--gold);margin-right:8px"></i><?= tt('Ajouter une photo','إضافة صورة') ?></h3>
         <form id="uploadForm" enctype="multipart/form-data">
           <div class="upload-row">
             <div>
-              <label>Titre</label>
-              <input type="text" name="titre" placeholder="Ex : Mariage à Errachidia" required>
+              <label><?= tt('Titre','العنوان') ?></label>
+              <input type="text" name="titre" placeholder="<?= tt('Ex : Mariage à Errachidia','مثال: حفل زفاف في الراشيدية') ?>" required>
             </div>
             <div>
-              <label>Catégorie</label>
+              <label><?= tt('Catégorie','التصنيف') ?></label>
               <select name="categorie_id">
                 <?php foreach ($categories as $c): ?>
                 <option value="<?= $c['id'] ?>"><?= htmlspecialchars($c['nom']) ?></option>
@@ -208,12 +208,12 @@ try {
               </select>
             </div>
             <div>
-              <label>Photo (JPG/PNG/WEBP, max 5 Mo)</label>
+              <label><?= tt('Photo (JPG/PNG/WEBP, max 5 Mo)','صورة (JPG/PNG/WEBP، الحد الأقصى 5 م.ب)') ?></label>
               <input type="file" name="fichier" accept="image/*" required>
             </div>
             <div>
               <input type="hidden" name="type" value="photo">
-              <button type="submit" id="uploadBtn"><i class="fas fa-upload"></i> Uploader</button>
+              <button type="submit" id="uploadBtn"><i class="fas fa-upload"></i> <?= tt('Uploader','رفع') ?></button>
             </div>
           </div>
         </form>
@@ -223,17 +223,17 @@ try {
         <div>
           <button type="button" onclick="document.getElementById('videoPanel').classList.toggle('show')"
                   style="background:none;border:none;color:var(--gold);font-size:.78rem;cursor:pointer;margin-top:10px">
-            <i class="fas fa-video"></i> + Ajouter une vidéo (lien YouTube/Vimeo)
+            <i class="fas fa-video"></i> + <?= tt('Ajouter une vidéo (lien YouTube/Vimeo)','إضافة فيديو (رابط يوتيوب/فيميو)') ?>
           </button>
           <div class="video-toggle-panel" id="videoPanel">
             <form method="POST" class="upload-row">
               <input type="hidden" name="action" value="add_video">
               <div>
-                <label>Titre</label>
+                <label><?= tt('Titre','العنوان') ?></label>
                 <input type="text" name="titre" required>
               </div>
               <div>
-                <label>Catégorie</label>
+                <label><?= tt('Catégorie','التصنيف') ?></label>
                 <select name="categorie_id">
                   <?php foreach ($categories as $c): ?>
                   <option value="<?= $c['id'] ?>"><?= htmlspecialchars($c['nom']) ?></option>
@@ -245,7 +245,7 @@ try {
                 <input type="url" name="url_video" placeholder="https://youtube.com/..." required>
               </div>
               <div>
-                <button type="submit"><i class="fas fa-plus"></i> Ajouter</button>
+                <button type="submit"><i class="fas fa-plus"></i> <?= t('ajouter') ?></button>
               </div>
             </form>
           </div>
@@ -254,14 +254,14 @@ try {
 
       <!-- Filtres -->
       <div class="filters-bar">
-        <a href="?" class="tfilter <?= !$filtreCat && !$filtreType ? 'active':'' ?>">Toutes</a>
+        <a href="?" class="tfilter <?= !$filtreCat && !$filtreType ? 'active':'' ?>"><?= tt('Toutes','الكل') ?></a>
         <?php foreach ($categories as $c): ?>
         <a href="?cat=<?= $c['id'] ?>" class="tfilter <?= $filtreCat == $c['id'] ? 'active':'' ?>"><?= htmlspecialchars($c['nom']) ?></a>
         <?php endforeach; ?>
-        <a href="?type_media=video" class="tfilter <?= $filtreType === 'video' ? 'active':'' ?>"><i class="fas fa-video"></i> Vidéos</a>
-        <a href="?inactif=1" class="tfilter <?= $showInactif ? 'active':'' ?>"><i class="fas fa-eye-slash"></i> Voir les masquées</a>
+        <a href="?type_media=video" class="tfilter <?= $filtreType === 'video' ? 'active':'' ?>"><i class="fas fa-video"></i> <?= tt('Vidéos','فيديوهات') ?></a>
+        <a href="?inactif=1" class="tfilter <?= $showInactif ? 'active':'' ?>"><i class="fas fa-eye-slash"></i> <?= tt('Voir les masquées','عرض المخفية') ?></a>
         <form method="GET" style="display:inline-flex;gap:6px;margin-left:auto">
-          <input type="search" name="q" placeholder="🔍 Rechercher..." value="<?= htmlspecialchars($recherche) ?>">
+          <input type="search" name="q" placeholder="🔍 <?= tt('Rechercher...','بحث...') ?>" value="<?= htmlspecialchars($recherche) ?>">
         </form>
       </div>
 
@@ -269,7 +269,7 @@ try {
       <?php if (empty($items)): ?>
       <div style="padding:60px 20px;text-align:center;color:#555;background:var(--dark-card);border:1px solid var(--border);border-radius:var(--radius)">
         <i class="fas fa-images" style="font-size:2.5rem;opacity:.2;display:block;margin-bottom:14px"></i>
-        Aucun élément ne correspond à ces critères.
+        <?= tt('Aucun élément ne correspond à ces critères.','لا يوجد عنصر مطابق لهذه المعايير.') ?>
       </div>
       <?php else: ?>
       <div class="gal-grid">
@@ -287,26 +287,26 @@ try {
             <form method="POST" style="display:contents">
               <input type="hidden" name="action" value="toggle_vedette">
               <input type="hidden" name="id" value="<?= $it['id'] ?>">
-              <button type="submit" class="gal-star <?= $it['en_vedette'] ? 'active' : '' ?>" title="Mettre en avant">
+              <button type="submit" class="gal-star <?= $it['en_vedette'] ? 'active' : '' ?>" title="<?= tt('Mettre en avant','تمييز') ?>">
                 <i class="fas fa-star"></i>
               </button>
             </form>
           </div>
           <div class="gal-body">
-            <div class="gal-title"><?= htmlspecialchars($it['titre'] ?: 'Sans titre') ?></div>
-            <div class="gal-cat"><?= $it['type'] === 'video' ? '🎬 Vidéo' : '📷 Photo' ?></div>
+            <div class="gal-title"><?= htmlspecialchars($it['titre'] ?: tt('Sans titre','بدون عنوان')) ?></div>
+            <div class="gal-cat"><?= $it['type'] === 'video' ? '🎬 '.tt('Vidéo','فيديو') : '📷 '.tt('Photo','صورة') ?></div>
             <div class="gal-actions">
-              <button type="button" onclick="document.getElementById('edit-<?= $it['id'] ?>').classList.toggle('show')" title="Modifier">
+              <button type="button" onclick="document.getElementById('edit-<?= $it['id'] ?>').classList.toggle('show')" title="<?= t('modifier') ?>">
                 <i class="fas fa-edit"></i>
               </button>
               <form method="POST" style="display:contents">
                 <input type="hidden" name="action" value="toggle_actif">
                 <input type="hidden" name="id" value="<?= $it['id'] ?>">
-                <button type="submit" class="<?= $it['actif'] ? '' : 'ok' ?>" title="<?= $it['actif'] ? 'Masquer' : 'Réactiver' ?>">
+                <button type="submit" class="<?= $it['actif'] ? '' : 'ok' ?>" title="<?= $it['actif'] ? tt('Masquer','إخفاء') : tt('Réactiver','إعادة التفعيل') ?>">
                   <i class="fas fa-<?= $it['actif'] ? 'eye-slash' : 'eye' ?>"></i>
                 </button>
               </form>
-              <button type="button" class="danger" onclick="deleteItem(<?= $it['id'] ?>, '<?= $it['type'] ?>')" title="Supprimer">
+              <button type="button" class="danger" onclick="deleteItem(<?= $it['id'] ?>, '<?= $it['type'] ?>')" title="<?= t('supprimer') ?>">
                 <i class="fas fa-trash"></i>
               </button>
             </div>
@@ -315,22 +315,22 @@ try {
             <form method="POST">
               <input type="hidden" name="action" value="update">
               <input type="hidden" name="id" value="<?= $it['id'] ?>">
-              <label>Titre</label>
+              <label><?= tt('Titre','العنوان') ?></label>
               <input type="text" name="titre" value="<?= htmlspecialchars($it['titre'] ?? '') ?>">
-              <label>Description</label>
+              <label><?= tt('Description','الوصف') ?></label>
               <textarea name="description"><?= htmlspecialchars($it['description'] ?? '') ?></textarea>
-              <label>Texte alternatif (SEO)</label>
+              <label><?= tt('Texte alternatif (SEO)','نص بديل (SEO)') ?></label>
               <input type="text" name="alt_text" value="<?= htmlspecialchars($it['alt_text'] ?? '') ?>">
-              <label>Catégorie</label>
+              <label><?= tt('Catégorie','التصنيف') ?></label>
               <select name="categorie_id">
                 <?php foreach ($categories as $c): ?>
                 <option value="<?= $c['id'] ?>" <?= $it['categorie_id'] == $c['id'] ? 'selected':'' ?>><?= htmlspecialchars($c['nom']) ?></option>
                 <?php endforeach; ?>
               </select>
-              <label>Ordre d'affichage</label>
+              <label><?= tt("Ordre d'affichage",'ترتيب العرض') ?></label>
               <input type="number" name="ordre" value="<?= (int)$it['ordre'] ?>">
               <button type="submit" style="background:var(--gold);color:var(--dark);border:none;border-radius:6px;padding:8px;width:100%;font-weight:700;font-size:.78rem;cursor:pointer;margin-top:4px">
-                <i class="fas fa-save"></i> Enregistrer
+                <i class="fas fa-save"></i> <?= t('enregistrer') ?>
               </button>
             </form>
           </div>

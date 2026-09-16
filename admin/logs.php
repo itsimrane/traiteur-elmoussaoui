@@ -109,7 +109,7 @@ function timeAgo(string $time): string
 }
 ?>
 <!DOCTYPE html>
-<html lang="fr">
+<html lang="<?= adminLang() ?>" dir="<?= adminDir() ?>">
 
 <head>
   <meta charset="UTF-8">
@@ -297,7 +297,7 @@ function timeAgo(string $time): string
 
 <body>
   <div class="sidebar-overlay" id="sidebarOverlay"></div>
-  <div class="admin-layout">
+  <div class="admin-layout <?= adminRtlClass() ?>">
 
     <?php $activePage = 'logs';
     include_once __DIR__ . '/../includes/admin-sidebar.php'; ?>
@@ -307,9 +307,8 @@ function timeAgo(string $time): string
         <div style="display:flex;align-items:center;gap:12px">
           <button id="sidebarToggle" class="topbar-btn"><i class="fas fa-bars"></i></button>
           <div class="topbar-title">
-            <h2 data-fr="Journaux d'activité" data-ar="سجلات النشاط">Journaux d'activité</h2>
-            <p data-fr="Historique des événements du site" data-ar="سجل أحداث الموقع">Historique des événements du site
-            </p>
+            <h2 data-fr="Journaux d'activité" data-ar="سجلات النشاط"><?= tt('Journaux d\'activité', 'سجلات النشاط') ?></h2>
+            <p data-fr="Historique des événements du site" data-ar="سجل أحداث الموقع"><?= tt('Historique des événements du site', 'سجل أحداث الموقع') ?></p>
           </div>
         </div>
         <div class="topbar-actions">
@@ -325,7 +324,7 @@ function timeAgo(string $time): string
           <div
             style="font-size:.72rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:12px;font-weight:700">
             <i class="fas fa-calendar-day" style="color:var(--gold);margin-right:6px"></i><span data-fr="AUJOURD'HUI"
-              data-ar="اليوم" data-fr="AUJOURD'HUI" data-ar="اليوم">AUJOURD'HUI</span>
+              data-ar="اليوم" data-fr="AUJOURD'HUI" data-ar="اليوم"><?= tt('AUJOURD\'HUI', 'اليوم') ?></span>
           </div>
           <div class="today-stats">
             <div class="info-card">
@@ -333,7 +332,7 @@ function timeAgo(string $time): string
                   class="fas fa-calendar-check"></i></div>
               <div>
                 <div class="info-val"><?= $statsToday['reservations'] ?? 0 ?></div>
-                <div class="info-lbl" data-fr="Réservations" data-ar="الحجوزات">Réservations</div>
+                <div class="info-lbl" data-fr="Réservations" data-ar="الحجوزات"><?= tt('Réservations', 'الحجوزات') ?></div>
               </div>
             </div>
             <div class="info-card">
@@ -341,7 +340,7 @@ function timeAgo(string $time): string
                   class="fas fa-envelope"></i></div>
               <div>
                 <div class="info-val"><?= $statsToday['messages'] ?? 0 ?></div>
-                <div class="info-lbl" data-fr="Messages" data-ar="الرسائل">Messages</div>
+                <div class="info-lbl" data-fr="Messages" data-ar="الرسائل"><?= tt('Messages', 'الرسائل') ?></div>
               </div>
             </div>
             <div class="info-card">
@@ -349,7 +348,7 @@ function timeAgo(string $time): string
               </div>
               <div>
                 <div class="info-val"><?= $statsToday['clients'] ?? 0 ?></div>
-                <div class="info-lbl" data-fr="Nouveaux clients" data-ar="عملاء جدد">Nouveaux clients</div>
+                <div class="info-lbl" data-fr="Nouveaux clients" data-ar="عملاء جدد"><?= tt('Nouveaux clients', 'عملاء جدد') ?></div>
               </div>
             </div>
           </div>
@@ -359,28 +358,24 @@ function timeAgo(string $time): string
         <div
           style="font-size:.72rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:12px;font-weight:700">
           <i class="fas fa-history" style="color:var(--gold);margin-right:6px"></i><span data-fr="ACTIVITÉ RÉCENTE"
-            data-ar="النشاط الأخير" data-fr="ACTIVITÉ RÉCENTE" data-ar="النشاط الأخير">ACTIVITÉ RÉCENTE</span>
+            data-ar="النشاط الأخير" data-fr="ACTIVITÉ RÉCENTE" data-ar="النشاط الأخير"><?= tt('ACTIVITÉ RÉCENTE', 'النشاط الأخير') ?></span>
         </div>
 
         <?php if (empty($activites)): ?>
           <div class="log-list">
             <div class="empty-log">
               <i class="fas fa-history"></i>
-              <p><span data-fr="Aucune activité récente" data-ar="لا يوجد نشاط حديث">Aucune activité récente</span> à
+              <p><span data-fr="Aucune activité récente" data-ar="لا يوجد نشاط حديث"><?= tt('Aucune activité récente', 'لا يوجد نشاط حديث') ?></span> à
                 afficher.</p>
               <p style="font-size:.78rem;margin-top:6px"
-                data-fr="Les réservations, messages et témoignages apparaîtront ici."
-                data-ar="ستظهر الحجوزات والرسائل والشهادات هنا.">Les réservations, messages et témoignages apparaîtront
-                ici.</p>
+                data-fr="Les réservations, messages et témoignages apparaîtront ici." data-ar="ستظهر الحجوزات والرسائل والشهادات هنا."><?= tt('Les réservations, messages et témoignages apparaîtront ici.', 'ستظهر الحجوزات والرسائل والشهادات هنا.') ?></p>
             </div>
           </div>
         <?php else: ?>
           <div class="log-list">
             <div class="log-header">
-              <h3><i class="fas fa-history" style="color:var(--gold);margin-right:8px"></i><span data-fr="Flux d'activité"
-                  data-ar="تدفق النشاط">Flux d'activité</span></h3>
-              <span style="font-size:.75rem;color:var(--text-muted)"><?= count($activites) ?> <span data-fr="entrées"
-                  data-ar="إدخالات">entrées</span></span>
+              <h3><i class="fas fa-history" style="color:var(--gold);margin-right:8px"></i><span data-fr="Flux d'activité" data-ar="تدفق النشاط"><?= tt('Flux d\'activité', 'تدفق النشاط') ?></span></h3>
+              <span style="font-size:.75rem;color:var(--text-muted)"><?= count($activites) ?> <span data-fr="entrées" data-ar="إدخالات"><?= tt('entrées', 'إدخالات') ?></span></span>
             </div>
             <?php foreach ($activites as $a): ?>
               <a href="<?= htmlspecialchars($a['lien']) ?>" class="log-item">
@@ -403,18 +398,14 @@ function timeAgo(string $time): string
           <div
             style="font-size:.78rem;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:14px">
             <i class="fas fa-server" style="color:var(--gold);margin-right:6px"></i><span data-fr="INFORMATIONS SYSTÈME"
-              data-ar="معلومات النظام" data-fr="INFORMATIONS SYSTÈME" data-ar="معلومات النظام">INFORMATIONS
-              SYSTÈME</span>
+              data-ar="معلومات النظام" data-fr="INFORMATIONS SYSTÈME" data-ar="معلومات النظام"><?= tt('INFORMATIONS SYSTÈME', 'معلومات النظام') ?></span>
           </div>
           <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:12px;font-size:.8rem">
-            <div><span style="color:var(--text-muted)"><span data-fr="PHP Version" data-ar="إصدار PHP">PHP
-                  Version</span> :</span> <span style="color:var(--white)"><?= phpversion() ?></span></div>
-            <div><span style="color:var(--text-muted)"><span data-fr="Serveur" data-ar="الخادم">Serveur</span> :</span>
+            <div><span style="color:var(--text-muted)"><span data-fr="PHP Version" data-ar="إصدار PHP"><?= tt('PHP Version', 'إصدار PHP') ?></span> :</span> <span style="color:var(--white)"><?= phpversion() ?></span></div>
+            <div><span style="color:var(--text-muted)"><span data-fr="Serveur" data-ar="الخادم"><?= tt('Serveur', 'الخادم') ?></span> :</span>
               <span style="color:var(--white)"><?= $_SERVER['SERVER_SOFTWARE'] ?? 'Apache/Nginx' ?></span></div>
-            <div><span style="color:var(--text-muted)"><span data-fr="Heure serveur" data-ar="وقت الخادم">Heure
-                  serveur</span> :</span> <span style="color:var(--white)"><?= date('d/m/Y H:i:s') ?></span></div>
-            <div><span style="color:var(--text-muted)"><span data-fr="Mémoire utilisée"
-                  data-ar="الذاكرة المستخدمة">Mémoire utilisée</span> :</span> <span
+            <div><span style="color:var(--text-muted)"><span data-fr="Heure serveur" data-ar="وقت الخادم"><?= tt('Heure serveur', 'وقت الخادم') ?></span> :</span> <span style="color:var(--white)"><?= date('d/m/Y H:i:s') ?></span></div>
+            <div><span style="color:var(--text-muted)"><span data-fr="Mémoire utilisée" data-ar="الذاكرة المستخدمة"><?= tt('Mémoire utilisée', 'الذاكرة المستخدمة') ?></span> :</span> <span
                 style="color:var(--white)"><?= round(memory_get_usage() / 1024 / 1024, 2) ?> MB</span></div>
           </div>
         </div>

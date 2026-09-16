@@ -19,11 +19,11 @@ try {
 } catch (Exception $e) { $erreurBdd = $e->getMessage(); }
 ?>
 <!DOCTYPE html>
-<html lang="fr">
+<html lang="<?= adminLang() ?>" dir="<?= adminDir() ?>">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0">
-<title>Capacité par événement — Admin EL MOUSSAOUI</title>
+<title><?= t('capacite_evenements') ?> — Admin EL MOUSSAOUI</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@600;700&family=Jost:wght@300;400;500;600&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
@@ -45,13 +45,13 @@ try {
 </head>
 <body>
 <div class="sidebar-overlay" id="sidebarOverlay"></div>
-<div class="admin-layout">
+<div class="admin-layout <?= adminRtlClass() ?>">
   <?php $activePage = 'types-evenements'; include_once __DIR__ . '/../includes/admin-sidebar.php'; ?>
   <main class="admin-main">
     <div class="admin-topbar">
       <div style="display:flex;align-items:center;gap:12px">
         <button id="sidebarToggle" class="topbar-btn"><i class="fas fa-bars"></i></button>
-        <div class="topbar-title"><h2>Capacité par événement</h2><p>Nombre maximal d'invités autorisé pour chaque type</p></div>
+        <div class="topbar-title"><h2><?= t('capacite_evenements') ?></h2><p><?= tt("Nombre maximal d'invités autorisé pour chaque type",'العدد الأقصى المسموح به من الضيوف لكل نوع') ?></p></div>
       </div>
     </div>
     <div class="admin-content">
@@ -61,7 +61,7 @@ try {
       </div>
       <?php endif; ?>
       <?php if (!empty($erreurBdd)): ?>
-      <div class="alert alert-error" style="margin-bottom:20px">Erreur : <?= htmlspecialchars($erreurBdd) ?></div>
+      <div class="alert alert-error" style="margin-bottom:20px"><?= tt('Erreur','خطأ') ?> : <?= htmlspecialchars($erreurBdd) ?></div>
       <?php endif; ?>
 
       <div class="cap-grid">
@@ -71,10 +71,10 @@ try {
           <form method="POST" class="cap-form">
             <input type="hidden" name="action" value="update_max">
             <input type="hidden" name="id" value="<?= $t['id'] ?>">
-            <input type="number" name="max_invites" min="1" placeholder="Illimité" value="<?= htmlspecialchars($t['max_invites'] ?? '') ?>">
-            <button type="submit"><i class="fas fa-save"></i> Enregistrer</button>
+            <input type="number" name="max_invites" min="1" placeholder="<?= tt('Illimité','غير محدود') ?>" value="<?= htmlspecialchars($t['max_invites'] ?? '') ?>">
+            <button type="submit"><i class="fas fa-save"></i> <?= t('enregistrer') ?></button>
           </form>
-          <div class="cap-hint">Laisser vide = aucune limite pour ce type d'événement.</div>
+          <div class="cap-hint"><?= tt("Laisser vide = aucune limite pour ce type d'événement.",'اتركه فارغاً = لا يوجد حد لهذا النوع من المناسبات.') ?></div>
         </div>
         <?php endforeach; ?>
       </div>

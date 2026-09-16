@@ -44,3 +44,14 @@ function adminRtlClass(): string
 {
     return adminLang() === 'ar' ? 'admin-rtl' : '';
 }
+
+/**
+ * Traduction ponctuelle inline (complète t()) : pour un texte spécifique
+ * à une seule page (titre, message précis) qu'il est plus simple d'écrire
+ * directement sur place plutôt que d'ajouter une clé au dictionnaire.
+ * Usage : <?= tt('Gestion Clients', 'إدارة العملاء') ?>
+ */
+function tt(string $fr, string $ar): string
+{
+    return adminLang() === 'ar' ? $ar : $fr;
+}

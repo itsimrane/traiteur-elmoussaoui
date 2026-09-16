@@ -87,32 +87,32 @@ $moisEnCours  = array_filter($paiements, fn($p) => substr($p['date_paiement'],0,
 $totalMois    = array_sum(array_column(iterator_to_array((function() use ($moisEnCours) { foreach($moisEnCours as $v) yield $v; })()),'montant'));
 
 $typeConfig = [
-    'acompte'       => ['label'=>'Acompte',       'color'=>'#FBB724','bg'=>'rgba(251,183,36,.12)'],
-    'solde'         => ['label'=>'Solde',          'color'=>'#25D366','bg'=>'rgba(37,211,102,.12)'],
-    'remboursement' => ['label'=>'Remboursement',  'color'=>'#EF5350','bg'=>'rgba(239,68,68,.12)'],
-    'autre'         => ['label'=>'Autre',          'color'=>'#888',   'bg'=>'rgba(136,136,136,.1)'],
+    'acompte'       => ['label'=>tt('Acompte','دفعة أولى'),       'color'=>'#FBB724','bg'=>'rgba(251,183,36,.12)'],
+    'solde'         => ['label'=>tt('Solde','الرصيد'),          'color'=>'#25D366','bg'=>'rgba(37,211,102,.12)'],
+    'remboursement' => ['label'=>tt('Remboursement','استرداد'),  'color'=>'#EF5350','bg'=>'rgba(239,68,68,.12)'],
+    'autre'         => ['label'=>tt('Autre','آخر'),          'color'=>'#888',   'bg'=>'rgba(136,136,136,.1)'],
 ];
 $modeIcons = [
-    'especes'  => ['icon'=>'fa-money-bill-wave', 'label'=>'Espèces'],
-    'virement' => ['icon'=>'fa-university',      'label'=>'Virement'],
-    'cheque'   => ['icon'=>'fa-file-alt',        'label'=>'Chèque'],
-    'autre'    => ['icon'=>'fa-ellipsis-h',      'label'=>'Autre'],
+    'especes'  => ['icon'=>'fa-money-bill-wave', 'label'=>tt('Espèces','نقداً')],
+    'virement' => ['icon'=>'fa-university',      'label'=>tt('Virement','تحويل بنكي')],
+    'cheque'   => ['icon'=>'fa-file-alt',        'label'=>tt('Chèque','شيك')],
+    'autre'    => ['icon'=>'fa-ellipsis-h',      'label'=>tt('Autre','آخر')],
 ];
 $statutConfig = [
-    'recu'       => ['label'=>'Reçu ✓',    'color'=>'#25D366','bg'=>'rgba(37,211,102,.12)'],
-    'en_attente' => ['label'=>'En attente', 'color'=>'#FBB724','bg'=>'rgba(251,183,36,.12)'],
-    'annule'     => ['label'=>'Annulé',    'color'=>'#EF5350','bg'=>'rgba(239,68,68,.12)'],
+    'recu'       => ['label'=>tt('Reçu','مستلم') . ' ✓',    'color'=>'#25D366','bg'=>'rgba(37,211,102,.12)'],
+    'en_attente' => ['label'=>tt('En attente','قيد الانتظار'), 'color'=>'#FBB724','bg'=>'rgba(251,183,36,.12)'],
+    'annule'     => ['label'=>tt('Annulé','ملغى'),    'color'=>'#EF5350','bg'=>'rgba(239,68,68,.12)'],
 ];
 
 $msg     = $_GET['msg']  ?? '';
 $msgType = $_GET['type'] ?? 'success';
 ?>
 <!DOCTYPE html>
-<html lang="fr">
+<html lang="<?= adminLang() ?>" dir="<?= adminDir() ?>">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Paiements — Admin EL MOUSSAOUI</title>
+  <title><?= t('paiements') ?> — Admin EL MOUSSAOUI</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@600;700&family=Jost:wght@300;400;500;600&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
@@ -162,7 +162,7 @@ $msgType = $_GET['type'] ?? 'success';
 </head>
 <body>
 <div class="sidebar-overlay" id="sidebarOverlay"></div>
-<div class="admin-layout">
+<div class="admin-layout <?= adminRtlClass() ?>">
 
   <?php $activePage = 'paiements'; include_once __DIR__ . '/../includes/admin-sidebar.php'; ?>
 
@@ -170,12 +170,12 @@ $msgType = $_GET['type'] ?? 'success';
     <div class="admin-topbar">
       <div style="display:flex;align-items:center;gap:12px">
         <button id="sidebarToggle" class="topbar-btn"><i class="fas fa-bars"></i></button>
-        <div class="topbar-title"><h2 data-fr="Suivi Paiements" data-ar="متابعة المدفوعات">Suivi Paiements</h2><p data-fr="Acomptes, soldes et encaissements" data-ar="الدفعات الأولى، الأرصدة والتحصيلات">Acomptes, soldes et encaissements</p></div>
+        <div class="topbar-title"><h2 data-fr="Suivi Paiements" data-ar="متابعة المدفوعات"><?= tt('Suivi Paiements', 'متابعة المدفوعات') ?></h2><p data-fr="Acomptes, soldes et encaissements" data-ar="الدفعات الأولى، الأرصدة والتحصيلات"><?= tt('Acomptes, soldes et encaissements', 'الدفعات الأولى، الأرصدة والتحصيلات') ?></p></div>
       </div>
       <div class="topbar-actions">
         <button class="topbar-btn" onclick="location.reload()"><i class="fas fa-sync-alt"></i></button>
         <button class="btn-primary" style="padding:8px 18px;font-size:.82rem" onclick="openAdd()">
-          <i class="fas fa-plus"></i> <span data-fr="Enregistrer un paiement" data-ar="تسجيل دفعة">Enregistrer un paiement</span>
+          <i class="fas fa-plus"></i> <span data-fr="Enregistrer un paiement" data-ar="تسجيل دفعة"><?= tt('Enregistrer un paiement', 'تسجيل دفعة') ?></span>
         </button>
         <div class="admin-avatar">A</div>
       </div>
@@ -195,22 +195,22 @@ $msgType = $_GET['type'] ?? 'success';
         <div class="stat-card">
           <div class="stat-card-header"><div class="stat-card-icon gold"><i class="fas fa-credit-card"></i></div></div>
           <div class="stat-card-value"><?= $total ?></div>
-          <div class="stat-card-label" data-fr="Total paiements" data-ar="إجمالي الدفعات">Total paiements</div>
+          <div class="stat-card-label" data-fr="Total paiements" data-ar="إجمالي الدفعات"><?= tt('Total paiements', 'إجمالي الدفعات') ?></div>
         </div>
         <div class="stat-card">
           <div class="stat-card-header"><div class="stat-card-icon" style="background:rgba(37,211,102,.1);color:#25D366"><i class="fas fa-coins"></i></div></div>
           <div class="stat-card-value" style="font-size:1.1rem" dir="ltr"><?= number_format($totalEncaisse,0,',',' ') ?></div>
-          <div class="stat-card-label" data-fr="Total encaissé (MAD)" data-ar="إجمالي المحصّل (MAD)">Total encaissé (MAD)</div>
+          <div class="stat-card-label" data-fr="Total encaissé (MAD)" data-ar="إجمالي المحصّل (MAD)"><?= tt('Total encaissé (MAD)', 'إجمالي المحصّل (MAD)') ?></div>
         </div>
         <div class="stat-card">
           <div class="stat-card-header"><div class="stat-card-icon" style="background:rgba(59,130,246,.1);color:#60A5FA"><i class="fas fa-calendar-alt"></i></div></div>
           <div class="stat-card-value" style="font-size:1.1rem" dir="ltr"><?= number_format($totalMois,0,',',' ') ?></div>
-          <div class="stat-card-label" data-fr="Ce mois (MAD)" data-ar="هذا الشهر (MAD)">Ce mois (MAD)</div>
+          <div class="stat-card-label" data-fr="Ce mois (MAD)" data-ar="هذا الشهر (MAD)"><?= tt('Ce mois (MAD)', 'هذا الشهر (MAD)') ?></div>
         </div>
         <div class="stat-card">
           <div class="stat-card-header"><div class="stat-card-icon" style="background:rgba(251,183,36,.1);color:#FBB724"><i class="fas fa-hourglass-half"></i></div></div>
           <div class="stat-card-value"><?= count($enAttente) ?></div>
-          <div class="stat-card-label" data-fr="En attente" data-ar="في الانتظار">En attente</div>
+          <div class="stat-card-label" data-fr="En attente" data-ar="في الانتظار"><?= tt('En attente', 'في الانتظار') ?></div>
         </div>
       </div>
 
@@ -240,16 +240,16 @@ $msgType = $_GET['type'] ?? 'success';
       <div class="table-wrap">
         <div class="table-topbar">
           <h3 style="color:var(--white);font-size:.9rem">
-            <i class="fas fa-list" style="color:var(--gold);margin-right:8px"></i><span data-fr="Historique des paiements" data-ar="سجل المدفوعات">Historique des paiements</span> (<?= $total ?>)
+            <i class="fas fa-list" style="color:var(--gold);margin-right:8px"></i><span data-fr="Historique des paiements" data-ar="سجل المدفوعات"><?= tt('Historique des paiements', 'سجل المدفوعات') ?></span> (<?= $total ?>)
           </h3>
           <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center">
             <input type="text" class="search-input" id="searchPai" placeholder="🔍 Client, facture..." data-fr-placeholder="🔍 Client, facture..." data-ar-placeholder="🔍 العميل، الفاتورة..." oninput="filterPai()">
             <div style="display:flex;gap:6px">
-              <button class="tfilter active" onclick="setFilter('all',this)" data-fr="Tous" data-ar="الكل">Tous</button>
-              <button class="tfilter" onclick="setFilter('recu',this)" data-fr="Reçus" data-ar="مستلمة">Reçus</button>
-              <button class="tfilter" onclick="setFilter('en_attente',this)" data-fr="En attente" data-ar="في الانتظار">En attente</button>
-              <button class="tfilter" onclick="setFilter('acompte','type',this)" data-fr="Acomptes" data-ar="دفعات أولى">Acomptes</button>
-              <button class="tfilter" onclick="setFilter('solde','type',this)" data-fr="Soldes" data-ar="أرصدة">Soldes</button>
+              <button class="tfilter active" onclick="setFilter('all',this)" data-fr="Tous" data-ar="الكل"><?= tt('Tous', 'الكل') ?></button>
+              <button class="tfilter" onclick="setFilter('recu',this)" data-fr="Reçus" data-ar="مستلمة"><?= tt('Reçus', 'مستلمة') ?></button>
+              <button class="tfilter" onclick="setFilter('en_attente',this)" data-fr="En attente" data-ar="في الانتظار"><?= tt('En attente', 'في الانتظار') ?></button>
+              <button class="tfilter" onclick="setFilter('acompte','type',this)" data-fr="Acomptes" data-ar="دفعات أولى"><?= tt('Acomptes', 'دفعات أولى') ?></button>
+              <button class="tfilter" onclick="setFilter('solde','type',this)" data-fr="Soldes" data-ar="أرصدة"><?= tt('Soldes', 'أرصدة') ?></button>
             </div>
           </div>
         </div>
@@ -257,9 +257,9 @@ $msgType = $_GET['type'] ?? 'success';
         <?php if (empty($paiements)): ?>
         <div class="empty-state">
           <i class="fas fa-credit-card"></i>
-          <p data-fr="Aucun paiement enregistré pour l'instant." data-ar="لا توجد مدفوعات مسجلة حالياً.">Aucun paiement enregistré pour l'instant.</p>
+          <p data-fr="Aucun paiement enregistré pour l'instant." data-ar="لا توجد مدفوعات مسجلة حالياً."><?= tt('Aucun paiement enregistré pour l\'instant.', 'لا توجد مدفوعات مسجلة حالياً.') ?></p>
           <button class="btn-primary" style="margin-top:16px" onclick="openAdd()">
-            <i class="fas fa-plus"></i> <span data-fr="Enregistrer le premier paiement" data-ar="تسجيل أول دفعة">Enregistrer le premier paiement</span>
+            <i class="fas fa-plus"></i> <span data-fr="Enregistrer le premier paiement" data-ar="تسجيل أول دفعة"><?= tt('Enregistrer le premier paiement', 'تسجيل أول دفعة') ?></span>
           </button>
         </div>
         <?php else: ?>
@@ -268,14 +268,14 @@ $msgType = $_GET['type'] ?? 'success';
           <thead>
             <tr>
               <th>#</th>
-              <th data-fr="Client" data-ar="العميل">Client</th>
-              <th data-fr="Facture" data-ar="الفاتورة">Facture</th>
-              <th data-fr="Montant" data-ar="المبلغ">Montant</th>
-              <th data-fr="Type" data-ar="النوع">Type</th>
-              <th data-fr="Mode" data-ar="طريقة الدفع">Mode</th>
-              <th data-fr="Statut" data-ar="الحالة">Statut</th>
-              <th data-fr="Date" data-ar="التاريخ">Date</th>
-              <th data-fr="Actions" data-ar="الإجراءات">Actions</th>
+              <th data-fr="Client" data-ar="العميل"><?= tt('Client', 'العميل') ?></th>
+              <th data-fr="Facture" data-ar="الفاتورة"><?= tt('Facture', 'الفاتورة') ?></th>
+              <th data-fr="Montant" data-ar="المبلغ"><?= tt('Montant', 'المبلغ') ?></th>
+              <th data-fr="Type" data-ar="النوع"><?= tt('Type', 'النوع') ?></th>
+              <th data-fr="Mode" data-ar="طريقة الدفع"><?= tt('Mode', 'طريقة الدفع') ?></th>
+              <th data-fr="Statut" data-ar="الحالة"><?= tt('Statut', 'الحالة') ?></th>
+              <th data-fr="Date" data-ar="التاريخ"><?= tt('Date', 'التاريخ') ?></th>
+              <th data-fr="Actions" data-ar="الإجراءات"><?= tt('Actions', 'الإجراءات') ?></th>
             </tr>
           </thead>
           <tbody>
@@ -337,7 +337,7 @@ $msgType = $_GET['type'] ?? 'success';
 <div class="modal-overlay" id="addModal">
   <div class="modal-box">
     <div class="modal-header">
-      <h3><i class="fas fa-plus-circle" style="color:var(--gold);margin-right:8px"></i><span data-fr="Enregistrer un paiement" data-ar="تسجيل دفعة">Enregistrer un paiement</span></h3>
+      <h3><i class="fas fa-plus-circle" style="color:var(--gold);margin-right:8px"></i><span data-fr="Enregistrer un paiement" data-ar="تسجيل دفعة"><?= tt('Enregistrer un paiement', 'تسجيل دفعة') ?></span></h3>
       <button class="modal-close" onclick="closeAdd()"><i class="fas fa-times"></i></button>
     </div>
     <form method="POST">
@@ -361,7 +361,7 @@ $msgType = $_GET['type'] ?? 'success';
             </select>
           </div>
           <div class="form-group">
-            <label class="form-label" data-fr="N° Facture" data-ar="رقم الفاتورة">N° Facture</label>
+            <label class="form-label" data-fr="N° Facture" data-ar="رقم الفاتورة"><?= tt('N° Facture', 'رقم الفاتورة') ?></label>
             <input type="text" name="facture_num" id="facNum" class="form-control" placeholder="FAC-2026-0001" data-fr-placeholder="FAC-2026-0001" data-ar-placeholder="FAC-2026-0001">
           </div>
           <div class="form-group">
@@ -369,7 +369,7 @@ $msgType = $_GET['type'] ?? 'success';
             <input type="text" name="nom_client" id="nomClient" class="form-control" required>
           </div>
           <div class="form-group">
-            <label class="form-label" data-fr="Téléphone" data-ar="الهاتف">Téléphone</label>
+            <label class="form-label" data-fr="Téléphone" data-ar="الهاتف"><?= tt('Téléphone', 'الهاتف') ?></label>
             <input type="tel" name="telephone" class="form-control" placeholder="06XXXXXXXX" data-fr-placeholder="06XXXXXXXX" data-ar-placeholder="06XXXXXXXX">
           </div>
           <div class="form-group">
@@ -384,13 +384,13 @@ $msgType = $_GET['type'] ?? 'success';
             <label class="form-label">Type</label>
             <select name="type" class="form-control">
               <option value="acompte">Acompte (30%)</option>
-              <option value="solde" data-fr="Solde" data-ar="رصيد">Solde</option>
+              <option value="solde" data-fr="Solde" data-ar="رصيد"><?= tt('Solde', 'رصيد') ?></option>
               <option value="remboursement">Remboursement</option>
               <option value="autre">Autre</option>
             </select>
           </div>
           <div class="form-group">
-            <label class="form-label" data-fr="Mode de paiement" data-ar="طريقة الدفع">Mode de paiement</label>
+            <label class="form-label" data-fr="Mode de paiement" data-ar="طريقة الدفع"><?= tt('Mode de paiement', 'طريقة الدفع') ?></label>
             <select name="mode" class="form-control">
               <option value="especes">💵 Espèces</option>
               <option value="virement">🏦 Virement</option>
@@ -399,10 +399,10 @@ $msgType = $_GET['type'] ?? 'success';
             </select>
           </div>
           <div class="form-group">
-            <label class="form-label" data-fr="Statut" data-ar="الحالة">Statut</label>
+            <label class="form-label" data-fr="Statut" data-ar="الحالة"><?= tt('Statut', 'الحالة') ?></label>
             <select name="statut" class="form-control">
               <option value="recu">Reçu ✓</option>
-              <option value="en_attente" data-fr="En attente" data-ar="في الانتظار">En attente</option>
+              <option value="en_attente" data-fr="En attente" data-ar="في الانتظار"><?= tt('En attente', 'في الانتظار') ?></option>
             </select>
           </div>
           <div class="form-group">
@@ -410,7 +410,7 @@ $msgType = $_GET['type'] ?? 'success';
             <input type="text" name="reference" class="form-control" placeholder="Ex: CHQ-00123" data-fr-placeholder="Ex: CHQ-00123" data-ar-placeholder="مثال: CHQ-00123">
           </div>
           <div class="form-group form-full">
-            <label class="form-label" data-fr="Notes" data-ar="ملاحظات">Notes</label>
+            <label class="form-label" data-fr="Notes" data-ar="ملاحظات"><?= tt('Notes', 'ملاحظات') ?></label>
             <textarea name="notes" class="form-control" rows="2" placeholder="Remarques..." data-fr-placeholder="Remarques..." data-ar-placeholder="ملاحظات..."></textarea>
           </div>
         </div>
@@ -432,7 +432,7 @@ $msgType = $_GET['type'] ?? 'success';
     </div>
     <div id="detailContent" class="modal-body"></div>
     <div class="modal-footer">
-      <button class="btn-secondary" onclick="closeDetail()" data-fr="Fermer" data-ar="إغلاق">Fermer</button>
+      <button class="btn-secondary" onclick="closeDetail()" data-fr="Fermer" data-ar="إغلاق"><?= tt('Fermer', 'إغلاق') ?></button>
     </div>
   </div>
 </div>

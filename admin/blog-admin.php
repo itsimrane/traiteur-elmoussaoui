@@ -126,7 +126,7 @@ if (isset($_GET['edit'])) {
 $mode = $editArticle ? 'edit' : (isset($_GET['new']) ? 'new' : 'list');
 ?>
 <!DOCTYPE html>
-<html lang="fr">
+<html lang="<?= adminLang() ?>" dir="<?= adminDir() ?>">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -191,7 +191,7 @@ $mode = $editArticle ? 'edit' : (isset($_GET['new']) ? 'new' : 'list');
 </head>
 <body>
 <div class="sidebar-overlay" id="sidebarOverlay"></div>
-<div class="admin-layout">
+<div class="admin-layout <?= adminRtlClass() ?>">
 
   <?php $activePage = 'blog'; include_once __DIR__ . '/../includes/admin-sidebar.php'; ?>
 
@@ -201,7 +201,7 @@ $mode = $editArticle ? 'edit' : (isset($_GET['new']) ? 'new' : 'list');
         <button id="sidebarToggle" class="topbar-btn"><i class="fas fa-bars"></i></button>
         <div class="topbar-title">
           <?php if ($mode === 'list'): ?>
-          <h2 data-fr="Gestion Blog" data-ar="إدارة المدونة">Gestion Blog</h2><p data-fr="Articles et publications" data-ar="المقالات والمنشورات">Articles et publications</p>
+          <h2 data-fr="Gestion Blog" data-ar="إدارة المدونة"><?= tt('Gestion Blog', 'إدارة المدونة') ?></h2><p data-fr="Articles et publications" data-ar="المقالات والمنشورات"><?= tt('Articles et publications', 'المقالات والمنشورات') ?></p>
           <?php elseif ($mode === 'new'): ?>
           <h2>Nouvel article</h2><p><a href="blog-admin.php" style="color:var(--gold);font-size:.8rem">← Retour à la liste</a></p>
           <?php else: ?>
@@ -213,7 +213,7 @@ $mode = $editArticle ? 'edit' : (isset($_GET['new']) ? 'new' : 'list');
         <button class="topbar-btn" onclick="location.reload()"><i class="fas fa-sync-alt"></i></button>
         <?php if ($mode === 'list'): ?>
         <a href="blog-admin.php?new=1" class="btn-primary" style="padding:8px 18px;font-size:.82rem;text-decoration:none">
-          <i class="fas fa-plus"></i> <span data-fr="Nouvel article" data-ar="مقال جديد">Nouvel article</span>
+          <i class="fas fa-plus"></i> <span data-fr="Nouvel article" data-ar="مقال جديد"><?= tt('Nouvel article', 'مقال جديد') ?></span>
         </a>
         <?php endif; ?>
         <div class="admin-avatar">A</div>
@@ -237,40 +237,40 @@ $mode = $editArticle ? 'edit' : (isset($_GET['new']) ? 'new' : 'list');
         <div class="stat-card">
           <div class="stat-card-header"><div class="stat-card-icon gold"><i class="fas fa-pen-nib"></i></div></div>
           <div class="stat-card-value"><?= $total ?></div>
-          <div class="stat-card-label" data-fr="Total articles" data-ar="إجمالي المقالات">Total articles</div>
+          <div class="stat-card-label" data-fr="Total articles" data-ar="إجمالي المقالات"><?= tt('Total articles', 'إجمالي المقالات') ?></div>
         </div>
         <div class="stat-card">
           <div class="stat-card-header"><div class="stat-card-icon" style="background:rgba(37,211,102,.1);color:#25D366"><i class="fas fa-globe"></i></div></div>
           <div class="stat-card-value"><?= $publies ?></div>
-          <div class="stat-card-label" data-fr="Publiés" data-ar="منشورة">Publiés</div>
+          <div class="stat-card-label" data-fr="Publiés" data-ar="منشورة"><?= tt('Publiés', 'منشورة') ?></div>
         </div>
         <div class="stat-card">
           <div class="stat-card-header"><div class="stat-card-icon" style="background:rgba(136,136,136,.1);color:#888"><i class="fas fa-file-alt"></i></div></div>
           <div class="stat-card-value"><?= $brouillons ?></div>
-          <div class="stat-card-label" data-fr="Brouillons" data-ar="مسودات">Brouillons</div>
+          <div class="stat-card-label" data-fr="Brouillons" data-ar="مسودات"><?= tt('Brouillons', 'مسودات') ?></div>
         </div>
         <div class="stat-card">
           <div class="stat-card-header"><div class="stat-card-icon" style="background:rgba(59,130,246,.1);color:#60A5FA"><i class="fas fa-eye"></i></div></div>
           <div class="stat-card-value" dir="ltr"><?= number_format($totalVues,0,',',' ') ?></div>
-          <div class="stat-card-label" data-fr="Vues totales" data-ar="إجمالي المشاهدات">Vues totales</div>
+          <div class="stat-card-label" data-fr="Vues totales" data-ar="إجمالي المشاهدات"><?= tt('Vues totales', 'إجمالي المشاهدات') ?></div>
         </div>
       </div>
 
       <!-- Filtres -->
       <div style="display:flex;gap:10px;align-items:center;margin-bottom:20px;flex-wrap:wrap">
         <input type="text" class="search-input" id="searchArt" placeholder="🔍 Rechercher un article..." data-fr-placeholder="🔍 Rechercher un article..." data-ar-placeholder="🔍 البحث عن مقال..." oninput="filterArt()">
-        <button class="tfilter active" onclick="setFilter('all',this)" style="padding:6px 14px;border-radius:20px;border:1px solid var(--border);background:none;color:#888;cursor:pointer;font-size:.75rem" data-fr="Tous" data-ar="الكل">Tous</button>
-        <button class="tfilter" onclick="setFilter('publie',this)" style="padding:6px 14px;border-radius:20px;border:1px solid var(--border);background:none;color:#888;cursor:pointer;font-size:.75rem" data-fr="Publiés" data-ar="منشورة">Publiés</button>
-        <button class="tfilter" onclick="setFilter('brouillon',this)" style="padding:6px 14px;border-radius:20px;border:1px solid var(--border);background:none;color:#888;cursor:pointer;font-size:.75rem" data-fr="Brouillons" data-ar="مسودات">Brouillons</button>
+        <button class="tfilter active" onclick="setFilter('all',this)" style="padding:6px 14px;border-radius:20px;border:1px solid var(--border);background:none;color:#888;cursor:pointer;font-size:.75rem" data-fr="Tous" data-ar="الكل"><?= tt('Tous', 'الكل') ?></button>
+        <button class="tfilter" onclick="setFilter('publie',this)" style="padding:6px 14px;border-radius:20px;border:1px solid var(--border);background:none;color:#888;cursor:pointer;font-size:.75rem" data-fr="Publiés" data-ar="منشورة"><?= tt('Publiés', 'منشورة') ?></button>
+        <button class="tfilter" onclick="setFilter('brouillon',this)" style="padding:6px 14px;border-radius:20px;border:1px solid var(--border);background:none;color:#888;cursor:pointer;font-size:.75rem" data-fr="Brouillons" data-ar="مسودات"><?= tt('Brouillons', 'مسودات') ?></button>
       </div>
 
       <!-- Liste -->
       <?php if (empty($articles)): ?>
       <div class="empty-state">
         <i class="fas fa-pen-nib"></i>
-        <p data-fr="Aucun article pour l'instant." data-ar="لا توجد مقالات حالياً.">Aucun article pour l'instant.</p>
+        <p data-fr="Aucun article pour l'instant." data-ar="لا توجد مقالات حالياً."><?= tt('Aucun article pour l\'instant.', 'لا توجد مقالات حالياً.') ?></p>
         <a href="blog-admin.php?new=1" class="btn-primary" style="display:inline-flex;margin-top:16px;text-decoration:none">
-          <i class="fas fa-plus"></i> <span data-fr="Écrire le premier article" data-ar="كتابة أول مقال">Écrire le premier article</span>
+          <i class="fas fa-plus"></i> <span data-fr="Écrire le premier article" data-ar="كتابة أول مقال"><?= tt('Écrire le premier article', 'كتابة أول مقال') ?></span>
         </a>
       </div>
       <?php else: ?>
@@ -409,7 +409,7 @@ $mode = $editArticle ? 'edit' : (isset($_GET['new']) ? 'new' : 'list');
             <div class="editor-card">
               <h4><i class="fas fa-globe"></i> Publication</h4>
               <div class="form-group" style="margin-bottom:14px">
-                <label class="form-label" data-fr="Statut" data-ar="الحالة">Statut</label>
+                <label class="form-label" data-fr="Statut" data-ar="الحالة"><?= tt('Statut', 'الحالة') ?></label>
                 <select name="statut" class="form-control">
                   <option value="brouillon" <?= ($editArticle['statut'] ?? '') === 'brouillon' ? 'selected' : '' ?>>📝 Brouillon</option>
                   <option value="publie"    <?= ($editArticle['statut'] ?? '') === 'publie'    ? 'selected' : '' ?>>\ud83c\udf10 Publié</option>
@@ -417,7 +417,7 @@ $mode = $editArticle ? 'edit' : (isset($_GET['new']) ? 'new' : 'list');
                 </select>
               </div>
               <div class="form-group" style="margin-bottom:14px">
-                <label class="form-label" data-fr="Catégorie" data-ar="التصنيف">Catégorie</label>
+                <label class="form-label" data-fr="Catégorie" data-ar="التصنيف"><?= tt('Catégorie', 'التصنيف') ?></label>
                 <select name="categorie_id" class="form-control">
                   <?php foreach ($categories as $cat): ?>
                   <option value="<?= $cat['id'] ?>" <?= ($editArticle['categorie_id'] ?? 0) == $cat['id'] ? 'selected' : '' ?>>

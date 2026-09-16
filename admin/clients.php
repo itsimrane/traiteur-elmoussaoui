@@ -28,12 +28,12 @@ $avec_paiement = count(array_filter($clients, fn($c) => $c['nb_paiements'] > 0))
 $fideles     = count(array_filter($clients, fn($c) => $c['nb_reservations'] >= 2));
 
 $sourceLabels = [
-  'site_web' => ['label' => 'Site web', 'icon' => 'fa-globe', 'color' => '#60A5FA'],
-  'telephone' => ['label' => 'Téléphone', 'icon' => 'fa-phone', 'color' => '#25D366'],
-  'reference' => ['label' => 'Référence', 'icon' => 'fa-users', 'color' => '#D4AF37'],
+  'site_web' => ['label' => tt('Site web','الموقع الإلكتروني'), 'icon' => 'fa-globe', 'color' => '#60A5FA'],
+  'telephone' => ['label' => tt('Téléphone','الهاتف'), 'icon' => 'fa-phone', 'color' => '#25D366'],
+  'reference' => ['label' => tt('Référence','توصية'), 'icon' => 'fa-users', 'color' => '#D4AF37'],
   'facebook' => ['label' => 'Facebook', 'icon' => 'fa-facebook', 'color' => '#3B82F6'],
   'instagram' => ['label' => 'Instagram', 'icon' => 'fa-instagram', 'color' => '#EC4899'],
-  'autre' => ['label' => 'Autre', 'icon' => 'fa-ellipsis-h', 'color' => '#888'],
+  'autre' => ['label' => tt('Autre','آخر'), 'icon' => 'fa-ellipsis-h', 'color' => '#888'],
 ];
 
 // Traitement ajout/modification client (POST)
@@ -107,12 +107,12 @@ if (isset($_GET['msg'])) {
 }
 ?>
 <!DOCTYPE html>
-<html lang="fr">
+<html lang="<?= adminLang() ?>" dir="<?= adminDir() ?>">
 
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Clients — Admin EL MOUSSAOUI</title>
+  <title><?= t('clients') ?> — Admin EL MOUSSAOUI</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link
     href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@600;700&family=Jost:wght@300;400;500;600&display=swap"
@@ -466,7 +466,7 @@ if (isset($_GET['msg'])) {
 
 <body>
   <div class="sidebar-overlay" id="sidebarOverlay"></div>
-  <div class="admin-layout">
+  <div class="admin-layout <?= adminRtlClass() ?>">
 
     <?php $activePage = 'clients'; include_once __DIR__ . '/../includes/admin-sidebar.php'; ?>
 
@@ -504,7 +504,7 @@ if (isset($_GET['msg'])) {
               <div class="stat-card-icon gold"><i class="fas fa-users"></i></div>
             </div>
             <div class="stat-card-value"><?= $total ?></div>
-            <div class="stat-card-label">Total clients</div>
+            <div class="stat-card-label"><?= tt('Total clients','إجمالي العملاء') ?></div>
           </div>
           <div class="stat-card">
             <div class="stat-card-header">
@@ -512,7 +512,7 @@ if (isset($_GET['msg'])) {
                   class="fas fa-calendar-check"></i></div>
             </div>
             <div class="stat-card-value"><?= $avec_resa ?></div>
-            <div class="stat-card-label">Avec réservation</div>
+            <div class="stat-card-label"><?= tt('Avec réservation','لديهم حجز') ?></div>
           </div>
           <div class="stat-card">
             <div class="stat-card-header">
@@ -520,7 +520,7 @@ if (isset($_GET['msg'])) {
                   class="fas fa-credit-card"></i></div>
             </div>
             <div class="stat-card-value"><?= $avec_paiement ?></div>
-            <div class="stat-card-label">Avec paiement</div>
+            <div class="stat-card-label"><?= tt('Avec paiement','لديهم دفعة') ?></div>
           </div>
           <div class="stat-card">
             <div class="stat-card-header">
@@ -528,7 +528,7 @@ if (isset($_GET['msg'])) {
                   class="fas fa-crown"></i></div>
             </div>
             <div class="stat-card-value"><?= $fideles ?></div>
-            <div class="stat-card-label">Clients fidèles</div>
+            <div class="stat-card-label"><?= tt('Clients fidèles','عملاء أوفياء') ?></div>
           </div>
         </div>
 
@@ -536,12 +536,12 @@ if (isset($_GET['msg'])) {
         <div class="clients-table-wrap">
           <div class="table-topbar">
             <h3 style="color:var(--white);font-size:.9rem"><i class="fas fa-list"
-                style="color:var(--gold);margin-right:8px"></i>Liste des clients (<?= $total ?>)</h3>
+                style="color:var(--gold);margin-right:8px"></i><?= tt('Liste des clients','قائمة العملاء') ?> (<?= $total ?>)</h3>
             <div style="display:flex;gap:10px;align-items:center">
-              <input type="text" class="search-input" id="searchClient" placeholder="\ud83d\udd0d Nom, email, tél..."
+              <input type="text" class="search-input" id="searchClient" placeholder="🔍 <?= tt('Nom, email, tél...','الاسم، البريد، الهاتف...') ?>"
                 oninput="filterClients()">
               <select id="filterSource" class="search-input" style="width:auto" onchange="filterClients()">
-                <option value="">Toutes les sources</option>
+                <option value=""><?= tt('Toutes les sources','كل المصادر') ?></option>
                 <?php foreach ($sourceLabels as $key => $src): ?>
                   <option value="<?= $key ?>"><?= $src['label'] ?></option>
                 <?php endforeach; ?>
@@ -552,9 +552,9 @@ if (isset($_GET['msg'])) {
           <?php if (empty($clients)): ?>
             <div class="empty-state">
               <i class="fas fa-users"></i>
-              <p>Aucun client pour l'instant.</p>
+              <p><?= tt("Aucun client pour l'instant.",'لا يوجد عملاء حالياً.') ?></p>
               <button class="btn-primary" style="margin-top:16px" onclick="openAddModal()">
-                <i class="fas fa-user-plus"></i> Ajouter le premier client
+                <i class="fas fa-user-plus"></i> <?= tt('Ajouter le premier client','إضافة أول عميل') ?>
               </button>
             </div>
           <?php else: ?>
@@ -562,13 +562,13 @@ if (isset($_GET['msg'])) {
               <table id="clientsTable">
                 <thead>
                   <tr>
-                    <th>Client</th>
-                    <th>Contact</th>
-                    <th>Ville</th>
-                    <th>Source</th>
-                    <th>Réservations</th>
-                    <th>Inscrit le</th>
-                    <th>Actions</th>
+                    <th><?= t('clients') ?></th>
+                    <th><?= tt('Contact','التواصل') ?></th>
+                    <th><?= tt('Ville','المدينة') ?></th>
+                    <th><?= tt('Source','المصدر') ?></th>
+                    <th><?= t('reservations') ?></th>
+                    <th><?= tt('Inscrit le','تاريخ التسجيل') ?></th>
+                    <th><?= tt('Actions','إجراءات') ?></th>
                   </tr>
                 </thead>
                 <tbody>
@@ -586,13 +586,13 @@ if (isset($_GET['msg'])) {
                           <div class="client-avatar"><?= $initiales ?></div>
                           <div class="client-info">
                             <strong><?= htmlspecialchars($nomComplet) ?></strong>
-                            <span><?= htmlspecialchars($c['cin'] ? 'CIN : ' . $c['cin'] : '') ?></span>
+                            <span><?= htmlspecialchars($c['cin'] ? tt('CIN : ','رقم البطاقة : ') . $c['cin'] : '') ?></span>
                           </div>
                         </div>
                       </td>
                       <td>
                         <div style="font-size:.82rem;color:var(--white)"><?= htmlspecialchars($c['email'] ?? '—') ?></div>
-                        <div style="font-size:.75rem;color:#555"><?= htmlspecialchars($c['telephone'] ?? '') ?></div>
+                        <div style="font-size:.75rem;color:#555" dir="ltr"><?= htmlspecialchars($c['telephone'] ?? '') ?></div>
                       </td>
                       <td style="font-size:.82rem"><?= htmlspecialchars($c['ville'] ?? 'Errachidia') ?></td>
                       <td>

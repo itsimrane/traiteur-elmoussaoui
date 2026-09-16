@@ -192,11 +192,11 @@ $totalEncaisse = array_sum(array_column($factures, 'acompte'));
 $totalReste    = array_sum(array_column($factures, 'reste_a_payer'));
 
 $statutConfig = [
-    'brouillon'           => ['label' => 'Brouillon', 'color' => '#888',    'bg' => 'rgba(136,136,136,.12)'],
-    'envoyee'             => ['label' => 'Envoyée',   'color' => '#60A5FA', 'bg' => 'rgba(59,130,246,.12)'],
-    'payee'               => ['label' => 'Payée ✓',   'color' => '#25D366', 'bg' => 'rgba(37,211,102,.12)'],
-    'partiellement_payee' => ['label' => 'Partiel',   'color' => '#FBB724', 'bg' => 'rgba(251,183,36,.12)'],
-    'annulee'             => ['label' => 'Annulée',   'color' => '#EF5350', 'bg' => 'rgba(239,68,68,.12)'],
+    'brouillon'           => ['label' => tt('Brouillon','مسودة'), 'color' => '#888',    'bg' => 'rgba(136,136,136,.12)'],
+    'envoyee'             => ['label' => tt('Envoyée','مرسلة'),   'color' => '#60A5FA', 'bg' => 'rgba(59,130,246,.12)'],
+    'payee'               => ['label' => tt('Payée','مدفوعة') . ' ✓',   'color' => '#25D366', 'bg' => 'rgba(37,211,102,.12)'],
+    'partiellement_payee' => ['label' => tt('Partiel','جزئي'),   'color' => '#FBB724', 'bg' => 'rgba(251,183,36,.12)'],
+    'annulee'             => ['label' => tt('Annulée','ملغاة'),   'color' => '#EF5350', 'bg' => 'rgba(239,68,68,.12)'],
 ];
 
 $msg     = $_GET['msg'] ?? '';
@@ -210,11 +210,11 @@ function jsAttr($data): string {
 }
 ?>
 <!DOCTYPE html>
-<html lang="fr">
+<html lang="<?= adminLang() ?>" dir="<?= adminDir() ?>">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Factures — Admin EL MOUSSAOUI</title>
+<title><?= t('factures') ?> — Admin EL MOUSSAOUI</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@600;700&family=Jost:wght@300;400;500;600&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
@@ -329,22 +329,22 @@ body { overflow-x: hidden; }
 </head>
 <body>
 <div class="sidebar-overlay" id="sidebarOverlay"></div>
-<div class="admin-layout">
+<div class="admin-layout <?= adminRtlClass() ?>">
 <?php $activePage = 'factures'; include_once __DIR__ . '/../includes/admin-sidebar.php'; ?>
 <main class="admin-main">
 <div class="admin-topbar">
     <div style="display:flex;align-items:center;gap:12px">
         <button id="sidebarToggle" class="topbar-btn"><i class="fas fa-bars"></i></button>
         <div class="topbar-title">
-            <h2 data-fr="Gestion Factures" data-ar="إدارة الفواتير">Gestion Factures</h2>
-            <p data-fr="Suivi financier et facturation" data-ar="المتابعة المالية والفوترة">Suivi financier et facturation</p>
+            <h2 data-fr="Gestion Factures" data-ar="إدارة الفواتير"><?= tt('Gestion Factures', 'إدارة الفواتير') ?></h2>
+            <p data-fr="Suivi financier et facturation" data-ar="المتابعة المالية والفوترة"><?= tt('Suivi financier et facturation', 'المتابعة المالية والفوترة') ?></p>
         </div>
     </div>
     <div class="topbar-actions">
         <button class="topbar-btn" onclick="location.reload()"><i class="fas fa-sync-alt"></i></button>
         <button class="btn-primary" style="padding:8px 18px;font-size:.82rem" onclick="openAddModal()">
             <i class="fas fa-plus"></i>
-            <span data-fr="Nouvelle facture" data-ar="فاتورة جديدة">Nouvelle facture</span>
+            <span data-fr="Nouvelle facture" data-ar="فاتورة جديدة"><?= tt('Nouvelle facture', 'فاتورة جديدة') ?></span>
         </button>
         <div class="admin-avatar">A</div>
     </div>
@@ -357,30 +357,30 @@ body { overflow-x: hidden; }
 </div>
 <?php endif; ?>
 <div class="stats-grid" style="margin-bottom:24px">
-    <div class="stat-card"><div class="stat-card-header"><div class="stat-card-icon gold"><i class="fas fa-receipt"></i></div></div><div class="stat-card-value"><?= $total ?></div><div class="stat-card-label" data-fr="Total factures" data-ar="إجمالي الفواتير">Total factures</div></div>
-    <div class="stat-card"><div class="stat-card-header"><div class="stat-card-icon" style="background:rgba(37,211,102,.1);color:#25D366"><i class="fas fa-coins"></i></div></div><div class="stat-card-value" style="font-size:1.2rem" dir="ltr"><?= number_format($totalEncaisse, 0, ',', ' ') ?></div><div class="stat-card-label" data-fr="Encaissé (MAD)" data-ar="المحصّل (MAD)">Encaissé (MAD)</div></div>
-    <div class="stat-card"><div class="stat-card-header"><div class="stat-card-icon" style="background:rgba(251,183,36,.1);color:#FBB724"><i class="fas fa-hourglass-half"></i></div></div><div class="stat-card-value" style="font-size:1.2rem" dir="ltr"><?= number_format($totalReste, 0, ',', ' ') ?></div><div class="stat-card-label" data-fr="Reste à payer (MAD)" data-ar="المتبقي للدفع (MAD)">Reste à payer (MAD)</div></div>
-    <div class="stat-card"><div class="stat-card-header"><div class="stat-card-icon" style="background:rgba(59,130,246,.1);color:#60A5FA"><i class="fas fa-chart-line"></i></div></div><div class="stat-card-value" style="font-size:1.2rem" dir="ltr"><?= number_format($totalHT, 0, ',', ' ') ?></div><div class="stat-card-label" data-fr="CA Total (MAD)" data-ar="رقم الأعمال (MAD)">CA Total (MAD)</div></div>
+    <div class="stat-card"><div class="stat-card-header"><div class="stat-card-icon gold"><i class="fas fa-receipt"></i></div></div><div class="stat-card-value"><?= $total ?></div><div class="stat-card-label" data-fr="Total factures" data-ar="إجمالي الفواتير"><?= tt('Total factures', 'إجمالي الفواتير') ?></div></div>
+    <div class="stat-card"><div class="stat-card-header"><div class="stat-card-icon" style="background:rgba(37,211,102,.1);color:#25D366"><i class="fas fa-coins"></i></div></div><div class="stat-card-value" style="font-size:1.2rem" dir="ltr"><?= number_format($totalEncaisse, 0, ',', ' ') ?></div><div class="stat-card-label" data-fr="Encaissé (MAD)" data-ar="المحصّل (MAD)"><?= tt('Encaissé (MAD)', 'المحصّل (MAD)') ?></div></div>
+    <div class="stat-card"><div class="stat-card-header"><div class="stat-card-icon" style="background:rgba(251,183,36,.1);color:#FBB724"><i class="fas fa-hourglass-half"></i></div></div><div class="stat-card-value" style="font-size:1.2rem" dir="ltr"><?= number_format($totalReste, 0, ',', ' ') ?></div><div class="stat-card-label" data-fr="Reste à payer (MAD)" data-ar="المتبقي للدفع (MAD)"><?= tt('Reste à payer (MAD)', 'المتبقي للدفع (MAD)') ?></div></div>
+    <div class="stat-card"><div class="stat-card-header"><div class="stat-card-icon" style="background:rgba(59,130,246,.1);color:#60A5FA"><i class="fas fa-chart-line"></i></div></div><div class="stat-card-value" style="font-size:1.2rem" dir="ltr"><?= number_format($totalHT, 0, ',', ' ') ?></div><div class="stat-card-label" data-fr="CA Total (MAD)" data-ar="رقم الأعمال (MAD)"><?= tt('CA Total (MAD)', 'رقم الأعمال (MAD)') ?></div></div>
 </div>
 <div class="table-wrap">
 <div class="table-topbar">
-    <h3 style="color:var(--white);font-size:.9rem"><i class="fas fa-list" style="color:var(--gold);margin-right:8px"></i><span data-fr="Liste des factures" data-ar="قائمة الفواتير">Liste des factures</span> (<?= $total ?>)</h3>
+    <h3 style="color:var(--white);font-size:.9rem"><i class="fas fa-list" style="color:var(--gold);margin-right:8px"></i><span data-fr="Liste des factures" data-ar="قائمة الفواتير"><?= tt('Liste des factures', 'قائمة الفواتير') ?></span> (<?= $total ?>)</h3>
     <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center">
         <input type="text" class="search-input" id="searchFac" placeholder="🔍 Client, numéro..." data-fr-placeholder="🔍 Client, numéro..." data-ar-placeholder="🔍 العميل، الرقم..." oninput="filterFac()">
         <div style="display:flex;gap:6px">
-            <button class="tfilter active" onclick="setFilter('all',this)" data-fr="Toutes" data-ar="الكل">Toutes</button>
-            <button class="tfilter" onclick="setFilter('envoyee',this)" data-fr="Envoyées" data-ar="مُرسلة">Envoyées</button>
-            <button class="tfilter" onclick="setFilter('payee',this)" data-fr="Payées" data-ar="مدفوعة">Payées</button>
-            <button class="tfilter" onclick="setFilter('partiellement_payee',this)" data-fr="Partiel" data-ar="جزئية">Partiel</button>
-            <button class="tfilter" onclick="setFilter('brouillon',this)" data-fr="Brouillons" data-ar="مسودات">Brouillons</button>
+            <button class="tfilter active" onclick="setFilter('all',this)" data-fr="Toutes" data-ar="الكل"><?= tt('Toutes', 'الكل') ?></button>
+            <button class="tfilter" onclick="setFilter('envoyee',this)" data-fr="Envoyées" data-ar="مُرسلة"><?= tt('Envoyées', 'مُرسلة') ?></button>
+            <button class="tfilter" onclick="setFilter('payee',this)" data-fr="Payées" data-ar="مدفوعة"><?= tt('Payées', 'مدفوعة') ?></button>
+            <button class="tfilter" onclick="setFilter('partiellement_payee',this)" data-fr="Partiel" data-ar="جزئية"><?= tt('Partiel', 'جزئية') ?></button>
+            <button class="tfilter" onclick="setFilter('brouillon',this)" data-fr="Brouillons" data-ar="مسودات"><?= tt('Brouillons', 'مسودات') ?></button>
         </div>
     </div>
 </div>
 <?php if (empty($factures)): ?>
 <div class="empty-state">
     <i class="fas fa-receipt"></i>
-    <p data-fr="Aucune facture pour l'instant." data-ar="لا توجد فواتير حالياً.">Aucune facture pour l'instant.</p>
-    <button class="btn-primary" style="margin-top:16px" onclick="openAddModal()"><i class="fas fa-plus"></i> <span data-fr="Créer la première facture" data-ar="إنشاء أول فاتورة">Créer la première facture</span></button>
+    <p data-fr="Aucune facture pour l'instant." data-ar="لا توجد فواتير حالياً."><?= tt('Aucune facture pour l\'instant.', 'لا توجد فواتير حالياً.') ?></p>
+    <button class="btn-primary" style="margin-top:16px" onclick="openAddModal()"><i class="fas fa-plus"></i> <span data-fr="Créer la première facture" data-ar="إنشاء أول فاتورة"><?= tt('Créer la première facture', 'إنشاء أول فاتورة') ?></span></button>
 </div>
 <?php else: ?>
 <div class="factures-table-wrap">
@@ -392,15 +392,15 @@ body { overflow-x: hidden; }
 </colgroup>
 <thead>
 <tr>
-    <th>N° Facture</th>
-    <th data-fr="Client" data-ar="العميل">Client</th>
-    <th data-fr="Événement" data-ar="المناسبة">Événement</th>
-    <th data-fr="Montant TTC" data-ar="المبلغ الإجمالي">Montant TTC</th>
-    <th>Acompte</th>
-    <th>Reste</th>
-    <th data-fr="Statut" data-ar="الحالة">Statut</th>
-    <th data-fr="Échéance" data-ar="تاريخ الاستحقاق">Échéance</th>
-    <th data-fr="Actions" data-ar="الإجراءات">Actions</th>
+    <th><?= tt('N° Facture','رقم الفاتورة') ?></th>
+    <th data-fr="Client" data-ar="العميل"><?= tt('Client', 'العميل') ?></th>
+    <th data-fr="Événement" data-ar="المناسبة"><?= tt('Événement', 'المناسبة') ?></th>
+    <th data-fr="Montant TTC" data-ar="المبلغ الإجمالي"><?= tt('Montant TTC', 'المبلغ الإجمالي') ?></th>
+    <th><?= tt('Acompte','الدفعة الأولى') ?></th>
+    <th><?= tt('Reste','المتبقي') ?></th>
+    <th data-fr="Statut" data-ar="الحالة"><?= tt('Statut', 'الحالة') ?></th>
+    <th data-fr="Échéance" data-ar="تاريخ الاستحقاق"><?= tt('Échéance', 'تاريخ الاستحقاق') ?></th>
+    <th data-fr="Actions" data-ar="الإجراءات"><?= tt('Actions', 'الإجراءات') ?></th>
 </tr>
 </thead>
 <tbody>

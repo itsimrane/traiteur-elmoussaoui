@@ -66,7 +66,7 @@ $msg     = $_GET['msg']  ?? '';
 $msgType = $_GET['type'] ?? 'success';
 ?>
 <!DOCTYPE html>
-<html lang="fr">
+<html lang="<?= adminLang() ?>" dir="<?= adminDir() ?>">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -134,7 +134,7 @@ $msgType = $_GET['type'] ?? 'success';
 </head>
 <body>
 <div class="sidebar-overlay" id="sidebarOverlay"></div>
-<div class="admin-layout">
+<div class="admin-layout <?= adminRtlClass() ?>">
 
   <?php $activePage = 'temoignages'; include_once __DIR__ . '/../includes/admin-sidebar.php'; ?>
 
@@ -142,12 +142,12 @@ $msgType = $_GET['type'] ?? 'success';
     <div class="admin-topbar">
       <div style="display:flex;align-items:center;gap:12px">
         <button id="sidebarToggle" class="topbar-btn"><i class="fas fa-bars"></i></button>
-        <div class="topbar-title"><h2 data-fr="Témoignages Clients" data-ar="شهادات العملاء">Témoignages Clients</h2><p data-fr="Avis et notes des clients" data-ar="آراء وتقييمات العملاء">Avis et notes des clients</p></div>
+        <div class="topbar-title"><h2 data-fr="Témoignages Clients" data-ar="شهادات العملاء"><?= tt('Témoignages Clients', 'شهادات العملاء') ?></h2><p data-fr="Avis et notes des clients" data-ar="آراء وتقييمات العملاء"><?= tt('Avis et notes des clients', 'آراء وتقييمات العملاء') ?></p></div>
       </div>
       <div class="topbar-actions">
         <button class="topbar-btn" onclick="location.reload()"><i class="fas fa-sync-alt"></i></button>
         <button class="btn-primary" style="padding:8px 18px;font-size:.82rem" onclick="openAdd()">
-          <i class="fas fa-plus"></i> <span data-fr="Ajouter un avis" data-ar="إضافة تقييم">Ajouter un avis</span>
+          <i class="fas fa-plus"></i> <span data-fr="Ajouter un avis" data-ar="إضافة تقييم"><?= tt('Ajouter un avis', 'إضافة تقييم') ?></span>
         </button>
         <div class="admin-avatar">A</div>
       </div>
@@ -167,28 +167,28 @@ $msgType = $_GET['type'] ?? 'success';
         <div class="stat-card">
           <div class="stat-card-header"><div class="stat-card-icon gold"><i class="fas fa-star"></i></div></div>
           <div class="stat-card-value"><?= $total ?></div>
-          <div class="stat-card-label" data-fr="Total avis" data-ar="إجمالي التقييمات">Total avis</div>
+          <div class="stat-card-label" data-fr="Total avis" data-ar="إجمالي التقييمات"><?= tt('Total avis', 'إجمالي التقييمات') ?></div>
         </div>
         <div class="stat-card">
           <div class="stat-card-header"><div class="stat-card-icon" style="background:rgba(251,183,36,.1);color:#FBB724"><i class="fas fa-hourglass-half"></i></div></div>
           <div class="stat-card-value"><?= $attente ?></div>
-          <div class="stat-card-label" data-fr="En attente" data-ar="في الانتظار" data-fr="En attente" data-ar="في الانتظار" data-fr="En attente" data-ar="في الانتظار">En attente</div>
+          <div class="stat-card-label" data-fr="En attente" data-ar="في الانتظار" data-fr="En attente" data-ar="في الانتظار" data-fr="En attente" data-ar="في الانتظار"><?= tt('En attente', 'في الانتظار') ?></div>
         </div>
         <div class="stat-card">
           <div class="stat-card-header"><div class="stat-card-icon" style="background:rgba(37,211,102,.1);color:#25D366"><i class="fas fa-check-circle"></i></div></div>
           <div class="stat-card-value"><?= $publies ?></div>
-          <div class="stat-card-label" data-fr="Publiés" data-ar="منشورة" data-fr="Publiés" data-ar="منشورة">Publiés</div>
+          <div class="stat-card-label" data-fr="Publiés" data-ar="منشورة" data-fr="Publiés" data-ar="منشورة"><?= tt('Publiés', 'منشورة') ?></div>
         </div>
         <div class="stat-card">
           <div class="stat-card-header"><div class="stat-card-icon" style="background:rgba(212,175,55,.1);color:var(--gold)"><i class="fas fa-star-half-alt"></i></div></div>
           <div class="stat-card-value"><?= $moyNote ?><span style="font-size:1rem;color:var(--text-muted)">/5</span></div>
-          <div class="stat-card-label" data-fr="Note moyenne" data-ar="متوسط التقييم">Note moyenne</div>
+          <div class="stat-card-label" data-fr="Note moyenne" data-ar="متوسط التقييم"><?= tt('Note moyenne', 'متوسط التقييم') ?></div>
         </div>
       </div>
 
       <!-- Filtres -->
       <div style="display:flex;gap:10px;align-items:center;margin-bottom:20px;flex-wrap:wrap">
-        <button class="tfilter active" onclick="setFilter('all',this)" data-fr="Tous" data-ar="الكل">Tous (<?= $total ?>)</button>
+        <button class="tfilter active" onclick="setFilter('all',this)" data-fr="Tous" data-ar="الكل"><?= tt('Tous','الكل') ?> (<?= $total ?>)</button>
         <button class="tfilter" onclick="setFilter('en_attente',this)">⏳ En attente (<?= $attente ?>)</button>
         <button class="tfilter" onclick="setFilter('publie',this)">✅ Publiés (<?= $publies ?>)</button>
         <button class="tfilter" onclick="setFilter('vedette',this)">⭐ En vedette (<?= $vedettes ?>)</button>
@@ -199,7 +199,7 @@ $msgType = $_GET['type'] ?? 'success';
       <?php if (empty($temoignages)): ?>
       <div class="empty-state">
         <i class="fas fa-star"></i>
-        <p><span data-fr="Aucun témoignage" data-ar="لا توجد شهادات">Aucun témoignage</span> pour l'instant.</p>
+        <p><span data-fr="Aucun témoignage" data-ar="لا توجد شهادات"><?= tt('Aucun témoignage', 'لا توجد شهادات') ?></span> pour l'instant.</p>
         <button class="btn-primary" style="margin-top:16px" onclick="openAdd()">
           <i class="fas fa-plus"></i> Ajouter le premier avis
         </button>
@@ -309,7 +309,7 @@ $msgType = $_GET['type'] ?? 'success';
 <div class="modal-overlay" id="addModal">
   <div class="modal-box">
     <div class="modal-header">
-      <h3><i class="fas fa-plus-circle" style="color:var(--gold);margin-right:8px"></i><span data-fr="Ajouter un témoignage" data-ar="إضافة شهادة">Ajouter un témoignage</span></h3>
+      <h3><i class="fas fa-plus-circle" style="color:var(--gold);margin-right:8px"></i><span data-fr="Ajouter un témoignage" data-ar="إضافة شهادة"><?= tt('Ajouter un témoignage', 'إضافة شهادة') ?></span></h3>
       <button class="modal-close" onclick="closeAdd()"><i class="fas fa-times"></i></button>
     </div>
     <form method="POST">
@@ -317,15 +317,15 @@ $msgType = $_GET['type'] ?? 'success';
       <div class="modal-body">
         <div class="form-grid" style="margin-bottom:14px">
           <div class="form-group">
-            <label class="form-label" data-fr="Nom du client *" data-ar="اسم العميل *">Nom du client *</label>
+            <label class="form-label" data-fr="Nom du client *" data-ar="اسم العميل *"><?= tt('Nom du client *', 'اسم العميل *') ?></label>
             <input type="text" name="nom_client" class="form-control" placeholder="Fatima B." required>
           </div>
           <div class="form-group">
-            <label class="form-label" data-fr="Ville" data-ar="المدينة">Ville</label>
+            <label class="form-label" data-fr="Ville" data-ar="المدينة"><?= tt('Ville', 'المدينة') ?></label>
             <input type="text" name="ville" class="form-control" value="Errachidia">
           </div>
           <div class="form-group">
-            <label class="form-label" data-fr="Type d'événement" data-ar="نوع المناسبة">Type d'événement</label>
+            <label class="form-label" data-fr="Type d'événement" data-ar="نوع المناسبة"><?= tt('Type d\'événement', 'نوع المناسبة') ?></label>
             <select name="type_evenement" class="form-control">
               <option value="Mariage">Mariage</option>
               <option value="Fiançailles">Fiançailles</option>
@@ -336,10 +336,10 @@ $msgType = $_GET['type'] ?? 'success';
             </select>
           </div>
           <div class="form-group">
-            <label class="form-label" data-fr="Statut" data-ar="الحالة">Statut</label>
+            <label class="form-label" data-fr="Statut" data-ar="الحالة"><?= tt('Statut', 'الحالة') ?></label>
             <select name="statut" class="form-control">
               <option value="publie">Publier directement</option>
-              <option value="en_attente" data-fr="En attente" data-ar="في الانتظار">En attente de modération</option>
+              <option value="en_attente" data-fr="En attente" data-ar="في الانتظار"><?= tt('En attente', 'في الانتظار') ?></option>
             </select>
           </div>
           <div class="form-group form-full">
@@ -352,7 +352,7 @@ $msgType = $_GET['type'] ?? 'success';
             </div>
           </div>
           <div class="form-group form-full">
-            <label class="form-label" data-fr="Témoignage *" data-ar="نص الشهادة *">Témoignage *</label>
+            <label class="form-label" data-fr="Témoignage *" data-ar="نص الشهادة *"><?= tt('Témoignage *', 'نص الشهادة *') ?></label>
             <textarea name="contenu" class="form-control" rows="4"
                       placeholder="L'avis du client..." required maxlength="600"></textarea>
           </div>
