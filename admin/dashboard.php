@@ -58,37 +58,37 @@ try {
     ")->fetchAll();
     foreach ($rs as $r) {
         $nom = trim(($r['prenom']??'').' '.($r['nom']??''));
-        $libelle = match($r['statut']) {
-            'confirmee' => 'Réservation confirmée',
-            'annulee'   => 'Réservation refusée/annulée',
-            default     => 'Nouvelle réservation',
+        $titreKey = match($r['statut']) {
+            'confirmee' => 'reservation_confirmee',
+            'annulee'   => 'reservation_refusee',
+            default     => 'nouvelle_reservation',
         };
-        $activites[] = ['icon'=>'fa-calendar-check','color'=>'#FBB724','titre'=>$libelle,'desc'=>$nom.' — '.($r['type_nom']??''),'time'=>$r['created_at'],'lien'=>'reservation_details.php?id='.$r['id']];
+        $activites[] = ['icon'=>'fa-calendar-check','color'=>'#FBB724','titre_key'=>$titreKey,'desc'=>$nom.' — '.($r['type_nom']??''),'time'=>$r['created_at'],'lien'=>'reservation_details.php?id='.$r['id']];
     }
 } catch (Exception $e) {}
 try {
     $ds = $pdo->query("SELECT id, reference, created_at, client_id FROM devis ORDER BY created_at DESC LIMIT 5")->fetchAll();
     foreach ($ds as $d) {
-        $activites[] = ['icon'=>'fa-file-invoice','color'=>'#60A5FA','titre'=>'Nouveau devis','desc'=>$d['reference'],'time'=>$d['created_at'],'lien'=>'devis.php'];
+        $activites[] = ['icon'=>'fa-file-invoice','color'=>'#60A5FA','titre_key'=>'nouveau_devis','desc'=>$d['reference'],'time'=>$d['created_at'],'lien'=>'devis.php'];
     }
 } catch (Exception $e) {}
 try {
     $ps = $pdo->query("SELECT montant, date_paiement, created_at FROM paiements ORDER BY created_at DESC LIMIT 5")->fetchAll();
     foreach ($ps as $p) {
-        $activites[] = ['icon'=>'fa-credit-card','color'=>'#25D366','titre'=>'Paiement enregistré','desc'=>number_format($p['montant'],0,',',' ').' MAD','time'=>$p['created_at'],'lien'=>'paiements.php'];
+        $activites[] = ['icon'=>'fa-credit-card','color'=>'#25D366','titre_key'=>'paiement_enregistre','desc'=>number_format($p['montant'],0,',',' ').' MAD','time'=>$p['created_at'],'lien'=>'paiements.php'];
     }
 } catch (Exception $e) {}
 try {
     $ms = $pdo->query("SELECT id, prenom, nom, created_at FROM contacts ORDER BY created_at DESC LIMIT 5")->fetchAll();
     foreach ($ms as $m) {
         $nom = trim(($m['prenom']??'').' '.($m['nom']??''));
-        $activites[] = ['icon'=>'fa-envelope','color'=>'#EF5350','titre'=>'Nouveau message','desc'=>$nom,'time'=>$m['created_at'],'lien'=>'messages.php?id='.$m['id']];
+        $activites[] = ['icon'=>'fa-envelope','color'=>'#EF5350','titre_key'=>'nouveau_message','desc'=>$nom,'time'=>$m['created_at'],'lien'=>'messages.php?id='.$m['id']];
     }
 } catch (Exception $e) {}
 try {
     $ts = $pdo->query("SELECT id, nom_client, created_at FROM temoignages WHERE statut='en_attente' ORDER BY created_at DESC LIMIT 3")->fetchAll();
     foreach ($ts as $t) {
-        $activites[] = ['icon'=>'fa-star','color'=>'#D4AF37','titre'=>'Nouveau témoignage','desc'=>$t['nom_client'],'time'=>$t['created_at'],'lien'=>'temoignages-admin.php'];
+        $activites[] = ['icon'=>'fa-star','color'=>'#D4AF37','titre_key'=>'nouveau_temoignage','desc'=>$t['nom_client'],'time'=>$t['created_at'],'lien'=>'temoignages-admin.php'];
     }
 } catch (Exception $e) {}
 usort($activites, fn($a,$b) => strtotime($b['time']) - strtotime($a['time']));
@@ -104,11 +104,11 @@ function dashTimeAgo(string $time): string {
 }
 ?>
 <!DOCTYPE html>
-<html lang="fr">
+<html lang="<?= adminLang() ?>" dir="<?= adminDir() ?>">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width,initial-scale=1.0">
-  <title>Dashboard — Admin EL MOUSSAOUI</title>
+  <title><?= t('dashboard') ?> — Admin EL MOUSSAOUI</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@600;700&family=Jost:wght@300;400;500;600&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
@@ -138,15 +138,15 @@ function dashTimeAgo(string $time): string {
 </head>
 <body>
 <div class="sidebar-overlay" id="sidebarOverlay"></div>
-<div class="admin-layout">
+<div class="admin-layout <?= adminRtlClass() ?>">
 <?php $activePage = 'dashboard'; include_once __DIR__ . '/../includes/admin-sidebar.php'; ?>
   <main class="admin-main">
     <div class="admin-topbar">
       <div style="display:flex;align-items:center;gap:12px">
         <button id="sidebarToggle" class="topbar-btn"><i class="fas fa-bars"></i></button>
         <div class="topbar-title">
-          <h2>Tableau de bord</h2>
-          <p>Bienvenue, <?= htmlspecialchars($_SESSION['admin_nom'] ?? 'Admin') ?> — <?= date('d/m/Y H:i') ?></p>
+          <h2><?= t('tableau_de_bord') ?></h2>
+          <p><?= t('bienvenue') ?>, <?= htmlspecialchars($_SESSION['admin_nom'] ?? 'Admin') ?> — <span dir="ltr"><?= date('d/m/Y H:i') ?></span></p>
         </div>
       </div>
       <div class="topbar-actions">
@@ -162,68 +162,68 @@ function dashTimeAgo(string $time): string {
         <div class="stat-card">
           <div class="stat-card-header"><div class="stat-card-icon gold"><i class="fas fa-calendar-check"></i></div></div>
           <div class="stat-card-value"><?= $statsResaTotal ?></div>
-          <div class="stat-card-label">Total réservations</div>
+          <div class="stat-card-label"><?= t('total_reservations') ?></div>
         </div>
         <div class="stat-card">
           <div class="stat-card-header"><div class="stat-card-icon" style="background:rgba(251,183,36,.1);color:#FBB724"><i class="fas fa-hourglass-half"></i></div></div>
           <div class="stat-card-value"><?= $statsResaAttente ?></div>
-          <div class="stat-card-label">En attente</div>
+          <div class="stat-card-label"><?= t('en_attente') ?></div>
         </div>
         <div class="stat-card">
           <div class="stat-card-header"><div class="stat-card-icon" style="background:rgba(37,211,102,.1);color:#25D366"><i class="fas fa-check-circle"></i></div></div>
           <div class="stat-card-value"><?= $statsResaConf ?></div>
-          <div class="stat-card-label">Confirmées</div>
+          <div class="stat-card-label"><?= t('confirmees') ?></div>
         </div>
         <div class="stat-card">
           <div class="stat-card-header"><div class="stat-card-icon" style="background:rgba(239,68,68,.1);color:#EF5350"><i class="fas fa-times-circle"></i></div></div>
           <div class="stat-card-value"><?= $statsResaRefuse ?></div>
-          <div class="stat-card-label">Refusées</div>
+          <div class="stat-card-label"><?= t('refusees') ?></div>
         </div>
         <div class="stat-card">
           <div class="stat-card-header"><div class="stat-card-icon" style="background:rgba(167,139,250,.1);color:#A78BFA"><i class="fas fa-file-invoice"></i></div></div>
           <div class="stat-card-value"><?= $statsDevisAttente ?></div>
-          <div class="stat-card-label">Devis en attente</div>
+          <div class="stat-card-label"><?= t('devis_en_attente') ?></div>
         </div>
         <div class="stat-card">
           <div class="stat-card-header"><div class="stat-card-icon" style="background:rgba(239,68,68,.1);color:#EF5350"><i class="fas fa-envelope"></i></div></div>
           <div class="stat-card-value"><?= $statsMessages ?></div>
-          <div class="stat-card-label">Messages non lus</div>
+          <div class="stat-card-label"><?= t('messages_non_lus') ?></div>
         </div>
         <div class="stat-card">
           <div class="stat-card-header"><div class="stat-card-icon" style="background:rgba(212,175,55,.1);color:var(--gold)"><i class="fas fa-chart-line"></i></div></div>
           <div class="stat-card-value" style="font-size:1.15rem" dir="ltr"><?= number_format($statsCA,0,',',' ') ?></div>
-          <div class="stat-card-label">CA Total (MAD)</div>
+          <div class="stat-card-label"><?= t('ca_total') ?></div>
         </div>
         <div class="stat-card">
           <div class="stat-card-header"><div class="stat-card-icon" style="background:rgba(37,211,102,.1);color:#25D366"><i class="fas fa-coins"></i></div></div>
           <div class="stat-card-value" style="font-size:1.15rem" dir="ltr"><?= number_format($statsEncaisse,0,',',' ') ?></div>
-          <div class="stat-card-label">Encaissé (MAD)</div>
+          <div class="stat-card-label"><?= t('encaisse') ?></div>
         </div>
         <div class="stat-card">
           <div class="stat-card-header"><div class="stat-card-icon" style="background:rgba(251,183,36,.1);color:#FBB724"><i class="fas fa-hand-holding-usd"></i></div></div>
           <div class="stat-card-value" style="font-size:1.15rem" dir="ltr"><?= number_format($statsReste,0,',',' ') ?></div>
-          <div class="stat-card-label">Reste à payer (MAD)</div>
+          <div class="stat-card-label"><?= t('reste_a_payer') ?></div>
         </div>
         <div class="stat-card">
           <div class="stat-card-header"><div class="stat-card-icon" style="background:rgba(59,130,246,.1);color:#60A5FA"><i class="fas fa-users"></i></div></div>
           <div class="stat-card-value"><?= $totalClients ?></div>
-          <div class="stat-card-label">Clients</div>
+          <div class="stat-card-label"><?= t('clients') ?></div>
         </div>
       </div>
 
       <!-- Actions rapides -->
       <div class="quick-actions">
         <a href="galerie.php" class="quick-btn">
-          <i class="fas fa-images"></i><span>Galerie</span>
+          <i class="fas fa-images"></i><span><?= t('galerie') ?></span>
         </a>
         <a href="services-admin.php" class="quick-btn">
-          <i class="fas fa-concierge-bell"></i><span>Services & Prix</span>
+          <i class="fas fa-concierge-bell"></i><span><?= t('services_prix') ?></span>
         </a>
         <a href="devis.php" class="quick-btn">
-          <i class="fas fa-file-invoice"></i><span>Devis reçus</span>
+          <i class="fas fa-file-invoice"></i><span><?= t('devis_recus') ?></span>
         </a>
         <a href="messages.php" class="quick-btn">
-          <i class="fas fa-envelope"></i><span>Messages<?= $statsMessages>0?" ($statsMessages)":'' ?></span>
+          <i class="fas fa-envelope"></i><span><?= t('messages') ?><?= $statsMessages>0?" ($statsMessages)":'' ?></span>
         </a>
       </div>
 
@@ -231,38 +231,38 @@ function dashTimeAgo(string $time): string {
       <div class="dashboard-grid">
         <div class="dash-card">
           <div class="dash-card-header">
-            <h3><i class="fas fa-calendar-star" style="color:var(--gold);margin-right:6px"></i>Prochains événements</h3>
-            <a href="reservations.php" style="font-size:.75rem;color:var(--gold);text-decoration:none">Voir tout →</a>
+            <h3><i class="fas fa-calendar-star" style="color:var(--gold);margin-right:6px"></i><?= t('prochains_evenements') ?></h3>
+            <a href="reservations.php" style="font-size:.75rem;color:var(--gold);text-decoration:none"><?= t('voir_tout') ?> →</a>
           </div>
           <?php if (empty($prochainsEvenements)): ?>
-          <div style="padding:30px;text-align:center;color:#555;font-size:.82rem">Aucun événement confirmé à venir</div>
+          <div style="padding:30px;text-align:center;color:#555;font-size:.82rem"><?= t('aucun_evenement_confirme') ?></div>
           <?php else: foreach ($prochainsEvenements as $e):
             $nom = trim(($e['prenom']??'').' '.($e['nom']??''));
           ?>
           <a href="reservation_details.php?id=<?= $e['id'] ?>" class="dash-item" style="text-decoration:none;cursor:pointer">
             <div class="dash-item-left">
-              <strong><?= date('d/m/Y', strtotime($e['date_evenement'])) ?> — <?= htmlspecialchars($e['type_nom'] ?: 'Événement') ?></strong>
-              <span><?= htmlspecialchars($nom) ?> · <?= (int)$e['nbr_invites'] ?> invités · <?= substr($e['heure_debut'],0,5) ?></span>
+              <strong><span dir="ltr"><?= date('d/m/Y', strtotime($e['date_evenement'])) ?></span> — <?= htmlspecialchars($e['type_nom'] ?: 'Événement') ?></strong>
+              <span><?= htmlspecialchars($nom) ?> · <?= (int)$e['nbr_invites'] ?> <?= t('invites') ?> · <span dir="ltr"><?= substr($e['heure_debut'],0,5) ?></span></span>
             </div>
-            <span class="badge-small" style="background:rgba(37,211,102,.15);color:#25D366">Confirmé</span>
+            <span class="badge-small" style="background:rgba(37,211,102,.15);color:#25D366"><?= t('confirme') ?></span>
           </a>
           <?php endforeach; endif; ?>
         </div>
 
         <div class="dash-card">
           <div class="dash-card-header">
-            <h3><i class="fas fa-history" style="color:var(--gold);margin-right:6px"></i>Activité récente</h3>
-            <a href="logs.php" style="font-size:.75rem;color:var(--gold);text-decoration:none">Voir tout →</a>
+            <h3><i class="fas fa-history" style="color:var(--gold);margin-right:6px"></i><?= t('activite_recente') ?></h3>
+            <a href="logs.php" style="font-size:.75rem;color:var(--gold);text-decoration:none"><?= t('voir_tout') ?> →</a>
           </div>
           <?php if (empty($activites)): ?>
-          <div style="padding:30px;text-align:center;color:#555;font-size:.82rem">Aucune activité récente</div>
+          <div style="padding:30px;text-align:center;color:#555;font-size:.82rem"><?= t('aucune_activite') ?></div>
           <?php else: foreach ($activites as $a): ?>
           <a href="<?= htmlspecialchars($a['lien']) ?>" class="dash-item" style="text-decoration:none;cursor:pointer">
             <div class="dash-item-left">
-              <strong><i class="fas <?= $a['icon'] ?>" style="color:<?= $a['color'] ?>;margin-right:6px;font-size:.75rem"></i><?= htmlspecialchars($a['titre']) ?></strong>
+              <strong><i class="fas <?= $a['icon'] ?>" style="color:<?= $a['color'] ?>;margin-right:6px;font-size:.75rem"></i><?= htmlspecialchars(t($a['titre_key'])) ?></strong>
               <span><?= htmlspecialchars($a['desc']) ?></span>
             </div>
-            <span style="font-size:.68rem;color:#555"><?= dashTimeAgo($a['time']) ?></span>
+            <span style="font-size:.68rem;color:#555" dir="ltr"><?= dashTimeAgo($a['time']) ?></span>
           </a>
           <?php endforeach; endif; ?>
         </div>

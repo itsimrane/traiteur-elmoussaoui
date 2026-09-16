@@ -92,6 +92,9 @@ if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
 
+// ─── Traduction admin (FR/AR) ───────────────────────
+require_once __DIR__ . '/lang_helper.php';
+
 // ─── Fonctions utilitaires ──────────────────────────
 function sanitize(string $input): string {
     return htmlspecialchars(strip_tags(trim($input)), ENT_QUOTES, 'UTF-8');
