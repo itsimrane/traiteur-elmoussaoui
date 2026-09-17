@@ -800,9 +800,9 @@ try {
 
               <input type="hidden" id="date_evenement" required>
               <small style="color:var(--text-muted);font-size:.72rem;display:block;margin-top:5px"
-                     data-fr="Réservation possible entre 7 jours et 2 mois à l'avance."
-                     data-ar="الحجز ممكن بين 7 أيام وشهرين مقدماً.">
-                Réservation possible entre 7 jours et 2 mois à l'avance.
+                     data-fr="Réservation possible entre 7 jours et 3 semaines à l'avance."
+                     data-ar="الحجز ممكن بين 7 أيام و3 أسابيع مقدماً.">
+                Réservation possible entre 7 jours et 3 semaines à l'avance.
               </small>
             </div>
             <div class="form-group">
@@ -1172,9 +1172,9 @@ try {
       if (!dateVal) { showAlert('Veuillez saisir la date de l\'événement.'); return; }
       const dateChoisie = new Date(dateVal);
       const dateMin = new Date(); dateMin.setDate(dateMin.getDate() + 7); dateMin.setHours(0,0,0,0);
-      const dateMax = new Date(); dateMax.setMonth(dateMax.getMonth() + 2); dateMax.setHours(23,59,59,999);
+      const dateMax = new Date(); dateMax.setDate(dateMax.getDate() + 21); dateMax.setHours(23,59,59,999);
       if (dateChoisie < dateMin || dateChoisie > dateMax) {
-        showAlert('La date doit être comprise entre 7 jours et 2 mois à partir d\'aujourd\'hui.');
+        showAlert('La date doit être comprise entre 7 jours et 3 semaines à partir d\'aujourd\'hui.');
         return;
       }
       if (!document.getElementById('ville').value) { showAlert('Veuillez choisir une ville.'); return; }
@@ -1477,7 +1477,7 @@ Je souhaite recevoir votre devis personnalisé après étude de ma demande. Merc
     // ═══════════════ Calendrier de réservation ═══════════════
     (function () {
       const MIN_DATE = new Date(); MIN_DATE.setDate(MIN_DATE.getDate() + 7); MIN_DATE.setHours(0,0,0,0);
-      const MAX_DATE = new Date(); MAX_DATE.setMonth(MAX_DATE.getMonth() + 2); MAX_DATE.setHours(0,0,0,0);
+      const MAX_DATE = new Date(); MAX_DATE.setDate(MAX_DATE.getDate() + 21); MAX_DATE.setHours(0,0,0,0);
       const moisNoms = ['Janvier','Février','Mars','Avril','Mai','Juin','Juillet','Août','Septembre','Octobre','Novembre','Décembre'];
 
       let vueMois = MIN_DATE.getMonth();
