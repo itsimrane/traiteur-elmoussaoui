@@ -25,11 +25,11 @@ $tenteIdRaw = (int)($data['tente']['id'] ?? 0);
 
 if (!$telephone) jsonResponse(['success'=>false,'message'=>'Téléphone requis']);
 if ($nb <= 0) jsonResponse(['success'=>false,'message'=>'Le nombre d\'invités doit être supérieur à 0']);
-$dateMin = strtotime('+7 days', strtotime('today'));
+$dateMin = strtotime('today');
 $dateMax = strtotime('+21 days', strtotime('today'));
 $dateChoisie = strtotime($date);
 if ($dateChoisie === false) jsonResponse(['success'=>false,'message'=>'Date invalide']);
-if ($dateChoisie < $dateMin) jsonResponse(['success'=>false,'message'=>"La date de l'événement doit être au moins 7 jours à l'avance"]);
+if ($dateChoisie < $dateMin) jsonResponse(['success'=>false,'message'=>"La date de l'événement ne peut pas être dans le passé"]);
 if ($dateChoisie > $dateMax) jsonResponse(['success'=>false,'message'=>"La date de l'événement ne peut pas dépasser 3 semaines à l'avance"]);
 
 $pdo->beginTransaction();
