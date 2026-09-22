@@ -13,6 +13,15 @@ try {
 
 if (!$f) die('Facture introuvable');
 
+// Email de contact — lu depuis Admin > Paramètres, jamais codé en dur.
+// Reste vide tant qu'aucune adresse n'est configurée (pas de faux email affiché).
+$contactEmail = '';
+try {
+    $pe = $pdo->prepare("SELECT valeur FROM parametres WHERE cle = 'contact_email'");
+    $pe->execute();
+    $contactEmail = trim((string) $pe->fetchColumn());
+} catch (Exception $e) { /* table parametres absente — on affiche sans email */ }
+
 // Lignes détaillées du devis à l'origine de cette facture (si disponible)
 $lignesFacture = [];
 if (!empty($f['reservation_id'])) {
@@ -137,8 +146,7 @@ $fmtInt = fn($n) => number_format((float)$n, 0, ',', ' ') . ' MAD';
       <div class="ar">أفراح المساوي</div>
       <div class="contact">
         📍 Errachidia, Maroc<br>
-        📞 0626 986 533<br>
-        ✉️ contact@traiteur-elmoussaoui.ma
+        📞 0626 986 533<?= $contactEmail ? '<br>✉️ ' . htmlspecialchars($contactEmail) : '' ?>
       </div>
     </div>
     <div class="fac-meta">

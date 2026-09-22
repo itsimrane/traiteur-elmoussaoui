@@ -28,6 +28,14 @@ try {
 if (!$d)
   die('Devis introuvable');
 
+// Email de contact — lu depuis Admin > Paramètres, jamais codé en dur.
+$contactEmail = '';
+try {
+    $pe = $pdo->prepare("SELECT valeur FROM parametres WHERE cle = 'contact_email'");
+    $pe->execute();
+    $contactEmail = trim((string) $pe->fetchColumn());
+} catch (Exception $e) { /* table parametres absente — on affiche sans email */ }
+
 $tenteNom = null;
 if (!empty($d['reservation_id'])) {
   try {
@@ -368,7 +376,7 @@ try {
         <div class="company">TRAITEUR <span>EL MOUSSAOUI</span></div>
         <div class="ar">أفراح المساوي</div>
         <div class="subtitle">Organisation d'événements — Errachidia, Maroc</div>
-        <div class="subtitle" style="margin-top:4px">📞 0626 986 533 | contact@traiteur-elmoussaoui.ma</div>
+        <div class="subtitle" style="margin-top:4px">📞 0626 986 533<?= $contactEmail ? ' | ' . htmlspecialchars($contactEmail) : '' ?></div>
       </div>
       <div class="devis-info">
         <div class="ref">DEVIS <?= $refNum ?></div>
