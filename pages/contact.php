@@ -15,7 +15,7 @@ $params = $defaults;
 try {
     $rows = $pdo->query("SELECT cle, valeur FROM parametres WHERE groupe='contact'")->fetchAll();
     foreach ($rows as $r) {
-        if ($r['valeur'] !== null && $r['valeur'] !== '') $params[$r['cle']] = $r['valeur'];
+        if ($r['valeur'] !== null) $params[$r['cle']] = $r['valeur'];
     }
 } catch (Exception $e) {}
 
@@ -125,6 +125,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             </div>
           </div>
 
+          <?php if (!empty($params['contact_email'])): ?>
           <div class="contact-item">
             <div class="contact-item-icon"><i class="fas fa-envelope"></i></div>
             <div class="contact-item-body">
@@ -132,6 +133,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
               <a href="mailto:<?= htmlspecialchars($params['contact_email']) ?>"><?= htmlspecialchars($params['contact_email']) ?></a>
             </div>
           </div>
+          <?php endif; ?>
 
           <div class="contact-item">
             <div class="contact-item-icon"><i class="fas fa-map-marker-alt"></i></div>

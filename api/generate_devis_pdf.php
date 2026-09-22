@@ -19,6 +19,13 @@ $message = htmlspecialchars($data['message'] ?? '');
 $services= $data['services'] ?? [];
 $dateEmission = date('d/m/Y');
 
+$contactEmail = '';
+try {
+    $pe = $pdo->prepare("SELECT valeur FROM parametres WHERE cle = 'contact_email'");
+    $pe->execute();
+    $contactEmail = trim((string) $pe->fetchColumn());
+} catch (Exception $e) {}
+
 $typesLabels = [
     'mariage'=>'Mariage','fiancailles'=>'Fiançailles','circoncision'=>'Circoncision',
     'anniversaire'=>'Anniversaire','reception_pro'=>'Réception Pro',
@@ -112,8 +119,7 @@ $fmt = fn($n) => number_format($n,0,',',' ') . ' MAD';
       <div class="ar">أفراح المساوي</div>
       <div class="contact">
         📍 Errachidia, Maroc<br>
-        📞 0626 986 533<br>
-        ✉️ contact@traiteur-elmoussaoui.ma
+        📞 0626 986 533<?= $contactEmail ? '<br>✉️ ' . htmlspecialchars($contactEmail) : '' ?>
       </div>
     </div>
     <div class="fac-meta">

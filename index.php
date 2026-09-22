@@ -16,7 +16,7 @@ $paramsContact = [
 try {
     $rows = $pdo->query("SELECT cle, valeur FROM parametres WHERE groupe='contact'")->fetchAll();
     foreach ($rows as $r) {
-        if ($r['valeur'] !== null && $r['valeur'] !== '') $paramsContact[$r['cle']] = $r['valeur'];
+        if ($r['valeur'] !== null) $paramsContact[$r['cle']] = $r['valeur'];
     }
 } catch (Exception $e) {}
 $waNumeroIndex = ltrim(preg_replace('/[^0-9]/', '', $paramsContact['contact_whatsapp']), '+');
@@ -552,7 +552,9 @@ try {
             <li><i class="fas fa-map-marker-alt"></i> <span><?= htmlspecialchars($paramsContact['contact_adresse']) ?></span></li>
             <li><i class="fas fa-phone"></i> <a href="tel:<?= htmlspecialchars($paramsContact['contact_telephone']) ?>"><span dir="ltr"><?= htmlspecialchars($telAfficheIndex) ?></span></a></li>
             <li><i class="fab fa-whatsapp"></i> <a href="https://wa.me/<?= htmlspecialchars($waNumeroIndex) ?>" data-fr="WhatsApp direct" data-ar="واتساب مباشر">WhatsApp direct</a></li>
+            <?php if (!empty($paramsContact['contact_email'])): ?>
             <li><i class="fas fa-envelope"></i> <a href="mailto:<?= htmlspecialchars($paramsContact['contact_email']) ?>"><?= htmlspecialchars($paramsContact['contact_email']) ?></a></li>
+            <?php endif; ?>
             <li><i class="fas fa-clock"></i> <span><?= htmlspecialchars($paramsContact['horaires_ouverture']) ?></span></li>
           </ul>
         </div>
