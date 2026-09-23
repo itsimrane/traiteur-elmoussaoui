@@ -7,6 +7,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $action = $_POST['action'] ?? '';
 
     if ($action === 'add' || $action === 'edit') {
+        $typesChoisis = $_POST['types_evenements'] ?? [];
+        $typesChoisis = array_values(array_intersect($typesChoisis, ['mariage','fiancailles','circoncision','anniversaire','reception-pro','buffet-banquet','ceremonie-reli']));
+        $typesJson = json_encode($typesChoisis);
+
         $data = [
             sanitize($_POST['nom']            ?? ''),
             sanitize($_POST['nom_ar']         ?? ''),
@@ -18,20 +22,21 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             sanitize($_POST['icone']          ?? 'fa-star'),
             (int)($_POST['ordre']             ?? 0),
             isset($_POST['actif']) ? 1 : 0,
+            $typesJson,
         ];
 
         try {
             if ($action === 'add') {
                 $pdo->prepare("
-                    INSERT INTO services (nom,nom_ar,slug,description,description_ar,prix_base,unite,icone,ordre,actif)
-                    VALUES (?,?,?,?,?,?,?,?,?,?)
+                    INSERT INTO services (nom,nom_ar,slug,description,description_ar,prix_base,unite,icone,ordre,actif,types_evenements)
+                    VALUES (?,?,?,?,?,?,?,?,?,?,?)
                 ")->execute($data);
                 $msg = 'Service ajouté avec succès !';
             } else {
                 $id = (int)($_POST['id'] ?? 0);
                 $data[] = $id;
                 $pdo->prepare("
-                    UPDATE services SET nom=?,nom_ar=?,slug=?,description=?,description_ar=?,prix_base=?,unite=?,icone=?,ordre=?,actif=?,updated_at=NOW()
+                    UPDATE services SET nom=?,nom_ar=?,slug=?,description=?,description_ar=?,prix_base=?,unite=?,icone=?,ordre=?,actif=?,types_evenements=?,updated_at=NOW()
                     WHERE id=?
                 ")->execute($data);
                 $msg = 'Service mis à jour !';
@@ -95,6 +100,17 @@ $icones = [
     'fa-flower'        => 'Fleurs',
     'fa-microphone'    => 'Sonorisation',
 ];
+
+// Types d'événements (mêmes slugs que pages/reservation.php)
+$typesEvenementsListe = [
+  'mariage'         => ['label' => 'Mariage',              'label_ar' => 'حفل زفاف',       'icon' => 'fa-heart'],
+  'fiancailles'     => ['label' => 'Fiançailles',          'label_ar' => 'حفل خطوبة',      'icon' => 'fa-ring'],
+  'circoncision'    => ['label' => 'Circoncision',         'label_ar' => 'حفل ختان',       'icon' => 'fa-baby'],
+  'anniversaire'    => ['label' => 'Anniversaire',         'label_ar' => 'عيد ميلاد',      'icon' => 'fa-birthday-cake'],
+  'reception-pro'   => ['label' => 'Réception Pro',        'label_ar' => 'استقبال مهني',   'icon' => 'fa-briefcase'],
+  'buffet-banquet'  => ['label' => 'Buffet',               'label_ar' => 'بوفيه',          'icon' => 'fa-utensils'],
+  'ceremonie-reli'  => ['label' => 'Cérémonie religieuse', 'label_ar' => 'مناسبة دينية',   'icon' => 'fa-star-and-crescent'],
+];
 ?>
 <!DOCTYPE html>
 <html lang="<?= adminLang() ?>" dir="<?= adminDir() ?>">
@@ -153,6 +169,13 @@ $icones = [
     .icon-opt i{font-size:1.1rem}
     @media(max-width:600px){.icon-grid{grid-template-columns:repeat(4,1fr)}}
     @media(max-width:480px){.form-grid{grid-template-columns:1fr}}
+
+    .event-types-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px}
+    .event-type-opt{display:flex;align-items:center;gap:8px;padding:9px 12px;border-radius:9px;border:1px solid var(--border);cursor:pointer;transition:var(--transition);font-size:.78rem;color:var(--text-muted)}
+    .event-type-opt:hover{border-color:rgba(212,175,55,.4)}
+    .event-type-opt input[type=checkbox]{width:15px;height:15px;accent-color:var(--gold);flex-shrink:0}
+    .event-type-opt:has(input:checked){border-color:var(--gold);background:rgba(212,175,55,.08);color:var(--gold)}
+    .event-type-opt i{width:16px;text-align:center}
 
     /* Empty */
     .empty-state{text-align:center;padding:60px 20px;color:var(--text-muted)}
@@ -263,6 +286,18 @@ $icones = [
                 <?= $s['actif'] ? tt('● Actif', '● نشط') : tt('○ Inactif', '○ غير نشط') ?>
               </span>
             </div>
+            <?php
+              $typesAssignes = json_decode($s['types_evenements'] ?? '[]', true) ?: [];
+            ?>
+            <div class="sc-meta" style="margin-bottom:14px">
+              <?php if (empty($typesAssignes)): ?>
+                <span class="sc-tag" style="color:#FBB724" title="<?= tt("Aucun type sélectionné : ce service n'apparaîtra pour aucun événement côté client",'لم يتم اختيار أي نوع: لن تظهر هذه الخدمة لأي مناسبة عند العميل') ?>">
+                  <i class="fas fa-exclamation-triangle"></i> <?= tt('Aucun type assigné','لا يوجد نوع محدد') ?>
+                </span>
+              <?php else: foreach ($typesAssignes as $ta): if (!isset($typesEvenementsListe[$ta])) continue; ?>
+                <span class="sc-tag"><i class="fas <?= $typesEvenementsListe[$ta]['icon'] ?>" style="margin-right:4px"></i><?= tt($typesEvenementsListe[$ta]['label'], $typesEvenementsListe[$ta]['label_ar']) ?></span>
+              <?php endforeach; endif; ?>
+            </div>
             <div class="sc-actions">
               <button class="sc-btn" onclick='openEdit(<?= json_encode($s) ?>)'>
                 <i class="fas fa-edit"></i> <span data-fr="Modifier" data-ar="تعديل"><?= tt('Modifier', 'تعديل') ?></span>
@@ -369,6 +404,26 @@ $icones = [
           </div>
         </div>
 
+        <!-- Types d'événements concernés -->
+        <div class="form-group form-full">
+          <label class="form-label" data-fr="Événements concernés" data-ar="المناسبات المعنية"><?= tt('Événements concernés', 'المناسبات المعنية') ?></label>
+          <p style="font-size:.72rem;color:var(--text-muted);margin:-4px 0 10px">
+            <?= tt("Ce service ne sera proposé au client que pour les types d'événement cochés ci-dessous.",'لن يُعرض هذا الخدمة على العميل إلا لأنواع المناسبات المحددة أدناه.') ?>
+          </p>
+          <div class="event-types-grid" id="eventTypesGrid">
+            <?php foreach ($typesEvenementsListe as $slug => $ev): ?>
+            <label class="event-type-opt">
+              <input type="checkbox" name="types_evenements[]" value="<?= $slug ?>" class="f_type_cb" data-slug="<?= $slug ?>">
+              <i class="fas <?= $ev['icon'] ?>"></i>
+              <span><?= tt($ev['label'], $ev['label_ar']) ?></span>
+            </label>
+            <?php endforeach; ?>
+          </div>
+          <button type="button" onclick="toggleAllTypes()" style="background:none;border:none;color:var(--gold);font-size:.74rem;cursor:pointer;margin-top:8px;padding:0">
+            <i class="fas fa-check-double"></i> <span id="toggleAllTypesLabel"><?= tt('Tout sélectionner / désélectionner','تحديد الكل / إلغاء تحديد الكل') ?></span>
+          </button>
+        </div>
+
       </div>
       <div class="modal-footer">
         <button type="button" class="btn-secondary" onclick="closeModal()">Annuler</button>
@@ -408,6 +463,8 @@ function openAdd() {
   });
   document.getElementById('f_unite').value = 'forfait';
   document.getElementById('f_actif').checked = true;
+  // Par défaut, un nouveau service est proposé pour TOUS les types d'événement
+  document.querySelectorAll('.f_type_cb').forEach(cb => cb.checked = true);
   selectIcon('fa-star', document.querySelector('[data-icon="fa-star"]'));
   document.getElementById('serviceModal').classList.add('show');
 }
@@ -429,7 +486,22 @@ function openEdit(s) {
   const ico = s.icone || 'fa-star';
   const icoEl = document.querySelector(`[data-icon="${ico}"]`);
   if (icoEl) selectIcon(ico, icoEl);
+
+  // Types d'événements : si jamais configuré (valeur absente/null), on coche
+  // tout par défaut pour rester compatible avec les anciens services.
+  let typesActuels = null;
+  try { typesActuels = s.types_evenements ? JSON.parse(s.types_evenements) : null; } catch (e) { typesActuels = null; }
+  document.querySelectorAll('.f_type_cb').forEach(cb => {
+    cb.checked = typesActuels === null ? true : typesActuels.includes(cb.dataset.slug);
+  });
+
   document.getElementById('serviceModal').classList.add('show');
+}
+
+function toggleAllTypes() {
+  const boxes = document.querySelectorAll('.f_type_cb');
+  const allChecked = [...boxes].every(cb => cb.checked);
+  boxes.forEach(cb => cb.checked = !allChecked);
 }
 
 function closeModal() { document.getElementById('serviceModal').classList.remove('show'); }
