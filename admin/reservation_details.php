@@ -81,7 +81,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $total = 0; $ordre = 0;
         $ins = $pdo->prepare("INSERT INTO devis_lignes (devis_id, designation, quantite, prix_unitaire, ordre) VALUES (?,?,?,?,?)");
         foreach ($designations as $i => $nomLigne) {
-            $nomLigne = sanitize($nomLigne);
+            $nomLigne = trim(strip_tags($nomLigne));
             $q = max(0, (float)($quantites[$i] ?? 0));
             $pu = max(0, (float)($prix[$i] ?? 0));
             if ($nomLigne === '' || $q <= 0) continue; // ignore lignes vides
@@ -303,7 +303,7 @@ $nomClient = trim(($r['c_prenom'] ?? '').' '.($r['c_nom'] ?? '')) ?: 'Client #'.
                     <!-- ligne vide de départ -->
                   <?php else: foreach ($lignes as $l): ?>
                   <tr class="pricing-row">
-                    <td><input type="text" name="designation[]" class="form-control pr-designation" value="<?= htmlspecialchars($l['designation']) ?>" required></td>
+                    <td><input type="text" name="designation[]" class="form-control pr-designation" value="<?= htmlspecialchars(fullyDecodeHtml($l['designation'])) ?>" required></td>
                     <td><input type="number" step="1" min="0" name="quantite[]" class="form-control pr-qte" value="<?= (float)$l['quantite'] ?>" oninput="recalcPricing()"></td>
                     <td><input type="number" step="0.01" min="0" name="prix_unitaire[]" class="form-control pr-prix" value="<?= (float)$l['prix_unitaire'] ?>" oninput="recalcPricing()"></td>
                     <td class="pr-total" style="text-align:right;color:var(--gold)">0 MAD</td>
@@ -407,7 +407,7 @@ $nomClient = trim(($r['c_prenom'] ?? '').' '.($r['c_nom'] ?? '')) ?: 'Client #'.
                 if ($tenteChoisie) $texte .= "Tente : " . $tenteChoisie['nom'] . "\n";
                 $texte .= "\nServices :\n";
                 foreach ($lignes as $l) {
-                    $texte .= "- {$l['designation']} (x{$l['quantite']}) : " . number_format($l['prix_unitaire']*$l['quantite'],0,',',' ') . " MAD\n";
+                    $texte .= "- " . fullyDecodeHtml($l['designation']) . " (x{$l['quantite']}) : " . number_format($l['prix_unitaire']*$l['quantite'],0,',',' ') . " MAD\n";
                 }
                 $texte .= "\nTOTAL : " . number_format($devis['montant_ht'],0,',',' ') . " MAD\n\nMerci de nous confirmer votre accord.";
                 $numTel = ltrim(preg_replace('/[^0-9]/','',$r['c_tel']), '0');

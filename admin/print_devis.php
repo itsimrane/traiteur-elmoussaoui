@@ -429,7 +429,7 @@ try {
           <ul class="package-items" style="grid-template-columns:1fr">
             <?php foreach ($services as $s): $qte = (float)($s['quantite'] ?? 1); $pu = (float)($s['prix_unitaire'] ?? 0); ?>
               <li style="justify-content:space-between">
-                <span><?= htmlspecialchars($s['designation'] ?? '') ?> <?= $qte != 1 ? '(x'.$qte.')' : '' ?></span>
+                <span><?= htmlspecialchars(fullyDecodeHtml($s['designation'] ?? '')) ?> <?= $qte != 1 ? '(x'.$qte.')' : '' ?></span>
                 <span style="margin-left:auto;color:#D4AF37;font-weight:700">
                   <?= $pu > 0 ? number_format($qte * $pu, 0, ',', ' ') . ' MAD' : 'Sur devis' ?>
                 </span>

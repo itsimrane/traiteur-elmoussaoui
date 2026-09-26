@@ -24,6 +24,7 @@ try {
 
 // Lignes détaillées du devis à l'origine de cette facture (si disponible)
 $lignesFacture = [];
+$tenteNom = null;
 if (!empty($f['reservation_id'])) {
     try {
         $dq = $pdo->prepare("SELECT id FROM devis WHERE reservation_id = ? ORDER BY id DESC LIMIT 1");
@@ -35,6 +36,11 @@ if (!empty($f['reservation_id'])) {
             $lignesFacture = $lq->fetchAll();
         }
     } catch (Exception $e) { /* pas de devis lié — on retombe sur la ligne générique */ }
+    try {
+        $tq = $pdo->prepare("SELECT t.nom FROM reservations r JOIN tentes t ON t.id = r.tente_id WHERE r.id = ?");
+        $tq->execute([$f['reservation_id']]);
+        $tenteNom = $tq->fetchColumn() ?: null;
+    } catch (Exception $e) { /* table tentes absente ou aucune tente choisie */ }
 }
 
 $dateEv  = !empty($f['date_evenement'])  ? date('d/m/Y', strtotime($f['date_evenement']))  : '—';
@@ -177,6 +183,9 @@ $fmtInt = fn($n) => number_format((float)$n, 0, ',', ' ') . ' MAD';
       <div class="info-row"><label>Type</label><span><?= ucfirst(str_replace('_',' ',$f['type_evenement']??'—')) ?></span></div>
       <div class="info-row"><label>Date</label><span><?= $dateEv ?></span></div>
       <div class="info-row"><label>Invités</label><span><?= $f['nb_personnes'] ? $f['nb_personnes'] . ' personnes' : '—' ?></span></div>
+      <?php if ($tenteNom): ?>
+      <div class="info-row"><label>Tente</label><span><?= htmlspecialchars($tenteNom) ?></span></div>
+      <?php endif; ?>
       <?php if ($f['package_nom']): ?>
       <div class="info-row"><label>Package</label><span style="color:#D4AF37;font-weight:600"><?= htmlspecialchars($f['package_nom']) ?></span></div>
       <?php endif; ?>
@@ -197,7 +206,7 @@ $fmtInt = fn($n) => number_format((float)$n, 0, ',', ' ') . ' MAD';
       <?php if (!empty($lignesFacture)): ?>
         <?php foreach ($lignesFacture as $l): $qte = (float)$l['quantite']; $pu = (float)$l['prix_unitaire']; ?>
         <tr>
-          <td><div class="line-name"><?= htmlspecialchars($l['designation']) ?></div></td>
+          <td><div class="line-name"><?= htmlspecialchars(fullyDecodeHtml($l['designation'])) ?></div></td>
           <td><?= rtrim(rtrim(number_format($qte, 2, ',', ' '), '0'), ',') ?></td>
           <td><?= $fmt($pu) ?></td>
           <td><?= $fmt($qte * $pu) ?></td>

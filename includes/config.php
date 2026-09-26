@@ -100,6 +100,20 @@ function sanitize(string $input): string {
     return htmlspecialchars(strip_tags(trim($input)), ENT_QUOTES, 'UTF-8');
 }
 
+/**
+ * Décode les entités HTML même si le texte a été encodé plusieurs fois
+ * par erreur (ex: "&amp;amp;" -> "&amp;" -> "&"). Boucle jusqu'à ce que
+ * décoder ne change plus rien, donc sans risque sur un texte déjà propre.
+ */
+function fullyDecodeHtml(string $input): string {
+    $prev = null;
+    while ($prev !== $input) {
+        $prev = $input;
+        $input = html_entity_decode($input, ENT_QUOTES, 'UTF-8');
+    }
+    return $input;
+}
+
 function generateRef(string $prefix, PDO $pdo): string {
     $year  = date('Y');
     $table = match($prefix) {
