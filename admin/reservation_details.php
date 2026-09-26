@@ -93,7 +93,23 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             ->execute([$total, $devisId]);
         $pdo->prepare("UPDATE reservations SET montant_total=?, updated_at=NOW() WHERE id=?")->execute([$total, $id]);
 
-        $msg = 'Tarification enregistrée. Total : ' . number_format($total,0,',',' ') . ' MAD.'; $msgType = 'success';
+        // Si une facture existe déjà pour cette réservation (créée à l'acceptation
+        // du devis), la synchroniser aussi — sinon elle garde son ancien montant
+        // pour toujours, même après une modification de la tarification.
+        $fac = $pdo->prepare("SELECT id, acompte FROM factures WHERE reservation_id=? ORDER BY id DESC LIMIT 1");
+        $fac->execute([$id]);
+        $factureExistante = $fac->fetch();
+        if ($factureExistante) {
+            $acompteDejaRecu = (float) $factureExistante['acompte'];
+            $nouveauReste    = max(0, $total - $acompteDejaRecu);
+            $nouveauStatut   = $acompteDejaRecu <= 0 ? 'envoyee' : ($acompteDejaRecu >= $total ? 'payee' : 'partiellement_payee');
+            $pdo->prepare("UPDATE factures SET montant_ht=?, montant_ttc=?, reste_a_payer=?, statut=?, updated_at=NOW() WHERE id=?")
+                ->execute([$total, $total, $nouveauReste, $nouveauStatut, $factureExistante['id']]);
+        }
+
+        $msg = 'Tarification enregistrée. Total : ' . number_format($total,0,',',' ') . ' MAD.';
+        if ($factureExistante) $msg .= ' La facture liée a été mise à jour en conséquence.';
+        $msgType = 'success';
     }
 }
 
