@@ -80,9 +80,6 @@ foreach ($allParams as $p) $grouped[$p['groupe']][] = $p;
 $groupeLabels = [
     'general'   => ['label'=>'Informations générales', 'label_ar'=>'المعلومات العامة',  'icon'=>'fa-info-circle',      'color'=>'#D4AF37'],
     'contact'   => ['label'=>'Contact & Réseaux', 'label_ar'=>'التواصل والشبكات',       'icon'=>'fa-address-card',     'color'=>'#60A5FA'],
-    'business'  => ['label'=>'Configuration Métier', 'label_ar'=>'إعدادات العمل',    'icon'=>'fa-briefcase',        'color'=>'#25D366'],
-    'email_cfg' => ['label'=>'Emails & Notifications',  'icon'=>'fa-envelope',         'color'=>'#FBB724'],
-    'apparence' => ['label'=>'Apparence & Affichage', 'label_ar'=>'المظهر والعرض',   'icon'=>'fa-paint-brush',      'color'=>'#C084FC'],
 ];
 
 $ongletActif = $_GET['tab'] ?? 'general';
@@ -210,7 +207,13 @@ $ongletActif = $_GET['tab'] ?? 'general';
                   <?php foreach ($grouped[$groupeKey] ?? [] as $p): ?>
                   <div class="param-row">
                     <div class="param-label">
-                      <span data-fr="<?= htmlspecialchars($p['label'] ?? $p['cle']) ?>"><?= htmlspecialchars($p['label'] ?? $p['cle']) ?></span>
+                      <?php if ($p['cle'] === 'contact_facebook'): ?>
+                        <span><i class="fab fa-facebook" style="color:#1877F2;margin-right:6px"></i><?= tt('Page Facebook','صفحة فيسبوك') ?></span>
+                      <?php elseif ($p['cle'] === 'contact_instagram'): ?>
+                        <span><i class="fab fa-instagram" style="color:#E1306C;margin-right:6px"></i><?= tt('Compte Instagram','حساب إنستغرام') ?></span>
+                      <?php else: ?>
+                        <span data-fr="<?= htmlspecialchars($p['label'] ?? $p['cle']) ?>"><?= htmlspecialchars($p['label'] ?? $p['cle']) ?></span>
+                      <?php endif; ?>
                       <small><?= htmlspecialchars($p['cle']) ?></small>
                     </div>
                     <div>
@@ -245,7 +248,7 @@ $ongletActif = $_GET['tab'] ?? 'general';
                           <input type="email" name="<?= $name ?>" class="form-control" value="<?= $val ?>">
                         <?php break;
                         case 'url': ?>
-                          <input type="url" name="<?= $name ?>" class="form-control" value="<?= $val ?>" placeholder="https://...">
+                          <input type="url" name="<?= $name ?>" class="form-control" value="<?= $val ?>" placeholder="<?= $p['cle'] === 'contact_facebook' ? 'https://facebook.com/votrepage' : ($p['cle'] === 'contact_instagram' ? 'https://instagram.com/votrecompte' : 'https://...') ?>">
                         <?php break;
                         case 'number': ?>
                           <input type="number" name="<?= $name ?>" class="form-control" value="<?= $val ?>" min="0">
@@ -326,11 +329,13 @@ $ongletActif = $_GET['tab'] ?? 'general';
                 </div>
                 <div class="params-card-body" style="display:flex;gap:10px;flex-wrap:wrap">
                   <?php
-                  $tel = ''; $wa = ''; $email = '';
+                  $tel = ''; $wa = ''; $email = ''; $fb = ''; $insta = '';
                   foreach (($grouped['contact'] ?? []) as $p) {
                     if ($p['cle'] === 'contact_telephone') $tel   = $p['valeur'];
                     if ($p['cle'] === 'contact_whatsapp')  $wa    = $p['valeur'];
                     if ($p['cle'] === 'contact_email')     $email = $p['valeur'];
+                    if ($p['cle'] === 'contact_facebook')  $fb    = $p['valeur'];
+                    if ($p['cle'] === 'contact_instagram') $insta = $p['valeur'];
                   }
                   ?>
                   <?php if ($tel): ?>
@@ -346,6 +351,16 @@ $ongletActif = $_GET['tab'] ?? 'general';
                   <?php if ($email): ?>
                   <a href="mailto:<?= $email ?>" class="btn-secondary" style="text-decoration:none;padding:8px 16px;font-size:.82rem">
                     <i class="fas fa-envelope" style="color:#60A5FA"></i> Email
+                  </a>
+                  <?php endif; ?>
+                  <?php if ($fb): ?>
+                  <a href="<?= htmlspecialchars($fb) ?>" target="_blank" class="btn-secondary" style="text-decoration:none;padding:8px 16px;font-size:.82rem">
+                    <i class="fab fa-facebook" style="color:#1877F2"></i> Facebook
+                  </a>
+                  <?php endif; ?>
+                  <?php if ($insta): ?>
+                  <a href="<?= htmlspecialchars($insta) ?>" target="_blank" class="btn-secondary" style="text-decoration:none;padding:8px 16px;font-size:.82rem">
+                    <i class="fab fa-instagram" style="color:#E1306C"></i> Instagram
                   </a>
                   <?php endif; ?>
                 </div>
