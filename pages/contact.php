@@ -10,12 +10,19 @@ $defaults = [
     'contact_maps_lat'  => '31.9314',
     'contact_maps_lng'  => '-4.4264',
     'horaires_ouverture'=> 'Lun–Sam : 08h–20h | Dim : 09h–18h',
+    'contact_facebook'  => 'https://www.facebook.com/profile.php?id=61565592029636',
+    'contact_instagram' => 'https://www.instagram.com/elmoussaoui_traiteur__officiel/',
 ];
 $params = $defaults;
 try {
     $rows = $pdo->query("SELECT cle, valeur FROM parametres WHERE groupe='contact'")->fetchAll();
     foreach ($rows as $r) {
-        if ($r['valeur'] !== null) $params[$r['cle']] = $r['valeur'];
+        if ($r['valeur'] === null) continue;
+        // Vide écrase volontairement le repli seulement pour l'email (permet de
+        // le masquer) — pas pour les autres champs, pour ne jamais casser un
+        // lien existant tant que l'admin n'a pas explicitement renseigné le sien.
+        if ($r['valeur'] === '' && $r['cle'] !== 'contact_email') continue;
+        $params[$r['cle']] = $r['valeur'];
     }
 } catch (Exception $e) {}
 
@@ -155,8 +162,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
           <label style="font-size:.68rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:.5px;display:block;margin-bottom:10px" data-fr="Suivez-nous" data-ar="تابعونا">Suivez-nous</label>
           <div class="social-row">
-            <a href="https://www.facebook.com/profile.php?id=61565592029636" class="social-btn" title="Facebook" target="_blank" rel="noopener"><i class="fab fa-facebook-f"></i></a>
-            <a href="https://www.instagram.com/elmoussaoui_traiteur__officiel/" class="social-btn" title="Instagram" target="_blank" rel="noopener"><i class="fab fa-instagram"></i></a>
+            <a href="<?= htmlspecialchars($params['contact_facebook']) ?>" class="social-btn" title="Facebook" target="_blank" rel="noopener"><i class="fab fa-facebook-f"></i></a>
+            <a href="<?= htmlspecialchars($params['contact_instagram']) ?>" class="social-btn" title="Instagram" target="_blank" rel="noopener"><i class="fab fa-instagram"></i></a>
             <a href="https://wa.me/<?= htmlspecialchars($waNumero) ?>" class="social-btn" title="WhatsApp" target="_blank" rel="noopener" style="border-color:rgba(37,211,102,.3);color:#25D366"><i class="fab fa-whatsapp"></i></a>
           </div>
 

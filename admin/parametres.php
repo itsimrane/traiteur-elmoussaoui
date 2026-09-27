@@ -31,8 +31,8 @@ if ($count == 0) {
         ['contact_email','contact@traiteur-elmoussaoui.ma','contact','Email de contact','email',12],
         ['contact_adresse','Errachidia, Maroc','contact','Adresse','text',13],
         ['contact_whatsapp','212626986533','contact','WhatsApp (format international)','text',14],
-        ['contact_facebook','','contact','Lien Facebook','url',15],
-        ['contact_instagram','','contact','Lien Instagram','url',16],
+        ['contact_facebook','https://www.facebook.com/profile.php?id=61565592029636','contact','Lien Facebook','url',15],
+        ['contact_instagram','https://www.instagram.com/elmoussaoui_traiteur__officiel/','contact','Lien Instagram','url',16],
         // Business
         ['acompte_pct','30','business','Acompte requis (%)','number',20],
         ['annulation_jours','30','business','Délai annulation sans pénalité (jours)','number',22],
@@ -51,6 +51,14 @@ if ($count == 0) {
     $stmt = $pdo->prepare("INSERT IGNORE INTO parametres (cle,valeur,groupe,label,type,ordre) VALUES (?,?,?,?,?,?)");
     foreach ($defaults as $d) $stmt->execute($d);
 }
+
+// Répare une seule fois les liens Facebook/Instagram s'ils étaient restés
+// vides en base (le formulaire admin était vide alors que le site public
+// utilisait encore les vraies URLs codées en dur — voir le correctif qui a
+// rendu ces liens dynamiques). Sans ce correctif, l'admin verrait un champ
+// vide au lieu du lien actuellement affiché sur le site.
+$pdo->prepare("UPDATE parametres SET valeur='https://www.facebook.com/profile.php?id=61565592029636' WHERE cle='contact_facebook' AND (valeur IS NULL OR valeur='')")->execute();
+$pdo->prepare("UPDATE parametres SET valeur='https://www.instagram.com/elmoussaoui_traiteur__officiel/' WHERE cle='contact_instagram' AND (valeur IS NULL OR valeur='')")->execute();
 
 // Sauvegarder
 $msg = ''; $msgType = 'success';

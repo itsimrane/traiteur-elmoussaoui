@@ -12,11 +12,19 @@ $paramsContact = [
     'contact_email'     => 'contact@traiteur-elmoussaoui.ma',
     'contact_adresse'   => 'Errachidia, Région Drâa-Tafilalet, Maroc',
     'horaires_ouverture'=> 'Lun–Sam : 08h–20h',
+    'contact_facebook'  => 'https://www.facebook.com/profile.php?id=61565592029636',
+    'contact_instagram' => 'https://www.instagram.com/elmoussaoui_traiteur__officiel/',
 ];
 try {
     $rows = $pdo->query("SELECT cle, valeur FROM parametres WHERE groupe='contact'")->fetchAll();
     foreach ($rows as $r) {
-        if ($r['valeur'] !== null) $paramsContact[$r['cle']] = $r['valeur'];
+        if ($r['valeur'] === null) continue;
+        // Une valeur vide écrase volontairement le repli pour l'email (permet
+        // de le masquer tant qu'aucune adresse n'est configurée) — mais pas
+        // pour les autres champs (téléphone, Facebook, Instagram...), où on
+        // préfère garder le lien actuel plutôt que de casser un bouton.
+        if ($r['valeur'] === '' && $r['cle'] !== 'contact_email') continue;
+        $paramsContact[$r['cle']] = $r['valeur'];
     }
 } catch (Exception $e) {}
 $waNumeroIndex = ltrim(preg_replace('/[^0-9]/', '', $paramsContact['contact_whatsapp']), '+');
@@ -516,8 +524,8 @@ try {
           </div>
           <p data-fr="Organisation des Évènements et des Fêtes à Errachidia. Votre bonheur est notre priorité." data-ar="تنظيم المناسبات والحفلات بالراشيدية. سعادتكم هي أولويتنا.">Organisation des Évènements et des Fêtes à Errachidia. Votre bonheur est notre priorité.</p>
           <div class="footer-social">
-            <a href="https://www.facebook.com/profile.php?id=61565592029636" target="_blank" rel="noopener" aria-label="Facebook"><i class="fab fa-facebook-f"></i></a>
-            <a href="https://www.instagram.com/elmoussaoui_traiteur__officiel/" target="_blank" rel="noopener" aria-label="Instagram"><i class="fab fa-instagram"></i></a>
+            <a href="<?= htmlspecialchars($paramsContact['contact_facebook']) ?>" target="_blank" rel="noopener" aria-label="Facebook"><i class="fab fa-facebook-f"></i></a>
+            <a href="<?= htmlspecialchars($paramsContact['contact_instagram']) ?>" target="_blank" rel="noopener" aria-label="Instagram"><i class="fab fa-instagram"></i></a>
             <a href="https://wa.me/<?= htmlspecialchars($waNumeroIndex) ?>" target="_blank" rel="noopener" aria-label="WhatsApp"><i class="fab fa-whatsapp"></i></a>
           </div>
         </div>
@@ -573,10 +581,10 @@ try {
 <a href="https://wa.me/<?= htmlspecialchars($waNumeroIndex) ?>" class="whatsapp-float" target="_blank" title="Contactez-nous sur WhatsApp">
   <i class="fab fa-whatsapp"></i>
 </a>
-<a href="https://www.instagram.com/elmoussaoui_traiteur__officiel/" class="instagram-float" target="_blank" rel="noopener" title="Suivez-nous sur Instagram">
+<a href="<?= htmlspecialchars($paramsContact['contact_instagram']) ?>" class="instagram-float" target="_blank" rel="noopener" title="Suivez-nous sur Instagram">
   <i class="fab fa-instagram"></i>
 </a>
-<a href="https://www.facebook.com/profile.php?id=61565592029636" class="facebook-float" target="_blank" rel="noopener" title="Suivez-nous sur Facebook">
+<a href="<?= htmlspecialchars($paramsContact['contact_facebook']) ?>" class="facebook-float" target="_blank" rel="noopener" title="Suivez-nous sur Facebook">
   <i class="fab fa-facebook-f"></i>
 </a>
 
@@ -585,7 +593,7 @@ try {
   <a href="https://wa.me/<?= htmlspecialchars($waNumeroIndex) ?>" target="_blank" rel="noopener" class="mab-item mab-whatsapp">
     <i class="fab fa-whatsapp"></i><span data-fr="WhatsApp" data-ar="واتساب">WhatsApp</span>
   </a>
-  <a href="https://www.instagram.com/elmoussaoui_traiteur__officiel/" target="_blank" rel="noopener" class="mab-item mab-instagram">
+  <a href="<?= htmlspecialchars($paramsContact['contact_instagram']) ?>" target="_blank" rel="noopener" class="mab-item mab-instagram">
     <i class="fab fa-instagram"></i><span>Instagram</span>
   </a>
   <a href="pages/reservation.php" class="mab-item mab-reserve">
