@@ -140,7 +140,7 @@ $tentes = $pdo->query("SELECT * FROM tentes ORDER BY ordre ASC, id ASC")->fetchA
         <button id="sidebarToggle" class="topbar-btn"><i class="fas fa-bars"></i></button>
         <div class="topbar-title"><h2><?= t('tentes') ?></h2><p><?= tt('Gestion des fiches tentes proposées lors du traitement des réservations','إدارة بطاقات الخيام المقترحة عند معالجة الحجوزات') ?></p></div>
       </div>
-      <button class="topbar-btn" onclick="openModal()"><i class="fas fa-plus"></i> <?= tt('Nouvelle tente','خيمة جديدة') ?></button>
+      <button class="btn-primary" style="padding:8px 18px;font-size:.82rem" onclick="openModal()"><i class="fas fa-plus"></i> <?= tt('Nouvelle tente','خيمة جديدة') ?></button>
     </div>
 
     <div class="admin-content">
