@@ -184,6 +184,16 @@ $factures = $pdo->query("
     ORDER BY f.created_at DESC
 ")->fetchAll();
 
+// Ajoute la liste complète des dates (multi-jours) à chaque facture, pour la
+// fenêtre de détail rapide ET l'impression — sans ça, une facture liée à une
+// réservation de plusieurs jours n'affichait que sa date "principale".
+foreach ($factures as &$fRow) {
+    $toutes = getReservationDates($pdo, (int)($fRow['reservation_id'] ?? 0), $fRow['date_evenement'] ?? null);
+    $fRow['nb_jours']    = count($toutes);
+    $fRow['dates_liste'] = formatDatesList($toutes, ' • ');
+}
+unset($fRow);
+
 $packages = $pdo->query("SELECT nom FROM packages WHERE actif = 1 ORDER BY ordre")->fetchAll(PDO::FETCH_COLUMN);
 
 $total         = count($factures);
@@ -571,7 +581,8 @@ function openDetail(f) {
     const s = sc[f.statut] || sc['brouillon'];
     const fmt = n => parseFloat(n || 0).toLocaleString('fr-FR') + ' MAD';
     const dateEch = f.date_echeance ? new Date(f.date_echeance).toLocaleDateString('fr-FR') : '—';
-    const dateEv = f.date_evenement ? new Date(f.date_evenement).toLocaleDateString('fr-FR') : '—';
+    const dateEv = f.dates_liste ? f.dates_liste : (f.date_evenement ? new Date(f.date_evenement).toLocaleDateString('fr-FR') : '—');
+    const labelDateEv = (f.nb_jours && f.nb_jours > 1) ? `Dates (${f.nb_jours} jours)` : 'Date événement';
     document.getElementById('detailContent').innerHTML = `
         <div style="padding:20px 22px;background:linear-gradient(135deg,rgba(212,175,55,.06),transparent);border-bottom:1px solid var(--border)">
             <div style="display:flex;justify-content:space-between;align-items:center">
@@ -584,7 +595,7 @@ function openDetail(f) {
                 <div><div style="font-size:.68rem;color:var(--text-muted);text-transform:uppercase;margin-bottom:3px">Téléphone</div><div style="color:var(--white)">${f.telephone_client || '—'}</div></div>
                 <div><div style="font-size:.68rem;color:var(--text-muted);text-transform:uppercase;margin-bottom:3px">Email</div><div style="color:var(--white)">${f.email_client || '—'}</div></div>
                 <div><div style="font-size:.68rem;color:var(--text-muted);text-transform:uppercase;margin-bottom:3px">Événement</div><div style="color:var(--white)">${(f.type_evenement || '—').replace('_',' ')}</div></div>
-                <div><div style="font-size:.68rem;color:var(--text-muted);text-transform:uppercase;margin-bottom:3px">Date événement</div><div style="color:var(--white)">${dateEv}</div></div>
+                <div><div style="font-size:.68rem;color:var(--text-muted);text-transform:uppercase;margin-bottom:3px">${labelDateEv}</div><div style="color:var(--white)">${dateEv}</div></div>
                 <div><div style="font-size:.68rem;color:var(--text-muted);text-transform:uppercase;margin-bottom:3px">Package</div><div style="color:var(--gold)">${f.package_nom || '—'}</div></div>
                 <div><div style="font-size:.68rem;color:var(--text-muted);text-transform:uppercase;margin-bottom:3px">Échéance</div><div style="color:var(--white)">${dateEch}</div></div>
             </div>
