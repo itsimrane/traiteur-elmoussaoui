@@ -104,7 +104,8 @@ try {
     $stmt = $pdo->prepare("
         SELECT d.*, c.nom AS c_nom, c.prenom AS c_prenom, c.telephone AS c_tel,
                te.nom AS type_nom, r.reference AS resa_ref,
-               f.acompte AS facture_paye, f.montant_ttc AS facture_ttc, f.id AS facture_id
+               f.acompte AS facture_paye, f.montant_ttc AS facture_ttc, f.id AS facture_id,
+               (SELECT COUNT(*) FROM reservation_dates rd WHERE rd.reservation_id = d.reservation_id) AS nb_jours
         FROM devis d
         LEFT JOIN clients c ON c.id = d.client_id
         LEFT JOIN types_evenements te ON te.id = d.type_evenement_id
@@ -115,7 +116,26 @@ try {
     ");
     $stmt->execute($params);
     $devisListe = $stmt->fetchAll();
-} catch (Exception $e) { $erreurBdd = $e->getMessage(); }
+} catch (Exception $e) {
+    // `reservation_dates` pas encore migrée : même liste sans le comptage de jours
+    try {
+        $stmt = $pdo->prepare("
+            SELECT d.*, c.nom AS c_nom, c.prenom AS c_prenom, c.telephone AS c_tel,
+                   te.nom AS type_nom, r.reference AS resa_ref,
+                   f.acompte AS facture_paye, f.montant_ttc AS facture_ttc, f.id AS facture_id,
+                   1 AS nb_jours
+            FROM devis d
+            LEFT JOIN clients c ON c.id = d.client_id
+            LEFT JOIN types_evenements te ON te.id = d.type_evenement_id
+            LEFT JOIN reservations r ON r.id = d.reservation_id
+            LEFT JOIN factures f ON f.reservation_id = d.reservation_id
+            WHERE $whereSql
+            ORDER BY d.created_at DESC
+        ");
+        $stmt->execute($params);
+        $devisListe = $stmt->fetchAll();
+    } catch (Exception $e2) { $erreurBdd = $e2->getMessage(); }
+}
 
 // ── Compteurs ────────────────────────────────────────────────────
 $compteurs = ['total'=>0,'recu'=>0,'accepte'=>0,'refuse'=>0];
@@ -246,7 +266,7 @@ $statutConfig = [
               </td>
               <td><?= $d['resa_ref'] ? htmlspecialchars($d['resa_ref']) : '<span style="color:#555">—</span>' ?></td>
               <td><?= htmlspecialchars($d['type_nom'] ?: '—') ?></td>
-              <td><?= $d['date_evenement'] ? date('d/m/Y', strtotime($d['date_evenement'])) : '—' ?></td>
+              <td><?= $d['date_evenement'] ? date('d/m/Y', strtotime($d['date_evenement'])) : '—' ?><?php if (($d['nb_jours'] ?? 1) > 1): ?> <span style="background:rgba(212,175,55,.15);color:var(--gold);font-size:.68rem;padding:1px 7px;border-radius:8px"><?= (int)$d['nb_jours'] ?>j</span><?php endif; ?></td>
               <td><strong style="color:var(--gold)"><?= number_format($d['montant_ht'],0,',',' ') ?> MAD</strong></td>
               <td>
                 <?php if ($d['facture_id']): ?>

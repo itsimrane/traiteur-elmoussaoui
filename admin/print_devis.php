@@ -37,18 +37,21 @@ try {
 } catch (Exception $e) { /* table parametres absente — on affiche sans email */ }
 
 $tenteNom = null;
+$toutesLesDates = [];
 if (!empty($d['reservation_id'])) {
   try {
     $tq = $pdo->prepare("SELECT t.nom FROM reservations r JOIN tentes t ON t.id = r.tente_id WHERE r.id = ?");
     $tq->execute([$d['reservation_id']]);
     $tenteNom = $tq->fetchColumn() ?: null;
   } catch (Exception $e) {}
+  $toutesLesDates = getReservationDates($pdo, (int)$d['reservation_id'], $d['date_evenement'] ?? null);
 }
+$nbJoursDevis = count($toutesLesDates);
 
 $nom = trim(($d['c_prenom'] ?? '') . ' ' . ($d['c_nom'] ?? '')) ?: ($d['nom_prospect'] ?: 'Client');
 $telephone = $d['c_tel'] ?? $d['telephone_prospect'] ?? '';
 $email = $d['c_email'] ?? $d['email_prospect'] ?? '';
-$date = !empty($d['date_evenement']) ? date('d/m/Y', strtotime($d['date_evenement'])) : '—';
+$date = !empty($toutesLesDates) ? formatDatesList($toutesLesDates, ' • ') : (!empty($d['date_evenement']) ? date('d/m/Y', strtotime($d['date_evenement'])) : '—');
 $recu = date('d/m/Y', strtotime($d['created_at']));
 $refNum = $d['reference'];
 
@@ -414,7 +417,7 @@ try {
       <div class="grid-2">
         <div class="field"><label>Type
             d'événement</label><span><?= htmlspecialchars($d['type_nom'] ?? '—') ?></span></div>
-        <div class="field"><label>Date souhaitée</label><span><?= $date ?></span></div>
+        <div class="field"><label><?= $nbJoursDevis > 1 ? "Dates ($nbJoursDevis jours)" : 'Date souhaitée' ?></label><span><?= $date ?></span></div>
         <?php if ($tenteNom): ?>
         <div class="field"><label>Tente</label><span><?= htmlspecialchars($tenteNom) ?></span></div>
         <?php endif; ?>

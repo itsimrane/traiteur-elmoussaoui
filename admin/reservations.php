@@ -61,7 +61,8 @@ try {
                te.nom AS type_nom,
                (SELECT GROUP_CONCAT(dl.designation SEPARATOR ', ')
                   FROM devis d LEFT JOIN devis_lignes dl ON dl.devis_id = d.id
-                 WHERE d.reservation_id = r.id LIMIT 1) AS services_resume
+                 WHERE d.reservation_id = r.id LIMIT 1) AS services_resume,
+               (SELECT COUNT(*) FROM reservation_dates rd WHERE rd.reservation_id = r.id) AS nb_jours
         FROM reservations r
         LEFT JOIN clients c ON c.id = r.client_id
         LEFT JOIN types_evenements te ON te.id = r.type_evenement_id
@@ -71,7 +72,27 @@ try {
     $stmt->execute($params);
     $reservations = $stmt->fetchAll();
 } catch (Exception $e) {
-    $erreurBdd = $e->getMessage();
+    // `reservation_dates` pas encore migrée : on refait la même liste sans le
+    // comptage de jours plutôt que de casser toute la page.
+    try {
+        $stmt = $pdo->prepare("
+            SELECT r.*, c.nom AS c_nom, c.prenom AS c_prenom, c.telephone AS c_tel, c.email AS c_email,
+                   te.nom AS type_nom,
+                   (SELECT GROUP_CONCAT(dl.designation SEPARATOR ', ')
+                      FROM devis d LEFT JOIN devis_lignes dl ON dl.devis_id = d.id
+                     WHERE d.reservation_id = r.id LIMIT 1) AS services_resume,
+                   1 AS nb_jours
+            FROM reservations r
+            LEFT JOIN clients c ON c.id = r.client_id
+            LEFT JOIN types_evenements te ON te.id = r.type_evenement_id
+            WHERE $whereSql
+            ORDER BY r.created_at DESC
+        ");
+        $stmt->execute($params);
+        $reservations = $stmt->fetchAll();
+    } catch (Exception $e2) {
+        $erreurBdd = $e2->getMessage();
+    }
 }
 
 // ── Types d'événements pour le filtre ───────────────────────────
@@ -221,7 +242,7 @@ $statutConfig = [
                 <span style="font-size:.72rem;color:#666"><?= htmlspecialchars($r['c_tel'] ?? '—') ?></span>
               </td>
               <td><?= htmlspecialchars($r['type_nom'] ?? '—') ?></td>
-              <td><span dir="ltr"><?= $r['date_evenement'] ? date('d/m/Y', strtotime($r['date_evenement'])) : '—' ?></span><br><span style="font-size:.72rem;color:#666" dir="ltr"><?= substr($r['heure_debut'],0,5) ?></span></td>
+              <td><span dir="ltr"><?= $r['date_evenement'] ? date('d/m/Y', strtotime($r['date_evenement'])) : '—' ?></span><?php if (($r['nb_jours'] ?? 1) > 1): ?><br><span class="tente-tag" style="background:rgba(212,175,55,.15);color:var(--gold);font-size:.68rem;padding:1px 7px;border-radius:8px;display:inline-block;margin-top:2px"><?= (int)$r['nb_jours'] ?> <?= tt('jours','أيام') ?></span><?php else: ?><br><span style="font-size:.72rem;color:#666" dir="ltr"><?= substr($r['heure_debut'],0,5) ?></span><?php endif; ?></td>
               <td><?= (int)$r['nbr_invites'] ?></td>
               <td><?= htmlspecialchars($r['lieu'] ?: '—') ?></td>
               <td><span class="svc-resume" title="<?= htmlspecialchars($r['services_resume'] ?? '') ?>"><?= htmlspecialchars($r['services_resume'] ?: '—') ?></span></td>

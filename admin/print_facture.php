@@ -25,6 +25,7 @@ try {
 // Lignes détaillées du devis à l'origine de cette facture (si disponible)
 $lignesFacture = [];
 $tenteNom = null;
+$toutesLesDatesFac = [];
 if (!empty($f['reservation_id'])) {
     try {
         $dq = $pdo->prepare("SELECT id FROM devis WHERE reservation_id = ? ORDER BY id DESC LIMIT 1");
@@ -41,9 +42,11 @@ if (!empty($f['reservation_id'])) {
         $tq->execute([$f['reservation_id']]);
         $tenteNom = $tq->fetchColumn() ?: null;
     } catch (Exception $e) { /* table tentes absente ou aucune tente choisie */ }
+    $toutesLesDatesFac = getReservationDates($pdo, (int)$f['reservation_id'], $f['date_evenement'] ?? null);
 }
+$nbJoursFac = count($toutesLesDatesFac);
 
-$dateEv  = !empty($f['date_evenement'])  ? date('d/m/Y', strtotime($f['date_evenement']))  : '—';
+$dateEv  = !empty($toutesLesDatesFac) ? formatDatesList($toutesLesDatesFac, ' • ') : (!empty($f['date_evenement']) ? date('d/m/Y', strtotime($f['date_evenement'])) : '—');
 $dateEch = !empty($f['date_echeance'])   ? date('d/m/Y', strtotime($f['date_echeance']))   : '—';
 $datePai = !empty($f['date_paiement'])   ? date('d/m/Y', strtotime($f['date_paiement']))   : null;
 $dateEmi = date('d/m/Y', strtotime($f['created_at']));
@@ -181,7 +184,7 @@ $fmtInt = fn($n) => number_format((float)$n, 0, ',', ' ') . ' MAD';
     <div class="info-box">
       <h4>Détails de l'événement</h4>
       <div class="info-row"><label>Type</label><span><?= ucfirst(str_replace('_',' ',$f['type_evenement']??'—')) ?></span></div>
-      <div class="info-row"><label>Date</label><span><?= $dateEv ?></span></div>
+      <div class="info-row"><label><?= $nbJoursFac > 1 ? "Dates ($nbJoursFac jours)" : 'Date' ?></label><span><?= $dateEv ?></span></div>
       <div class="info-row"><label>Invités</label><span><?= $f['nb_personnes'] ? $f['nb_personnes'] . ' personnes' : '—' ?></span></div>
       <?php if ($tenteNom): ?>
       <div class="info-row"><label>Tente</label><span><?= htmlspecialchars($tenteNom) ?></span></div>

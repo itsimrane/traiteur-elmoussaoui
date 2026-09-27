@@ -680,7 +680,11 @@ try {
     .dot-dispo { background: #25D366; }
     .dot-attente { background: #FBB724; }
     .dot-reserve { background: #EF5350; }
-    .cal-selected-label { margin-top: 10px; font-size: .85rem; color: var(--gold); font-weight: 600; min-height: 20px; }
+    .cal-selected-dates { margin-top: 10px; display: flex; flex-wrap: wrap; gap: 8px; min-height: 20px; }
+    .cal-date-chip { display: flex; align-items: center; gap: 8px; background: rgba(212,175,55,.12); border: 1px solid var(--gold); color: var(--gold); font-size: .78rem; font-weight: 600; padding: 6px 8px 6px 14px; border-radius: 20px; }
+    .cal-date-chip button { background: none; border: none; color: var(--gold); cursor: pointer; font-size: .85rem; line-height: 1; padding: 2px; display: flex; }
+    .cal-date-chip button:hover { color: #EF5350; }
+    .cal-no-date { color: var(--text-muted); font-size: .8rem; }
     @media(max-width:480px){
       .cal-day{font-size:.76rem}
       .cal-legend{gap:8px;font-size:.68rem}
@@ -796,13 +800,13 @@ try {
                   </div>
                 </div>
               </div>
-              <div class="cal-selected-label" id="dateSelectedLabel"></div>
+              <div class="cal-selected-dates" id="selectedDatesBox"></div>
 
               <input type="hidden" id="date_evenement" required>
               <small style="color:var(--text-muted);font-size:.72rem;display:block;margin-top:5px"
-                     data-fr="Réservation possible dès aujourd'hui, jusqu'à 3 semaines à l'avance."
-                     data-ar="الحجز ممكن ابتداءً من اليوم، وحتى 3 أسابيع مقدماً.">
-                Réservation possible dès aujourd'hui, jusqu'à 3 semaines à l'avance.
+                     data-fr="Réservation possible dès aujourd'hui, jusqu'à 3 semaines à l'avance. Vous pouvez choisir plusieurs dates."
+                     data-ar="الحجز ممكن ابتداءً من اليوم، وحتى 3 أسابيع مقدماً. يمكنكم اختيار عدة تواريخ.">
+                Réservation possible dès aujourd'hui, jusqu'à 3 semaines à l'avance. Vous pouvez choisir plusieurs dates.
               </small>
             </div>
             <div class="form-group">
@@ -1168,15 +1172,8 @@ try {
 
     function goStep2() {
       if (!selectedType) { showAlert('Veuillez choisir un type d\'événement.'); return; }
-      const dateVal = document.getElementById('date_evenement').value;
-      if (!dateVal) { showAlert('Veuillez saisir la date de l\'événement.'); return; }
-      const dateChoisie = new Date(dateVal);
-      const dateMin = new Date(); dateMin.setHours(0,0,0,0);
-      const dateMax = new Date(); dateMax.setDate(dateMax.getDate() + 21); dateMax.setHours(23,59,59,999);
-      if (dateChoisie < dateMin || dateChoisie > dateMax) {
-        showAlert('La date doit être comprise entre aujourd\'hui et 3 semaines à partir d\'aujourd\'hui.');
-        return;
-      }
+      const dates = window.__datesReservation || [];
+      if (dates.length === 0) { showAlert('Veuillez sélectionner au moins une date pour votre événement.'); return; }
       if (!document.getElementById('ville').value) { showAlert('Veuillez choisir une ville.'); return; }
       const nbInvites = parseInt(document.getElementById('nb_personnes').value, 10);
       if (!nbInvites) { showAlert('Veuillez indiquer le nombre d\'invités.'); return; }
@@ -1277,6 +1274,7 @@ try {
         message: document.getElementById('message').value.trim(),
         type: selectedType,
         date: document.getElementById('date_evenement').value,
+        dates: (window.__datesReservation || []).slice(),
         ville: document.getElementById('ville').value,
         nb: document.getElementById('nb_personnes').value,
         services: selectedServices,
@@ -1311,9 +1309,15 @@ try {
     ${devisData.email ? `<div class="recap-row"><span class="r-label">Email</span><span class="r-value">${devisData.email}</span></div>` : ''}
   `;
 
+      const datesAffichees = (devisData.dates && devisData.dates.length ? devisData.dates : [devisData.date])
+        .map(d => new Date(d + 'T00:00:00').toLocaleDateString('fr-FR', { day:'numeric', month:'long', year:'numeric' }));
+      const labelDates = datesAffichees.length > 1
+        ? `Dates (${datesAffichees.length} jours)`
+        : 'Date';
+
       document.getElementById('recapEvent').innerHTML = `
     <div class="recap-row"><span class="r-label">Type d'événement</span><span class="r-value">${typeLabelsMap[devisData.type] || devisData.type}</span></div>
-    <div class="recap-row"><span class="r-label">Date</span><span class="r-value" dir="ltr">${new Date(devisData.date).toLocaleDateString('fr-FR')}</span></div>
+    <div class="recap-row"><span class="r-label">${labelDates}</span><span class="r-value" dir="ltr">${datesAffichees.join(' • ')}</span></div>
     <div class="recap-row"><span class="r-label">Ville</span><span class="r-value">${devisData.ville}</span></div>
     <div class="recap-row"><span class="r-label">Nombre d'invités</span><span class="r-value" dir="ltr">${devisData.nb} personnes</span></div>
     ${devisData.tente ? `<div class="recap-row"><span class="r-label">Tente</span><span class="r-value">${devisData.tente.nom}</span></div>` : ''}
@@ -1368,7 +1372,10 @@ try {
               .map(s => '- ' + s.nom)
               .join('\n');
             const typeLabel = eventTypesLabels[devisData.type] || devisData.type || '';
-            const dateAffichee = devisData.date ? new Date(devisData.date).toLocaleDateString('fr-FR') : '';
+            const datesWa = (devisData.dates && devisData.dates.length ? devisData.dates : [devisData.date])
+              .map(d => new Date(d + 'T00:00:00').toLocaleDateString('fr-FR'));
+            const labelDateWa = datesWa.length > 1 ? `Dates (${datesWa.length} jours)` : 'Date';
+            const dateAffichee = datesWa.join(', ');
 
             const messageWa =
 `🍽️ *DEMANDE DE RÉSERVATION — EL MOUSSAOUI*
@@ -1377,7 +1384,7 @@ try {
 📱 Téléphone : ${devisData.telephone}
 📧 Email : ${devisData.email || '—'}
 🎉 Type d'événement : ${typeLabel}
-📅 Date : ${dateAffichee}
+📅 ${labelDateWa} : ${dateAffichee}
 📍 Ville : ${devisData.ville || '—'}
 👥 Nombre d'invités : ${devisData.nb}
 ⛺ Tente : ${devisData.tente ? devisData.tente.nom : '—'}
@@ -1463,6 +1470,7 @@ Je souhaite recevoir votre devis personnalisé après étude de ma demande. Merc
       document.querySelectorAll('.event-type-card').forEach(c => c.classList.remove('selected'));
       document.querySelectorAll('.service-chk-card').forEach(c => c.classList.remove('checked'));
       document.getElementById('date_evenement').value = '';
+      if (window.__resetDatesReservation) window.__resetDatesReservation();
       document.getElementById('ville').value = '';
       document.getElementById('nb_personnes').value = '';
       document.getElementById('prenom').value = '';
@@ -1483,10 +1491,29 @@ Je souhaite recevoir votre devis personnalisé après étude de ma demande. Merc
       let vueMois = MIN_DATE.getMonth();
       let vueAnnee = MIN_DATE.getFullYear();
       let datesStatut = {};
-      let dateSelectionnee = null;
+      let datesSelectionnees = []; // tableau de "YYYY-MM-DD", dates non consécutives autorisées
 
       function fmtDate(d) {
         return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
+      }
+
+      function majInputEtRecap() {
+        datesSelectionnees.sort();
+        window.__datesReservation = datesSelectionnees;
+        // date_evenement garde la date la plus proche (compat validations existantes)
+        document.getElementById('date_evenement').value = datesSelectionnees[0] || '';
+
+        const box = document.getElementById('selectedDatesBox');
+        const isAr = document.documentElement.lang === 'ar' || document.body.classList.contains('rtl-mode');
+        if (datesSelectionnees.length === 0) {
+          box.innerHTML = `<span class="cal-no-date" data-fr="Aucune date sélectionnée" data-ar="لم يتم اختيار أي تاريخ">Aucune date sélectionnée</span>`;
+        } else {
+          box.innerHTML = datesSelectionnees.map(ds => {
+            const dObj = new Date(ds + 'T00:00:00');
+            const label = dObj.toLocaleDateString(isAr ? 'ar-MA' : 'fr-FR', { day:'numeric', month:'long', year:'numeric' });
+            return `<span class="cal-date-chip">${label}<button type="button" onclick="window.__retirerDate('${ds}')" aria-label="Retirer"><i class="fas fa-times"></i></button></span>`;
+          }).join('');
+        }
       }
 
       function chargerDisponibilite(mois, annee) {
@@ -1547,24 +1574,40 @@ Je souhaite recevoir votre devis personnalisé après étude de ma demande. Merc
             });
           } else {
             if (statut === 'attente') cell.classList.add('attente');
-            cell.addEventListener('click', () => selectionnerDate(dateObj, cell));
+            cell.addEventListener('click', () => toggleDate(dateStr, cell));
           }
 
-          if (dateSelectionnee === dateStr) cell.classList.add('selected');
+          if (datesSelectionnees.includes(dateStr)) cell.classList.add('selected');
 
           grille.appendChild(cell);
         }
       }
 
-      function selectionnerDate(dateObj, cell) {
-        dateSelectionnee = fmtDate(dateObj);
-        document.getElementById('date_evenement').value = dateSelectionnee;
-        document.querySelectorAll('.cal-day.selected').forEach(c => c.classList.remove('selected'));
-        cell.classList.add('selected');
-        const isAr = document.documentElement.lang === 'ar' || document.body.classList.contains('rtl-mode');
-        const dateAffichee = dateObj.toLocaleDateString(isAr ? 'ar-MA' : 'fr-FR', { weekday:'long', day:'numeric', month:'long', year:'numeric' });
-        document.getElementById('dateSelectedLabel').textContent = '✓ ' + dateAffichee;
+      function toggleDate(dateStr, cell) {
+        const idx = datesSelectionnees.indexOf(dateStr);
+        if (idx === -1) {
+          datesSelectionnees.push(dateStr);
+          cell.classList.add('selected');
+        } else {
+          datesSelectionnees.splice(idx, 1);
+          cell.classList.remove('selected');
+        }
+        majInputEtRecap();
       }
+
+      // Permet de retirer une date depuis la puce (peut être sur un autre mois affiché)
+      window.__retirerDate = function (dateStr) {
+        const idx = datesSelectionnees.indexOf(dateStr);
+        if (idx !== -1) datesSelectionnees.splice(idx, 1);
+        majInputEtRecap();
+        dessinerCalendrier();
+      };
+
+      window.__resetDatesReservation = function () {
+        datesSelectionnees = [];
+        majInputEtRecap();
+        dessinerCalendrier();
+      };
 
       function changerMois(delta) {
         vueMois += delta;
@@ -1580,6 +1623,7 @@ Je souhaite recevoir votre devis personnalisé après étude de ma demande. Merc
         chargerDisponibilite(vueMois, vueAnnee).then(dessinerCalendrier);
       });
 
+      majInputEtRecap();
       chargerDisponibilite(vueMois, vueAnnee).then(dessinerCalendrier);
     })();
 

@@ -5,6 +5,56 @@ requireAdmin();
 $id = (int)($_GET['id'] ?? 0);
 if ($id <= 0) die('ID invalide');
 
+/**
+ * Resynchronise les informations copiées depuis la réservation (date,
+ * invités, coordonnées client, type d'événement) vers le devis et la
+ * facture déjà créés pour cette réservation, s'ils existent.
+ *
+ * Pourquoi : `devis` et `factures` stockent une COPIE de ces champs au
+ * moment de leur création (voir api/save_devis.php et admin/devis.php),
+ * ils ne sont pas relus en direct depuis `reservations`. Sans cette
+ * fonction, modifier la réservation après coup laisse le devis/la
+ * facture affichant les anciennes informations.
+ *
+ * Ne touche jamais aux montants, au statut, à la référence/numéro ou à
+ * l'acompte — uniquement aux champs descriptifs listés ci-dessus.
+ */
+function syncDevisEtFactureDepuisReservation(PDO $pdo, int $reservationId): void {
+    $rq = $pdo->prepare("
+        SELECT r.date_evenement, r.nbr_invites,
+               c.nom AS c_nom, c.prenom AS c_prenom, c.email AS c_email, c.telephone AS c_tel,
+               te.nom AS type_nom
+        FROM reservations r
+        LEFT JOIN clients c ON c.id = r.client_id
+        LEFT JOIN types_evenements te ON te.id = r.type_evenement_id
+        WHERE r.id = ?
+    ");
+    $rq->execute([$reservationId]);
+    $r = $rq->fetch();
+    if (!$r) return;
+
+    $nomClient = trim(($r['c_prenom'] ?? '') . ' ' . ($r['c_nom'] ?? ''));
+
+    try {
+        $pdo->prepare("
+            UPDATE devis SET date_evenement=?, nbr_invites=?, updated_at=NOW()
+            WHERE reservation_id=?
+        ")->execute([$r['date_evenement'], $r['nbr_invites'], $reservationId]);
+    } catch (Exception $e) { /* pas de devis lié — rien à faire */ }
+
+    try {
+        $pdo->prepare("
+            UPDATE factures SET
+                date_evenement=?, nb_personnes=?, type_evenement=?,
+                nom_client=?, email_client=?, telephone_client=?, updated_at=NOW()
+            WHERE reservation_id=?
+        ")->execute([
+            $r['date_evenement'], $r['nbr_invites'], $r['type_nom'],
+            $nomClient ?: 'Client', $r['c_email'], $r['c_tel'], $reservationId
+        ]);
+    } catch (Exception $e) { /* pas de facture liée — rien à faire */ }
+}
+
 // ── Actions ────────────────────────────────────────────────────
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $action = $_POST['action'] ?? '';
@@ -19,16 +69,39 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 
     if ($action === 'update_infos') {
+        // Une ou plusieurs dates — dédoublonnées et validées, jamais vide
+        $datesPost = $_POST['dates'] ?? [];
+        if (!is_array($datesPost)) $datesPost = [$datesPost];
+        $datesValides = [];
+        foreach ($datesPost as $d) {
+            $ts = strtotime($d);
+            if ($ts !== false) $datesValides[] = date('Y-m-d', $ts);
+        }
+        $datesValides = array_values(array_unique($datesValides));
+        sort($datesValides);
+        if (empty($datesValides)) $datesValides = [$_POST['date_evenement'] ?? date('Y-m-d')];
+        $datePrincipale = $datesValides[0];
+
         $pdo->prepare("
             UPDATE reservations SET
                 date_evenement=?, heure_debut=?, nbr_invites=?, lieu=?, notes_internes=?, updated_at=NOW()
             WHERE id=?
         ")->execute([
-            $_POST['date_evenement'], $_POST['heure_debut'] ?: '18:00:00',
+            $datePrincipale, $_POST['heure_debut'] ?: '18:00:00',
             (int)$_POST['nbr_invites'], sanitize($_POST['lieu'] ?? ''),
             sanitize($_POST['notes_internes'] ?? ''), $id
         ]);
-        $msg = 'Réservation modifiée avec succès.'; $msgType = 'success';
+
+        // Remplacer la liste des dates (table dédiée, source de vérité pour le multi-jours)
+        try {
+            $pdo->prepare("DELETE FROM reservation_dates WHERE reservation_id=?")->execute([$id]);
+            $insD = $pdo->prepare("INSERT IGNORE INTO reservation_dates (reservation_id, date_evenement) VALUES (?,?)");
+            foreach ($datesValides as $d) { $insD->execute([$id, $d]); }
+        } catch (Exception $e) { /* table pas encore migrée */ }
+
+        syncDevisEtFactureDepuisReservation($pdo, $id);
+        $nbJours = count($datesValides);
+        $msg = 'Réservation modifiée avec succès (' . $nbJours . ' jour' . ($nbJours>1?'s':'') . '). Le devis et la facture liés ont été mis à jour.'; $msgType = 'success';
     }
 
     if ($action === 'delete') {
@@ -126,6 +199,10 @@ $stmt = $pdo->prepare("
 $stmt->execute([$id]);
 $r = $stmt->fetch();
 if (!$r) die('Réservation introuvable');
+
+// Liste complète des dates (une ou plusieurs) — repli sur date_evenement si la table n'existe pas encore
+$toutesLesDates = getReservationDates($pdo, $id, $r['date_evenement']);
+$nbJours = count($toutesLesDates);
 
 // Devis + lignes liés
 $devis = null; $lignes = [];
@@ -252,7 +329,10 @@ $nomClient = trim(($r['c_prenom'] ?? '').' '.($r['c_nom'] ?? '')) ?: 'Client #'.
             <h3><i class="fas fa-calendar-star"></i> <?= tt('Informations événement','معلومات المناسبة') ?></h3>
             <div class="info-grid">
               <div class="info-field"><label><?= tt("Type d'événement",'نوع المناسبة') ?></label><span><?= htmlspecialchars($r['type_nom'] ?: '—') ?></span></div>
-              <div class="info-field"><label><?= tt('Date','التاريخ') ?></label><span dir="ltr"><?= $r['date_evenement'] ? date('d/m/Y', strtotime($r['date_evenement'])) : '—' ?></span></div>
+              <div class="info-field" style="grid-column:1/-1">
+                <label><?= $nbJours > 1 ? tt('Dates','التواريخ') . " ($nbJours " . tt('jours','أيام') . ')' : tt('Date','التاريخ') ?></label>
+                <span dir="ltr"><?= implode(' • ', array_map(fn($d) => date('d/m/Y', strtotime($d)), $toutesLesDates)) ?></span>
+              </div>
               <div class="info-field"><label><?= tt('Heure','الوقت') ?></label><span dir="ltr"><?= substr($r['heure_debut'],0,5) ?></span></div>
               <div class="info-field"><label><?= tt("Nombre d'invités",'عدد الضيوف') ?></label><span><?= (int)$r['nbr_invites'] ?> <?= tt('personnes','أشخاص') ?></span></div>
               <div class="info-field" style="grid-column:1/-1"><label><?= tt('Lieu','المكان') ?></label><span><?= htmlspecialchars($r['lieu'] ?: '—') ?></span></div>
@@ -387,10 +467,20 @@ $nomClient = trim(($r['c_prenom'] ?? '').' '.($r['c_nom'] ?? '')) ?: 'Client #'.
             </form>
 
             <div id="editForm" class="edit-form">
-              <form method="POST">
+              <form method="POST" id="formEditInfos">
                 <input type="hidden" name="action" value="update_infos">
-                <label style="font-size:.72rem;color:var(--text-muted)"><?= tt("Date de l'événement",'تاريخ المناسبة') ?></label>
-                <input type="date" name="date_evenement" value="<?= htmlspecialchars($r['date_evenement']) ?>">
+                <label style="font-size:.72rem;color:var(--text-muted)"><?= $nbJours > 1 ? tt('Dates de l\'événement','تواريخ المناسبة') : tt("Date de l'événement",'تاريخ المناسبة') ?></label>
+                <div id="datesEditList" style="display:flex;flex-direction:column;gap:6px;margin-bottom:8px">
+                  <?php foreach ($toutesLesDates as $i => $d): ?>
+                  <div class="date-edit-row" style="display:flex;gap:6px;align-items:center">
+                    <input type="date" name="dates[]" value="<?= htmlspecialchars($d) ?>" style="flex:1">
+                    <button type="button" onclick="if(document.querySelectorAll('#datesEditList .date-edit-row').length>1){this.parentElement.remove()}" style="background:none;border:1px solid var(--border);color:#EF5350;border-radius:6px;width:32px;height:32px;cursor:pointer;flex-shrink:0"><i class="fas fa-times"></i></button>
+                  </div>
+                  <?php endforeach; ?>
+                </div>
+                <button type="button" onclick="ajouterDateEdit()" class="action-btn edit" style="margin-bottom:12px;padding:7px 12px;font-size:.75rem">
+                  <i class="fas fa-plus"></i> <?= tt('Ajouter une date','إضافة تاريخ') ?>
+                </button>
                 <label style="font-size:.72rem;color:var(--text-muted)"><?= tt('Heure','الوقت') ?></label>
                 <input type="time" name="heure_debut" value="<?= substr($r['heure_debut'],0,5) ?>">
                 <label style="font-size:.72rem;color:var(--text-muted)"><?= tt("Nombre d'invités",'عدد الضيوف') ?></label>
@@ -419,7 +509,8 @@ $nomClient = trim(($r['c_prenom'] ?? '').' '.($r['c_nom'] ?? '')) ?: 'Client #'.
             <div class="info-field"><label><?= tt('Total','الإجمالي') ?></label><span style="color:var(--gold);font-weight:700"><?= number_format($devis['montant_ht'],0,',',' ') ?> MAD</span></div>
             <?php if ($r['c_tel'] && !empty($lignes)):
                 $texte = "Bonjour {$nomClient},\n\nVoici votre devis {$devis['reference']} — Traiteur EL MOUSSAOUI :\n";
-                $texte .= "Événement : " . ($r['type_nom'] ?: '—') . " le " . ($r['date_evenement'] ? date('d/m/Y', strtotime($r['date_evenement'])) : '—') . "\n";
+                $labelDatesWa = $nbJours > 1 ? 'Dates (' . $nbJours . ' jours)' : 'Date';
+                $texte .= "Événement : " . ($r['type_nom'] ?: '—') . " — $labelDatesWa : " . formatDatesList($toutesLesDates, ', ') . "\n";
                 if ($tenteChoisie) $texte .= "Tente : " . $tenteChoisie['nom'] . "\n";
                 $texte .= "\nServices :\n";
                 foreach ($lignes as $l) {
@@ -447,6 +538,17 @@ document.getElementById('sidebarToggle').addEventListener('click',()=>{
   document.getElementById('sidebar').classList.toggle('open');
   document.getElementById('sidebarOverlay').classList.toggle('show');
 });
+function ajouterDateEdit() {
+  const list = document.getElementById('datesEditList');
+  const row = document.createElement('div');
+  row.className = 'date-edit-row';
+  row.style.cssText = 'display:flex;gap:6px;align-items:center';
+  row.innerHTML = `
+    <input type="date" name="dates[]" style="flex:1">
+    <button type="button" onclick="if(document.querySelectorAll('#datesEditList .date-edit-row').length>1){this.parentElement.remove()}" style="background:none;border:1px solid var(--border);color:#EF5350;border-radius:6px;width:32px;height:32px;cursor:pointer;flex-shrink:0"><i class="fas fa-times"></i></button>`;
+  list.appendChild(row);
+}
+
 function addPricingRow(designation, quantite, prix) {
   const tbody = document.getElementById('pricingBody');
   const tr = document.createElement('tr');

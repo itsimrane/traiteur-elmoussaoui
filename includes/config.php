@@ -96,6 +96,27 @@ if (session_status() === PHP_SESSION_NONE) {
 require_once __DIR__ . '/lang_helper.php';
 
 // ─── Fonctions utilitaires ──────────────────────────
+/**
+ * Retourne toutes les dates (triées) d'une réservation depuis
+ * `reservation_dates`. Si la table n'existe pas encore (migration pas
+ * lancée) ou si la réservation n'a aucune ligne, retombe sur sa
+ * `date_evenement` unique pour ne jamais rien casser.
+ */
+function getReservationDates(PDO $pdo, int $reservationId, ?string $dateEvenementFallback = null): array {
+    try {
+        $stmt = $pdo->prepare("SELECT date_evenement FROM reservation_dates WHERE reservation_id = ? ORDER BY date_evenement ASC");
+        $stmt->execute([$reservationId]);
+        $dates = array_column($stmt->fetchAll(), 'date_evenement');
+        if (!empty($dates)) return $dates;
+    } catch (Exception $e) { /* table absente — repli ci-dessous */ }
+    return $dateEvenementFallback ? [$dateEvenementFallback] : [];
+}
+
+/** Formate une liste de dates (YYYY-MM-DD) en "10/10/2026, 12/10/2026". */
+function formatDatesList(array $dates, string $sep = ', '): string {
+    return implode($sep, array_map(fn($d) => date('d/m/Y', strtotime($d)), $dates));
+}
+
 function sanitize(string $input): string {
     return htmlspecialchars(strip_tags(trim($input)), ENT_QUOTES, 'UTF-8');
 }

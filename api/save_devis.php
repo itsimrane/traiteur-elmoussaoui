@@ -16,21 +16,56 @@ $nomRaw    = sanitize($data['nom']    ?? '');
 $telephone = sanitize($data['telephone'] ?? '');
 $email     = sanitize($data['email']     ?? '');
 $typeRaw   = sanitize($data['type']      ?? '');
-$date      = !empty($data['date']) ? $data['date'] : date('Y-m-d', strtotime('+30 days'));
 $ville     = sanitize($data['ville']     ?? '');
 $nb        = (int)($data['nb'] ?? 0) ?: 100;
 $message   = sanitize($data['message']  ?? '');
 $services  = $data['services'] ?? [];
 $tenteIdRaw = (int)($data['tente']['id'] ?? 0);
 
-if (!$telephone) jsonResponse(['success'=>false,'message'=>'Téléphone requis']);
-if ($nb <= 0) jsonResponse(['success'=>false,'message'=>'Le nombre d\'invités doit être supérieur à 0']);
+// ── Dates de l'événement — une ou plusieurs, non consécutives autorisées ──
+// Le client peut réserver plusieurs jours dans une seule réservation.
+// On accepte soit `dates` (tableau), soit `date` (ancien format, un seul
+// jour) pour rester compatible avec tout appelant existant.
+$datesRaw = $data['dates'] ?? (!empty($data['date']) ? [$data['date']] : []);
+if (!is_array($datesRaw)) $datesRaw = [$datesRaw];
+$datesRaw = array_values(array_unique(array_filter(array_map('strval', $datesRaw))));
+
+if (empty($datesRaw)) jsonResponse(['success'=>false,'message'=>'Veuillez sélectionner au moins une date']);
+
 $dateMin = strtotime('today');
 $dateMax = strtotime('+21 days', strtotime('today'));
-$dateChoisie = strtotime($date);
-if ($dateChoisie === false) jsonResponse(['success'=>false,'message'=>'Date invalide']);
-if ($dateChoisie < $dateMin) jsonResponse(['success'=>false,'message'=>"La date de l'événement ne peut pas être dans le passé"]);
-if ($dateChoisie > $dateMax) jsonResponse(['success'=>false,'message'=>"La date de l'événement ne peut pas dépasser 3 semaines à l'avance"]);
+$datesValidees = [];
+foreach ($datesRaw as $d) {
+    $ts = strtotime($d);
+    if ($ts === false) jsonResponse(['success'=>false,'message'=>"Date invalide : $d"]);
+    if ($ts < $dateMin) jsonResponse(['success'=>false,'message'=>"La date $d ne peut pas être dans le passé"]);
+    if ($ts > $dateMax) jsonResponse(['success'=>false,'message'=>"La date $d dépasse le délai maximum de 3 semaines à l'avance"]);
+    $datesValidees[] = date('Y-m-d', $ts);
+}
+sort($datesValidees);
+$date = $datesValidees[0]; // date principale (la plus proche) — utilisée partout où le code existant attend une seule date
+
+// Vérification serveur de disponibilité — jamais confiance au calendrier
+// affiché côté client : on rejette toute date déjà occupée par une
+// réservation confirmée/en cours d'un autre client.
+try {
+    $placeholders = implode(',', array_fill(0, count($datesValidees), '?'));
+    $chkDispo = $pdo->prepare("
+        SELECT DISTINCT rd.date_evenement
+        FROM reservation_dates rd
+        JOIN reservations r ON r.id = rd.reservation_id
+        WHERE rd.date_evenement IN ($placeholders)
+          AND r.deleted_at IS NULL AND r.statut IN ('confirmee','en_cours')
+    ");
+    $chkDispo->execute($datesValidees);
+    $indispo = array_column($chkDispo->fetchAll(), 'date_evenement');
+    if (!empty($indispo)) {
+        jsonResponse(['success'=>false,'message'=>'Cette date est déjà réservée : ' . implode(', ', array_map(fn($d)=>date('d/m/Y', strtotime($d)), $indispo))]);
+    }
+} catch (Exception $e) { /* table reservation_dates pas encore migrée — pas de blocage */ }
+
+if (!$telephone) jsonResponse(['success'=>false,'message'=>'Téléphone requis']);
+if ($nb <= 0) jsonResponse(['success'=>false,'message'=>'Le nombre d\'invités doit être supérieur à 0']);
 
 $pdo->beginTransaction();
 try {
@@ -138,6 +173,14 @@ try {
 
     $refRes = 'RES-' . date('Y') . '-' . str_pad($reservationId, 4, '0', STR_PAD_LEFT);
     $pdo->prepare("UPDATE reservations SET reference=? WHERE id=?")->execute([$refRes, $reservationId]);
+
+    // Enregistrer chaque date choisie (1 ou plusieurs, non consécutives autorisées)
+    try {
+        $insDate = $pdo->prepare("INSERT IGNORE INTO reservation_dates (reservation_id, date_evenement) VALUES (?, ?)");
+        foreach ($datesValidees as $d) {
+            $insDate->execute([$reservationId, $d]);
+        }
+    } catch (Exception $e) { /* table pas encore migrée — la réservation reste valide avec sa date principale */ }
 
     // ── 4. Devis lié à la réservation ────────────────────────────
     $tempNumero = 'TMP-' . uniqid();
